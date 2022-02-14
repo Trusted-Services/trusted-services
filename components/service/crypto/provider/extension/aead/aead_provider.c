@@ -301,6 +301,7 @@ static rpc_status_t aead_update_handler(void *context, struct rpc_request *req)
 
 			size_t output_len = 0;
 			size_t output_size = PSA_AEAD_UPDATE_OUTPUT_MAX_SIZE(input_len);
+			/* Always allocate maximum size to be more robust to implementations of psa_aead_update() */
 			uint8_t *output = malloc(output_size);
 
 			if (output) {
