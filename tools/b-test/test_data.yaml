@@ -85,6 +85,16 @@ data:
       src: "$TS_ROOT/deployments/internal-trusted-storage/config/shared-flash-opteesp"
       params:
             - "-GUnix Makefiles"
+    - name: "libpsa-arm-linux"
+      src: "$TS_ROOT/deployments/libpsa/arm-linux"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+    - name: "libpsa-linux-pc"
+      src: "$TS_ROOT/deployments/libpsa/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
     - name: "libsp-linux-pc"
       src: "$TS_ROOT/deployments/libsp/linux-pc"
       os_id : "GNU/Linux"
