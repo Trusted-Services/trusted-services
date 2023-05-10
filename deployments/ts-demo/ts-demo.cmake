@@ -12,19 +12,18 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  Use libts for locating and accessing services. An appropriate version of
-#  libts will be imported for the environment in which service tests are
-#  deployed.
+#  Use libpsa for locating PSA services. An appropriate version of
+#  libpsa will be imported for the environment.
 #-------------------------------------------------------------------------------
-include(${TS_ROOT}/deployments/libts/libts-import.cmake)
-target_link_libraries(ts-demo PRIVATE libts::ts)
+include(${TS_ROOT}/deployments/libpsa/libpsa-import.cmake)
+target_link_libraries(ts-demo PRIVATE libpsa::psa)
 
 #-------------------------------------------------------------------------------
 #  Common main for all deployments
 #
 #-------------------------------------------------------------------------------
 target_sources(ts-demo PRIVATE
-	"${CMAKE_CURRENT_LIST_DIR}/ts-demo.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/ts-demo.c"
 )
 
 #-------------------------------------------------------------------------------
@@ -36,24 +35,7 @@ add_components(
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
 		"components/app/ts-demo"
-		"components/common/tlv"
-		"components/service/common/include"
-		"components/service/common/client"
-		"components/service/crypto/client/cpp"
-		"components/service/crypto/client/cpp/protocol/packed-c"
-		"protocols/service/crypto/packed-c"
 )
-
-#-------------------------------------------------------------------------------
-#  Components used from external projects
-#
-#-------------------------------------------------------------------------------
-
-# MbedTLS provides libmbedcrypto
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
-	CACHE STRING "Configuration file for mbedcrypto")
-include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
-target_link_libraries(ts-demo PRIVATE MbedTLS::mbedcrypto)
 
 #-------------------------------------------------------------------------------
 #  Define install content.
