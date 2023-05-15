@@ -18,6 +18,14 @@ project(psa-crypto-api-test LANGUAGES CXX C)
 add_executable(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE "${TOP_LEVEL_INCLUDE_DIRS}")
 
+set(TRACE_PREFIX "PSACRYPTO" CACHE STRING "Trace prefix")
+add_components(TARGET ${PROJECT_NAME}
+	BASE_DIR ${TS_ROOT}
+	COMPONENTS
+		"components/common/trace"
+		"environments/arm-linux"
+)
+
 #-------------------------------------------------------------------------------
 #  Extend with components that are common across all deployments of
 #  psa-api-test/crypto

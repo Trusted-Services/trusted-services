@@ -22,17 +22,15 @@ set(TS_ARCH_TEST_BUILD_SUBDIR storage CACHE STRING "Arch test build subdirectory
 #  Protected storage specific components
 #
 #-------------------------------------------------------------------------------
-add_components(
-	TARGET "${PROJECT_NAME}"
-	BASE_DIR ${TS_ROOT}
-	COMPONENTS
-		"components/service/secure_storage/include"
-		"components/service/secure_storage/frontend/psa/ps"
-		"components/service/secure_storage/backend/secure_storage_client"
+target_sources(${PROJECT_NAME} PRIVATE
+	${TS_ROOT}/deployments/psa-api-test/protected_storage/ps.c
 )
 
-target_sources(${PROJECT_NAME} PRIVATE
-	${TS_ROOT}/deployments/psa-api-test/protected_storage/ps_locator.c
+add_components(TARGET ${PROJECT_NAME}
+	BASE_DIR ${TS_ROOT}
+	COMPONENTS
+		"components/service/common/include"
+		"components/service/secure_storage/include"
 )
 
 #-------------------------------------------------------------------------------

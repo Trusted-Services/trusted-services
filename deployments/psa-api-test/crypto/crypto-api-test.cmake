@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2021-2023, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -29,16 +29,15 @@ set(TS_ARCH_TEST_BUILD_SUBDIR crypto CACHE STRING "Arch test build subdirectory"
 #  Crypto specific components
 #
 #-------------------------------------------------------------------------------
-add_components(
-	TARGET "${PROJECT_NAME}"
-	BASE_DIR ${TS_ROOT}
-	COMPONENTS
-		"components/service/crypto/include"
-		"components/service/crypto/client/psa"
+target_sources(${PROJECT_NAME} PRIVATE
+	${TS_ROOT}/deployments/psa-api-test/crypto/crypto.c
 )
 
-target_sources(${PROJECT_NAME} PRIVATE
-	${TS_ROOT}/deployments/psa-api-test/crypto/crypto_locator.c
+add_components(TARGET ${PROJECT_NAME}
+	BASE_DIR ${TS_ROOT}
+	COMPONENTS
+		"components/service/common/include"
+		"components/service/crypto/include"
 )
 
 #-------------------------------------------------------------------------------
