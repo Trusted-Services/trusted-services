@@ -29,7 +29,8 @@ Version ID hierarchy
 
 The project hosts multiple components which can be used separately and thus need
 compatibility information expressed independently. Such components get a
-dedicated version ID. Examples are :ref:`libs-libsp` and :ref:`libs-libts`.
+dedicated version ID. Examples are :ref:`libs-libsp` :ref:`libs-libts` and
+:ref:`libs-libpsa`.
 
 Components are never released standalone but only part of a TS release. In that
 sense a set of independent component version IDs are assigned to a TS release ID.

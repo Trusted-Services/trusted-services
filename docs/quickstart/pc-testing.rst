@@ -36,7 +36,7 @@ From the root directory of the checked-out TS project, enter the following::
 
   cmake -B build-ts -S deployments/ts-service-test/linux-pc
   make -C build-ts install
-  LD_PRELOAD=build-ts/install/linux-pc/lib/libts.so build-ts/install/linux-pc/bin/ts-service-test -v
+  LD_LIBRARY_PATH=build-ts/install/linux-pc/lib build-ts/install/linux-pc/bin/ts-service-test -v
 
 Build and run *psa-api-test*
 ----------------------------
@@ -51,7 +51,7 @@ To build and run tests for the Crypto API, enter the following (use the same flo
 
   cmake -B build-pa deployments/psa-api-test/crypto/linux-pc
   make -C build-pa install
-  LD_PRELOAD=build-pa/install/linux-pc/lib/libts.so build-pa/install/linux-pc/bin/psa-crypto-api-test
+  LD_LIBRARY_PATH=build-ts/install/linux-pc/lib build-pa/install/linux-pc/bin/psa-crypto-api-test
 
 psa-api test binaries accept the listed command-line arguments:
 
