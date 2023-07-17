@@ -11,12 +11,11 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  Use libts for locating and accessing trusted services. An appropriate version
-#  of libts will be imported for the environment in which platform-inspect is
-#  built.
+#  Use libpsa for locating PSA services. An appropriate version of
+#  libpsa will be imported for the environment.
 #-------------------------------------------------------------------------------
-include(${TS_ROOT}/deployments/libts/libts-import.cmake)
-target_link_libraries(platform-inspect PRIVATE libts::ts)
+include(${TS_ROOT}/deployments/libpsa/libpsa-import.cmake)
+target_link_libraries(platform-inspect PRIVATE libpsa::psa)
 
 #-------------------------------------------------------------------------------
 #  Components that are common across all deployments
@@ -29,11 +28,6 @@ add_components(
 		"components/app/platform-inspect"
 		"components/common/tlv"
 		"components/common/cbor_dump"
-		"components/service/common/client"
-		"components/service/common/include"
-		"components/service/attestation/include"
-		"components/service/attestation/client/psa"
-		"components/service/attestation/client/provision"
 		"components/service/attestation/reporter/dump/raw"
 		"components/service/attestation/reporter/dump/pretty"
 )
