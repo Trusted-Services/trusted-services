@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2023, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stddef.h>
 #include "psa_crypto_client.h"
+
+#include <service/crypto/include/psa/crypto.h>
+#include <stddef.h>
 
 struct psa_crypto_client psa_crypto_client_instance = {
 
@@ -17,8 +19,8 @@ struct psa_crypto_client psa_crypto_client_instance = {
 	.init_status = PSA_ERROR_BAD_STATE
 };
 
-psa_status_t psa_crypto_init(void) {
-
+psa_status_t psa_crypto_init(void)
+{
 	/* Must be called after psa_crypto_client_init */
 	if (psa_crypto_client_instance.base.session)
 		psa_crypto_client_instance.init_status = PSA_SUCCESS;

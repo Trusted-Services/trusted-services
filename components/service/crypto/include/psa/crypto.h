@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -16,6 +16,12 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef EXPORT_PUBLIC_INTERFACE_PSA_CRYPTO
+#define PSA_CRYPTO_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define PSA_CRYPTO_EXPORTED
 #endif
 
 /* The file "crypto_types.h" declares types that encode errors,
@@ -74,7 +80,7 @@ extern "C" {
  * \retval #PSA_ERROR_DATA_INVALID
  * \retval #PSA_ERROR_DATA_CORRUPT
  */
-psa_status_t psa_crypto_init(void);
+PSA_CRYPTO_EXPORTED psa_status_t psa_crypto_init(void);
 
 /**@}*/
 
@@ -118,8 +124,7 @@ static psa_key_attributes_t psa_key_attributes_init(void);
  * \param[out] attributes  The attribute structure to write to.
  * \param key              The persistent identifier for the key.
  */
-static void psa_set_key_id( psa_key_attributes_t *attributes,
-                            psa_key_id_t key );
+static void psa_set_key_id(psa_key_attributes_t *attributes, psa_key_id_t key);
 
 /** Set the location of a persistent key.
  *
@@ -146,8 +151,7 @@ static void psa_set_key_id( psa_key_attributes_t *attributes,
  *                              key will be volatile, and the key identifier
  *                              attribute is reset to 0.
  */
-static void psa_set_key_lifetime(psa_key_attributes_t *attributes,
-                                 psa_key_lifetime_t lifetime);
+static void psa_set_key_lifetime(psa_key_attributes_t *attributes, psa_key_lifetime_t lifetime);
 
 /** Retrieve the key identifier from key attributes.
  *
@@ -161,8 +165,7 @@ static void psa_set_key_lifetime(psa_key_attributes_t *attributes,
  *         This value is unspecified if the attribute structure declares
  *         the key as volatile.
  */
-static psa_key_id_t psa_get_key_id(
-    const psa_key_attributes_t *attributes);
+static psa_key_id_t psa_get_key_id(const psa_key_attributes_t *attributes);
 
 /** Retrieve the lifetime from key attributes.
  *
@@ -174,8 +177,7 @@ static psa_key_id_t psa_get_key_id(
  *
  * \return The lifetime value stored in the attribute structure.
  */
-static psa_key_lifetime_t psa_get_key_lifetime(
-    const psa_key_attributes_t *attributes);
+static psa_key_lifetime_t psa_get_key_lifetime(const psa_key_attributes_t *attributes);
 
 /** Declare usage flags for a key.
  *
@@ -193,8 +195,7 @@ static psa_key_lifetime_t psa_get_key_lifetime(
  * \param[out] attributes       The attribute structure to write to.
  * \param usage_flags           The usage flags to write.
  */
-static void psa_set_key_usage_flags(psa_key_attributes_t *attributes,
-                                    psa_key_usage_t usage_flags);
+static void psa_set_key_usage_flags(psa_key_attributes_t *attributes, psa_key_usage_t usage_flags);
 
 /** Retrieve the usage flags from key attributes.
  *
@@ -206,8 +207,7 @@ static void psa_set_key_usage_flags(psa_key_attributes_t *attributes,
  *
  * \return The usage flags stored in the attribute structure.
  */
-static psa_key_usage_t psa_get_key_usage_flags(
-    const psa_key_attributes_t *attributes);
+static psa_key_usage_t psa_get_key_usage_flags(const psa_key_attributes_t *attributes);
 
 /** Declare the permitted algorithm policy for a key.
  *
@@ -239,9 +239,7 @@ static psa_key_usage_t psa_get_key_usage_flags(
  * \param[out] attributes       The attribute structure to write to.
  * \param alg                   The permitted algorithm policy to write.
  */
-static void psa_set_key_algorithm(psa_key_attributes_t *attributes,
-                                  psa_algorithm_t alg);
-
+static void psa_set_key_algorithm(psa_key_attributes_t *attributes, psa_algorithm_t alg);
 
 /** Retrieve the algorithm policy from key attributes.
  *
@@ -253,8 +251,7 @@ static void psa_set_key_algorithm(psa_key_attributes_t *attributes,
  *
  * \return The algorithm stored in the attribute structure.
  */
-static psa_algorithm_t psa_get_key_algorithm(
-    const psa_key_attributes_t *attributes);
+static psa_algorithm_t psa_get_key_algorithm(const psa_key_attributes_t *attributes);
 
 /** Declare the type of a key.
  *
@@ -270,9 +267,7 @@ static psa_algorithm_t psa_get_key_algorithm(
  *                              If this is 0, the key type in \p attributes
  *                              becomes unspecified.
  */
-static void psa_set_key_type(psa_key_attributes_t *attributes,
-                             psa_key_type_t type);
-
+static void psa_set_key_type(psa_key_attributes_t *attributes, psa_key_type_t type);
 
 /** Declare the size of a key.
  *
@@ -288,8 +283,7 @@ static void psa_set_key_type(psa_key_attributes_t *attributes,
  *                              becomes unspecified. Keys of size 0 are
  *                              not supported.
  */
-static void psa_set_key_bits(psa_key_attributes_t *attributes,
-                             size_t bits);
+static void psa_set_key_bits(psa_key_attributes_t *attributes, size_t bits);
 
 /** Retrieve the key type from key attributes.
  *
@@ -343,8 +337,8 @@ static size_t psa_get_key_bits(const psa_key_attributes_t *attributes);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_get_key_attributes(psa_key_id_t key,
-                                    psa_key_attributes_t *attributes);
+PSA_CRYPTO_EXPORTED psa_status_t psa_get_key_attributes(psa_key_id_t key,
+							psa_key_attributes_t *attributes);
 
 /** Reset a key attribute structure to a freshly initialized state.
  *
@@ -358,7 +352,7 @@ psa_status_t psa_get_key_attributes(psa_key_id_t key,
  *
  * \param[in,out] attributes    The attribute structure to reset.
  */
-void psa_reset_key_attributes(psa_key_attributes_t *attributes);
+PSA_CRYPTO_EXPORTED void psa_reset_key_attributes(psa_key_attributes_t *attributes);
 
 /**@}*/
 
@@ -387,7 +381,7 @@ void psa_reset_key_attributes(psa_key_attributes_t *attributes);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_purge_key(psa_key_id_t key);
+PSA_CRYPTO_EXPORTED psa_status_t psa_purge_key(psa_key_id_t key);
 
 /** Make a copy of a key.
  *
@@ -480,10 +474,9 @@ psa_status_t psa_purge_key(psa_key_id_t key);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_copy_key(psa_key_id_t source_key,
-                          const psa_key_attributes_t *attributes,
-                          psa_key_id_t *target_key);
-
+PSA_CRYPTO_EXPORTED psa_status_t psa_copy_key(psa_key_id_t source_key,
+					      const psa_key_attributes_t *attributes,
+					      psa_key_id_t *target_key);
 
 /**
  * \brief Destroy a key.
@@ -530,7 +523,7 @@ psa_status_t psa_copy_key(psa_key_id_t source_key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_destroy_key(psa_key_id_t key);
+PSA_CRYPTO_EXPORTED psa_status_t psa_destroy_key(psa_key_id_t key);
 
 /**@}*/
 
@@ -611,12 +604,9 @@ psa_status_t psa_destroy_key(psa_key_id_t key);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_import_key(const psa_key_attributes_t *attributes,
-                            const uint8_t *data,
-                            size_t data_length,
-                            psa_key_id_t *key);
-
-
+PSA_CRYPTO_EXPORTED psa_status_t psa_import_key(const psa_key_attributes_t *attributes,
+						const uint8_t *data, size_t data_length,
+						psa_key_id_t *key);
 
 /**
  * \brief Export a key in binary format.
@@ -704,10 +694,8 @@ psa_status_t psa_import_key(const psa_key_attributes_t *attributes,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_export_key(psa_key_id_t key,
-                            uint8_t *data,
-                            size_t data_size,
-                            size_t *data_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_export_key(psa_key_id_t key, uint8_t *data, size_t data_size,
+						size_t *data_length);
 
 /**
  * \brief Export a public key or the public part of a key pair in binary format.
@@ -774,12 +762,8 @@ psa_status_t psa_export_key(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_export_public_key(psa_key_id_t key,
-                                   uint8_t *data,
-                                   size_t data_size,
-                                   size_t *data_length);
-
-
+PSA_CRYPTO_EXPORTED psa_status_t psa_export_public_key(psa_key_id_t key, uint8_t *data,
+						       size_t data_size, size_t *data_length);
 
 /**@}*/
 
@@ -819,12 +803,9 @@ psa_status_t psa_export_public_key(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_compute(psa_algorithm_t alg,
-                              const uint8_t *input,
-                              size_t input_length,
-                              uint8_t *hash,
-                              size_t hash_size,
-                              size_t *hash_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_compute(psa_algorithm_t alg, const uint8_t *input,
+						  size_t input_length, uint8_t *hash,
+						  size_t hash_size, size_t *hash_length);
 
 /** Calculate the hash (digest) of a message and compare it with a
  * reference value.
@@ -855,11 +836,9 @@ psa_status_t psa_hash_compute(psa_algorithm_t alg,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_compare(psa_algorithm_t alg,
-                              const uint8_t *input,
-                              size_t input_length,
-                              const uint8_t *hash,
-                              size_t hash_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_compare(psa_algorithm_t alg, const uint8_t *input,
+						  size_t input_length, const uint8_t *hash,
+						  size_t hash_length);
 
 /** The type of the state data structure for multipart hash operations.
  *
@@ -956,8 +935,8 @@ static psa_hash_operation_t psa_hash_operation_init(void);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
-                            psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
+						psa_algorithm_t alg);
 
 /** Add a message fragment to a multipart hash operation.
  *
@@ -983,9 +962,8 @@ psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_update(psa_hash_operation_t *operation,
-                             const uint8_t *input,
-                             size_t input_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_update(psa_hash_operation_t *operation,
+						 const uint8_t *input, size_t input_length);
 
 /** Finish the calculation of the hash of a message.
  *
@@ -1030,10 +1008,8 @@ psa_status_t psa_hash_update(psa_hash_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
-                             uint8_t *hash,
-                             size_t hash_size,
-                             size_t *hash_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_finish(psa_hash_operation_t *operation, uint8_t *hash,
+						 size_t hash_size, size_t *hash_length);
 
 /** Finish the calculation of the hash of a message and compare it with
  * an expected value.
@@ -1072,9 +1048,8 @@ psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_verify(psa_hash_operation_t *operation,
-                             const uint8_t *hash,
-                             size_t hash_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_verify(psa_hash_operation_t *operation,
+						 const uint8_t *hash, size_t hash_length);
 
 /** Abort a hash operation.
  *
@@ -1101,7 +1076,7 @@ psa_status_t psa_hash_verify(psa_hash_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_abort(psa_hash_operation_t *operation);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_abort(psa_hash_operation_t *operation);
 
 /** Clone a hash operation.
  *
@@ -1132,8 +1107,8 @@ psa_status_t psa_hash_abort(psa_hash_operation_t *operation);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_clone(const psa_hash_operation_t *source_operation,
-                            psa_hash_operation_t *target_operation);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_clone(const psa_hash_operation_t *source_operation,
+						psa_hash_operation_t *target_operation);
 
 /** Suspend a hash operation.
  *
@@ -1155,10 +1130,9 @@ psa_status_t psa_hash_clone(const psa_hash_operation_t *source_operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_suspend(psa_hash_operation_t *operation,
-                              uint8_t *hash_state,
-                              size_t hash_state_size,
-                              size_t *hash_state_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_suspend(psa_hash_operation_t *operation,
+						  uint8_t *hash_state, size_t hash_state_size,
+						  size_t *hash_state_length);
 
 /** Resume a hash operation.
  *
@@ -1182,9 +1156,9 @@ psa_status_t psa_hash_suspend(psa_hash_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_hash_resume(psa_hash_operation_t *operation,
-                             const uint8_t *hash_state,
-                             size_t hash_state_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_hash_resume(psa_hash_operation_t *operation,
+						 const uint8_t *hash_state,
+						 size_t hash_state_length);
 
 /**@}*/
 
@@ -1234,13 +1208,9 @@ psa_status_t psa_hash_resume(psa_hash_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_compute(psa_key_id_t key,
-                             psa_algorithm_t alg,
-                             const uint8_t *input,
-                             size_t input_length,
-                             uint8_t *mac,
-                             size_t mac_size,
-                             size_t *mac_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_compute(psa_key_id_t key, psa_algorithm_t alg,
+						 const uint8_t *input, size_t input_length,
+						 uint8_t *mac, size_t mac_size, size_t *mac_length);
 
 /** Calculate the MAC of a message and compare it with a reference value.
  *
@@ -1275,12 +1245,9 @@ psa_status_t psa_mac_compute(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_verify(psa_key_id_t key,
-                            psa_algorithm_t alg,
-                            const uint8_t *input,
-                            size_t input_length,
-                            const uint8_t *mac,
-                            size_t mac_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_verify(psa_key_id_t key, psa_algorithm_t alg,
+						const uint8_t *input, size_t input_length,
+						const uint8_t *mac, size_t mac_length);
 
 /** The type of the state data structure for multipart MAC operations.
  *
@@ -1387,9 +1354,8 @@ static psa_mac_operation_t psa_mac_operation_init(void);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_sign_setup(psa_mac_operation_t *operation,
-                                psa_key_id_t key,
-                                psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_sign_setup(psa_mac_operation_t *operation,
+						    psa_key_id_t key, psa_algorithm_t alg);
 
 /** Set up a multipart MAC verification operation.
  *
@@ -1450,9 +1416,8 @@ psa_status_t psa_mac_sign_setup(psa_mac_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_verify_setup(psa_mac_operation_t *operation,
-                                  psa_key_id_t key,
-                                  psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_verify_setup(psa_mac_operation_t *operation,
+						      psa_key_id_t key, psa_algorithm_t alg);
 
 /** Add a message fragment to a multipart MAC operation.
  *
@@ -1481,9 +1446,8 @@ psa_status_t psa_mac_verify_setup(psa_mac_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_update(psa_mac_operation_t *operation,
-                            const uint8_t *input,
-                            size_t input_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_update(psa_mac_operation_t *operation,
+						const uint8_t *input, size_t input_length);
 
 /** Finish the calculation of the MAC of a message.
  *
@@ -1531,10 +1495,8 @@ psa_status_t psa_mac_update(psa_mac_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_sign_finish(psa_mac_operation_t *operation,
-                                 uint8_t *mac,
-                                 size_t mac_size,
-                                 size_t *mac_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_sign_finish(psa_mac_operation_t *operation, uint8_t *mac,
+						     size_t mac_size, size_t *mac_length);
 
 /** Finish the calculation of the MAC of a message and compare it with
  * an expected value.
@@ -1575,9 +1537,8 @@ psa_status_t psa_mac_sign_finish(psa_mac_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_verify_finish(psa_mac_operation_t *operation,
-                                   const uint8_t *mac,
-                                   size_t mac_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_verify_finish(psa_mac_operation_t *operation,
+						       const uint8_t *mac, size_t mac_length);
 
 /** Abort a MAC operation.
  *
@@ -1604,7 +1565,7 @@ psa_status_t psa_mac_verify_finish(psa_mac_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_mac_abort(psa_mac_operation_t *operation);
+PSA_CRYPTO_EXPORTED psa_status_t psa_mac_abort(psa_mac_operation_t *operation);
 
 /**@}*/
 
@@ -1651,13 +1612,10 @@ psa_status_t psa_mac_abort(psa_mac_operation_t *operation);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_encrypt(psa_key_id_t key,
-                                psa_algorithm_t alg,
-                                const uint8_t *input,
-                                size_t input_length,
-                                uint8_t *output,
-                                size_t output_size,
-                                size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_encrypt(psa_key_id_t key, psa_algorithm_t alg,
+						    const uint8_t *input, size_t input_length,
+						    uint8_t *output, size_t output_size,
+						    size_t *output_length);
 
 /** Decrypt a message using a symmetric cipher.
  *
@@ -1698,13 +1656,10 @@ psa_status_t psa_cipher_encrypt(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_decrypt(psa_key_id_t key,
-                                psa_algorithm_t alg,
-                                const uint8_t *input,
-                                size_t input_length,
-                                uint8_t *output,
-                                size_t output_size,
-                                size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_decrypt(psa_key_id_t key, psa_algorithm_t alg,
+						    const uint8_t *input, size_t input_length,
+						    uint8_t *output, size_t output_size,
+						    size_t *output_length);
 
 /** The type of the state data structure for multipart cipher operations.
  *
@@ -1812,9 +1767,8 @@ static psa_cipher_operation_t psa_cipher_operation_init(void);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_encrypt_setup(psa_cipher_operation_t *operation,
-                                      psa_key_id_t key,
-                                      psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_encrypt_setup(psa_cipher_operation_t *operation,
+							  psa_key_id_t key, psa_algorithm_t alg);
 
 /** Set the key for a multipart symmetric decryption operation.
  *
@@ -1876,9 +1830,8 @@ psa_status_t psa_cipher_encrypt_setup(psa_cipher_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_decrypt_setup(psa_cipher_operation_t *operation,
-                                      psa_key_id_t key,
-                                      psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_decrypt_setup(psa_cipher_operation_t *operation,
+							  psa_key_id_t key, psa_algorithm_t alg);
 
 /** Generate an IV for a symmetric encryption operation.
  *
@@ -1914,10 +1867,9 @@ psa_status_t psa_cipher_decrypt_setup(psa_cipher_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_generate_iv(psa_cipher_operation_t *operation,
-                                    uint8_t *iv,
-                                    size_t iv_size,
-                                    size_t *iv_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_generate_iv(psa_cipher_operation_t *operation,
+							uint8_t *iv, size_t iv_size,
+							size_t *iv_length);
 
 /** Set the IV for a symmetric encryption or decryption operation.
  *
@@ -1956,9 +1908,8 @@ psa_status_t psa_cipher_generate_iv(psa_cipher_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_set_iv(psa_cipher_operation_t *operation,
-                               const uint8_t *iv,
-                               size_t iv_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_set_iv(psa_cipher_operation_t *operation,
+						   const uint8_t *iv, size_t iv_length);
 
 /** Encrypt or decrypt a message fragment in an active cipher operation.
  *
@@ -1998,12 +1949,10 @@ psa_status_t psa_cipher_set_iv(psa_cipher_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_update(psa_cipher_operation_t *operation,
-                               const uint8_t *input,
-                               size_t input_length,
-                               uint8_t *output,
-                               size_t output_size,
-                               size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_update(psa_cipher_operation_t *operation,
+						   const uint8_t *input, size_t input_length,
+						   uint8_t *output, size_t output_size,
+						   size_t *output_length);
 
 /** Finish encrypting or decrypting a message in a cipher operation.
  *
@@ -2051,10 +2000,9 @@ psa_status_t psa_cipher_update(psa_cipher_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_finish(psa_cipher_operation_t *operation,
-                               uint8_t *output,
-                               size_t output_size,
-                               size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_finish(psa_cipher_operation_t *operation,
+						   uint8_t *output, size_t output_size,
+						   size_t *output_length);
 
 /** Abort a cipher operation.
  *
@@ -2081,7 +2029,7 @@ psa_status_t psa_cipher_finish(psa_cipher_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_cipher_abort(psa_cipher_operation_t *operation);
+PSA_CRYPTO_EXPORTED psa_status_t psa_cipher_abort(psa_cipher_operation_t *operation);
 
 /**@}*/
 
@@ -2139,17 +2087,13 @@ psa_status_t psa_cipher_abort(psa_cipher_operation_t *operation);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_encrypt(psa_key_id_t key,
-                              psa_algorithm_t alg,
-                              const uint8_t *nonce,
-                              size_t nonce_length,
-                              const uint8_t *additional_data,
-                              size_t additional_data_length,
-                              const uint8_t *plaintext,
-                              size_t plaintext_length,
-                              uint8_t *ciphertext,
-                              size_t ciphertext_size,
-                              size_t *ciphertext_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_encrypt(psa_key_id_t key, psa_algorithm_t alg,
+						  const uint8_t *nonce, size_t nonce_length,
+						  const uint8_t *additional_data,
+						  size_t additional_data_length,
+						  const uint8_t *plaintext, size_t plaintext_length,
+						  uint8_t *ciphertext, size_t ciphertext_size,
+						  size_t *ciphertext_length);
 
 /** Process an authenticated decryption operation.
  *
@@ -2201,17 +2145,13 @@ psa_status_t psa_aead_encrypt(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_decrypt(psa_key_id_t key,
-                              psa_algorithm_t alg,
-                              const uint8_t *nonce,
-                              size_t nonce_length,
-                              const uint8_t *additional_data,
-                              size_t additional_data_length,
-                              const uint8_t *ciphertext,
-                              size_t ciphertext_length,
-                              uint8_t *plaintext,
-                              size_t plaintext_size,
-                              size_t *plaintext_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_decrypt(psa_key_id_t key, psa_algorithm_t alg,
+						  const uint8_t *nonce, size_t nonce_length,
+						  const uint8_t *additional_data,
+						  size_t additional_data_length,
+						  const uint8_t *ciphertext,
+						  size_t ciphertext_length, uint8_t *plaintext,
+						  size_t plaintext_size, size_t *plaintext_length);
 
 /** The type of the state data structure for multipart AEAD operations.
  *
@@ -2325,9 +2265,8 @@ static psa_aead_operation_t psa_aead_operation_init(void);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_encrypt_setup(psa_aead_operation_t *operation,
-                                    psa_key_id_t key,
-                                    psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_encrypt_setup(psa_aead_operation_t *operation,
+							psa_key_id_t key, psa_algorithm_t alg);
 
 /** Set the key for a multipart authenticated decryption operation.
  *
@@ -2392,9 +2331,8 @@ psa_status_t psa_aead_encrypt_setup(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_decrypt_setup(psa_aead_operation_t *operation,
-                                    psa_key_id_t key,
-                                    psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_decrypt_setup(psa_aead_operation_t *operation,
+							psa_key_id_t key, psa_algorithm_t alg);
 
 /** Generate a random nonce for an authenticated encryption operation.
  *
@@ -2432,10 +2370,9 @@ psa_status_t psa_aead_decrypt_setup(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_generate_nonce(psa_aead_operation_t *operation,
-                                     uint8_t *nonce,
-                                     size_t nonce_size,
-                                     size_t *nonce_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_generate_nonce(psa_aead_operation_t *operation,
+							 uint8_t *nonce, size_t nonce_size,
+							 size_t *nonce_length);
 
 /** Set the nonce for an authenticated encryption or decryption operation.
  *
@@ -2473,9 +2410,8 @@ psa_status_t psa_aead_generate_nonce(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_set_nonce(psa_aead_operation_t *operation,
-                                const uint8_t *nonce,
-                                size_t nonce_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_set_nonce(psa_aead_operation_t *operation,
+						    const uint8_t *nonce, size_t nonce_length);
 
 /** Declare the lengths of the message and additional data for AEAD.
  *
@@ -2519,9 +2455,8 @@ psa_status_t psa_aead_set_nonce(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_set_lengths(psa_aead_operation_t *operation,
-                                  size_t ad_length,
-                                  size_t plaintext_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_set_lengths(psa_aead_operation_t *operation,
+						      size_t ad_length, size_t plaintext_length);
 
 /** Pass additional data to an active AEAD operation.
  *
@@ -2568,9 +2503,8 @@ psa_status_t psa_aead_set_lengths(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_update_ad(psa_aead_operation_t *operation,
-                                const uint8_t *input,
-                                size_t input_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_update_ad(psa_aead_operation_t *operation,
+						    const uint8_t *input, size_t input_length);
 
 /** Encrypt or decrypt a message fragment in an active AEAD operation.
  *
@@ -2646,12 +2580,10 @@ psa_status_t psa_aead_update_ad(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_update(psa_aead_operation_t *operation,
-                             const uint8_t *input,
-                             size_t input_length,
-                             uint8_t *output,
-                             size_t output_size,
-                             size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_update(psa_aead_operation_t *operation,
+						 const uint8_t *input, size_t input_length,
+						 uint8_t *output, size_t output_size,
+						 size_t *output_length);
 
 /** Finish encrypting a message in an AEAD operation.
  *
@@ -2722,13 +2654,10 @@ psa_status_t psa_aead_update(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_finish(psa_aead_operation_t *operation,
-                             uint8_t *ciphertext,
-                             size_t ciphertext_size,
-                             size_t *ciphertext_length,
-                             uint8_t *tag,
-                             size_t tag_size,
-                             size_t *tag_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_finish(psa_aead_operation_t *operation,
+						 uint8_t *ciphertext, size_t ciphertext_size,
+						 size_t *ciphertext_length, uint8_t *tag,
+						 size_t tag_size, size_t *tag_length);
 
 /** Finish authenticating and decrypting a message in an AEAD operation.
  *
@@ -2802,12 +2731,10 @@ psa_status_t psa_aead_finish(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_verify(psa_aead_operation_t *operation,
-                             uint8_t *plaintext,
-                             size_t plaintext_size,
-                             size_t *plaintext_length,
-                             const uint8_t *tag,
-                             size_t tag_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_verify(psa_aead_operation_t *operation,
+						 uint8_t *plaintext, size_t plaintext_size,
+						 size_t *plaintext_length, const uint8_t *tag,
+						 size_t tag_length);
 
 /** Abort an AEAD operation.
  *
@@ -2834,7 +2761,7 @@ psa_status_t psa_aead_verify(psa_aead_operation_t *operation,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_aead_abort(psa_aead_operation_t *operation);
+PSA_CRYPTO_EXPORTED psa_status_t psa_aead_abort(psa_aead_operation_t *operation);
 
 /**@}*/
 
@@ -2900,13 +2827,10 @@ psa_status_t psa_aead_abort(psa_aead_operation_t *operation);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_sign_message(psa_key_id_t key,
-                              psa_algorithm_t alg,
-                              const uint8_t *input,
-                              size_t input_length,
-                              uint8_t *signature,
-                              size_t signature_size,
-                              size_t *signature_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_sign_message(psa_key_id_t key, psa_algorithm_t alg,
+						  const uint8_t *input, size_t input_length,
+						  uint8_t *signature, size_t signature_size,
+						  size_t *signature_length);
 
 /** \brief Verify the signature of a message with a public key, using
  *         a hash-and-sign verification algorithm.
@@ -2952,12 +2876,10 @@ psa_status_t psa_sign_message(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_verify_message(psa_key_id_t key,
-                                psa_algorithm_t alg,
-                                const uint8_t *input,
-                                size_t input_length,
-                                const uint8_t * signature,
-                                size_t signature_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_verify_message(psa_key_id_t key, psa_algorithm_t alg,
+						    const uint8_t *input, size_t input_length,
+						    const uint8_t *signature,
+						    size_t signature_length);
 
 /**
  * \brief Sign a hash or short message with a private key.
@@ -3002,13 +2924,10 @@ psa_status_t psa_verify_message(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_sign_hash(psa_key_id_t key,
-                           psa_algorithm_t alg,
-                           const uint8_t *hash,
-                           size_t hash_length,
-                           uint8_t *signature,
-                           size_t signature_size,
-                           size_t *signature_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_sign_hash(psa_key_id_t key, psa_algorithm_t alg,
+					       const uint8_t *hash, size_t hash_length,
+					       uint8_t *signature, size_t signature_size,
+					       size_t *signature_length);
 
 /**
  * \brief Verify the signature a hash or short message using a public key.
@@ -3050,12 +2969,9 @@ psa_status_t psa_sign_hash(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_verify_hash(psa_key_id_t key,
-                             psa_algorithm_t alg,
-                             const uint8_t *hash,
-                             size_t hash_length,
-                             const uint8_t *signature,
-                             size_t signature_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_verify_hash(psa_key_id_t key, psa_algorithm_t alg,
+						 const uint8_t *hash, size_t hash_length,
+						 const uint8_t *signature, size_t signature_length);
 
 /**
  * \brief Encrypt a short message with a public key.
@@ -3108,15 +3024,11 @@ psa_status_t psa_verify_hash(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_asymmetric_encrypt(psa_key_id_t key,
-                                    psa_algorithm_t alg,
-                                    const uint8_t *input,
-                                    size_t input_length,
-                                    const uint8_t *salt,
-                                    size_t salt_length,
-                                    uint8_t *output,
-                                    size_t output_size,
-                                    size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_asymmetric_encrypt(psa_key_id_t key, psa_algorithm_t alg,
+							const uint8_t *input, size_t input_length,
+							const uint8_t *salt, size_t salt_length,
+							uint8_t *output, size_t output_size,
+							size_t *output_length);
 
 /**
  * \brief Decrypt a short message with a private key.
@@ -3169,15 +3081,11 @@ psa_status_t psa_asymmetric_encrypt(psa_key_id_t key,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_asymmetric_decrypt(psa_key_id_t key,
-                                    psa_algorithm_t alg,
-                                    const uint8_t *input,
-                                    size_t input_length,
-                                    const uint8_t *salt,
-                                    size_t salt_length,
-                                    uint8_t *output,
-                                    size_t output_size,
-                                    size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_asymmetric_decrypt(psa_key_id_t key, psa_algorithm_t alg,
+							const uint8_t *input, size_t input_length,
+							const uint8_t *salt, size_t salt_length,
+							uint8_t *output, size_t output_size,
+							size_t *output_length);
 
 /**@}*/
 
@@ -3291,9 +3199,8 @@ static psa_key_derivation_operation_t psa_key_derivation_operation_init(void);
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_setup(
-    psa_key_derivation_operation_t *operation,
-    psa_algorithm_t alg);
+PSA_CRYPTO_EXPORTED psa_status_t psa_key_derivation_setup(psa_key_derivation_operation_t *operation,
+							  psa_algorithm_t alg);
 
 /** Retrieve the current capacity of a key derivation operation.
  *
@@ -3315,9 +3222,8 @@ psa_status_t psa_key_derivation_setup(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_get_capacity(
-    const psa_key_derivation_operation_t *operation,
-    size_t *capacity);
+PSA_CRYPTO_EXPORTED psa_status_t
+psa_key_derivation_get_capacity(const psa_key_derivation_operation_t *operation, size_t *capacity);
 
 /** Set the maximum capacity of a key derivation operation.
  *
@@ -3344,9 +3250,8 @@ psa_status_t psa_key_derivation_get_capacity(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_set_capacity(
-    psa_key_derivation_operation_t *operation,
-    size_t capacity);
+PSA_CRYPTO_EXPORTED psa_status_t
+psa_key_derivation_set_capacity(psa_key_derivation_operation_t *operation, size_t capacity);
 
 /** Use the maximum possible capacity for a key derivation operation.
  *
@@ -3399,11 +3304,9 @@ psa_status_t psa_key_derivation_set_capacity(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_input_bytes(
-    psa_key_derivation_operation_t *operation,
-    psa_key_derivation_step_t step,
-    const uint8_t *data,
-    size_t data_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_key_derivation_input_bytes(
+	psa_key_derivation_operation_t *operation, psa_key_derivation_step_t step,
+	const uint8_t *data, size_t data_length);
 
 /** Provide an input for key derivation in the form of a key.
  *
@@ -3452,10 +3355,9 @@ psa_status_t psa_key_derivation_input_bytes(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_input_key(
-    psa_key_derivation_operation_t *operation,
-    psa_key_derivation_step_t step,
-    psa_key_id_t key);
+PSA_CRYPTO_EXPORTED psa_status_t
+psa_key_derivation_input_key(psa_key_derivation_operation_t *operation,
+			     psa_key_derivation_step_t step, psa_key_id_t key);
 
 /** Perform a key agreement and use the shared secret as input to a key
  * derivation.
@@ -3522,12 +3424,9 @@ psa_status_t psa_key_derivation_input_key(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_key_agreement(
-    psa_key_derivation_operation_t *operation,
-    psa_key_derivation_step_t step,
-    psa_key_id_t private_key,
-    const uint8_t *peer_key,
-    size_t peer_key_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_key_derivation_key_agreement(
+	psa_key_derivation_operation_t *operation, psa_key_derivation_step_t step,
+	psa_key_id_t private_key, const uint8_t *peer_key, size_t peer_key_length);
 
 /** Read some data from a key derivation operation.
  *
@@ -3567,10 +3466,8 @@ psa_status_t psa_key_derivation_key_agreement(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_output_bytes(
-    psa_key_derivation_operation_t *operation,
-    uint8_t *output,
-    size_t output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_key_derivation_output_bytes(
+	psa_key_derivation_operation_t *operation, uint8_t *output, size_t output_length);
 
 /** Derive a key from an ongoing key derivation operation.
  *
@@ -3710,10 +3607,9 @@ psa_status_t psa_key_derivation_output_bytes(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_output_key(
-    const psa_key_attributes_t *attributes,
-    psa_key_derivation_operation_t *operation,
-    psa_key_id_t *key);
+PSA_CRYPTO_EXPORTED psa_status_t
+psa_key_derivation_output_key(const psa_key_attributes_t *attributes,
+			      psa_key_derivation_operation_t *operation, psa_key_id_t *key);
 
 /** Abort a key derivation operation.
  *
@@ -3738,8 +3634,7 @@ psa_status_t psa_key_derivation_output_key(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_key_derivation_abort(
-    psa_key_derivation_operation_t *operation);
+PSA_CRYPTO_EXPORTED psa_status_t psa_key_derivation_abort(psa_key_derivation_operation_t *operation);
 
 /** Perform a key agreement and return the raw shared secret.
  *
@@ -3792,13 +3687,11 @@ psa_status_t psa_key_derivation_abort(
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_raw_key_agreement(psa_algorithm_t alg,
-                                   psa_key_id_t private_key,
-                                   const uint8_t *peer_key,
-                                   size_t peer_key_length,
-                                   uint8_t *output,
-                                   size_t output_size,
-                                   size_t *output_length);
+PSA_CRYPTO_EXPORTED psa_status_t psa_raw_key_agreement(psa_algorithm_t alg,
+						       psa_key_id_t private_key,
+						       const uint8_t *peer_key,
+						       size_t peer_key_length, uint8_t *output,
+						       size_t output_size, size_t *output_length);
 
 /**@}*/
 
@@ -3830,8 +3723,7 @@ psa_status_t psa_raw_key_agreement(psa_algorithm_t alg,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_generate_random(uint8_t *output,
-                                 size_t output_size);
+PSA_CRYPTO_EXPORTED psa_status_t psa_generate_random(uint8_t *output, size_t output_size);
 
 /**
  * \brief Generate a key or key pair.
@@ -3877,8 +3769,8 @@ psa_status_t psa_generate_random(uint8_t *output,
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_generate_key(const psa_key_attributes_t *attributes,
-                              psa_key_id_t *key);
+PSA_CRYPTO_EXPORTED psa_status_t psa_generate_key(const psa_key_attributes_t *attributes,
+						  psa_key_id_t *key);
 
 /**@}*/
 
@@ -3894,7 +3786,6 @@ psa_status_t psa_generate_key(const psa_key_attributes_t *attributes,
  * whose definitions differ in the client view and the PSA server
  * implementation in TF-M. */
 #include "psa/crypto_client_struct.h"
-
 
 /* The file "crypto_struct.h" contains definitions for
  * implementation-specific structs that are declared above. */

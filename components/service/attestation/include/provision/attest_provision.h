@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
+#include <psa/error.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <psa/error.h>
 
 #ifndef ATTEST_PROVISION_H
 #define ATTEST_PROVISION_H
@@ -20,6 +20,12 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef EXPORT_PUBLIC_INTERFACE_PSA_ATTEST
+#define PSA_ATTEST_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define PSA_ATTEST_EXPORTED
 #endif
 
 /**
@@ -36,10 +42,9 @@ extern "C" {
  *
  * \return Returns error code as specified in \ref psa_status_t
  */
-psa_status_t attest_provision_export_iak_public_key(
-    uint8_t *data,
-    size_t data_size,
-    size_t *data_length);
+PSA_ATTEST_EXPORTED psa_status_t attest_provision_export_iak_public_key(uint8_t *data,
+									size_t data_size,
+									size_t *data_length);
 
 /**
  * \brief Import IAK
@@ -58,9 +63,8 @@ psa_status_t attest_provision_export_iak_public_key(
  *
  * \return Returns error code as specified in \ref psa_status_t
  */
-psa_status_t attest_provision_import_iak(
-    const uint8_t *data,
-    size_t data_length);
+PSA_ATTEST_EXPORTED psa_status_t attest_provision_import_iak(const uint8_t *data,
+							     size_t data_length);
 
 /**
  * \brief Check if IAK exists
@@ -69,7 +73,7 @@ psa_status_t attest_provision_import_iak(
  *
  * \return Returns PSA_SUCCESS if IAK exists, PSA_ERROR_DOES_NOT_EXIST if not
  */
-psa_status_t attest_provision_iak_exists(void);
+PSA_ATTEST_EXPORTED psa_status_t attest_provision_iak_exists(void);
 
 #ifdef __cplusplus
 }
