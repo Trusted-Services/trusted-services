@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,7 +7,7 @@
 #ifndef SERVICE_LOCATOR_H
 #define SERVICE_LOCATOR_H
 
-#include "components/rpc/common/caller/rpc_caller_session.h"
+#include "rpc_caller_session.h"
 
 /*
  * The service_locator puplic interface may be exported as a public interface to
