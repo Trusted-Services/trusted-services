@@ -77,7 +77,6 @@ TEST(sp_memory_management_internals, is_valid_buffer)
 TEST(sp_memory_management_internals, build_mem_region_attr_reserved_type)
 {
 	assert_environment_t env;
-	uint8_t result = 0;
 
 	attr.device_memory = sp_device_memory_nGnRnE;
 
@@ -154,8 +153,6 @@ TEST(sp_memory_management_internals,
      build_mem_region_attr_normal_cache_reserved0)
 {
 	assert_environment_t env;
-	uint8_t result = 0;
-	uint8_t expected_result = 0;
 
 	attr.normal_memory.cacheability = sp_cacheability_reserved0;
 	attr.normal_memory.shareability = sp_shareability_non_shareable;
@@ -169,8 +166,6 @@ TEST(sp_memory_management_internals,
      build_mem_region_attr_normal_cache_reserved2)
 {
 	assert_environment_t env;
-	uint8_t result = 0;
-	uint8_t expected_result = 0;
 
 	attr.normal_memory.cacheability = sp_cacheability_reserved2;
 	attr.normal_memory.shareability = sp_shareability_non_shareable;
@@ -184,8 +179,6 @@ TEST(sp_memory_management_internals,
      build_mem_region_attr_normal_share_reserved)
 {
 	assert_environment_t env;
-	uint8_t result = 0;
-	uint8_t expected_result = 0;
 
 	attr.normal_memory.cacheability = sp_cacheability_non_cacheable;
 	attr.normal_memory.shareability = sp_shareability_reserved;
@@ -368,7 +361,6 @@ TEST(sp_memory_management_internals, build_mem_flags_type)
 TEST(sp_memory_management_internals, build_mem_flags_alignment_hint_invalid)
 {
 	assert_environment_t env;
-	uint32_t result = 0;
 
 	flags.alignment_hint =
 		FFA_MEM_TRANSACTION_FLAGS_ALIGNMENT_HINT_MASK + 1;

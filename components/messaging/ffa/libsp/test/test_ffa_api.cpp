@@ -955,7 +955,6 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_two_interrupt_success)
 	const uint32_t arg2 = 0x23456789ULL;
 	const uint32_t arg3 = 0x3456789aULL;
 	const uint32_t arg4 = 0x456789abULL;
-	const uint32_t interrupt_id = 0x12345678;
 	const uint32_t interrupt_id0 = 0x12345678;
 	const uint32_t interrupt_id1 = 0x81234567;
 	struct ffa_params interrupt_params0;
@@ -1203,7 +1202,6 @@ TEST(ffa_api, ffa_msg_send_direct_resp_32_two_interrupt_success)
 	const uint32_t arg2 = 0x23456789ULL;
 	const uint32_t arg3 = 0x3456789aULL;
 	const uint32_t arg4 = 0x456789abULL;
-	const uint32_t interrupt_id = 0x12345678;
 	const uint32_t interrupt_id0 = 0x12345678;
 	const uint32_t interrupt_id1 = 0x81234567;
 	struct ffa_params interrupt_params0;
@@ -1314,7 +1312,6 @@ TEST(ffa_api, ffa_mem_donate_error)
 	const uint64_t buffer_address = 0x0123456789abcdefULL;
 	const uint32_t page_count = 0x87654321;
 	uint64_t handle = 0x1234567812345678;
-	const uint64_t handle_result = 0xaabbccdd11223344ULL;
 
 	setup_error_response(-1);
 	expect_ffa_svc(0xc4000071, total_length, fragment_length,
@@ -1334,7 +1331,6 @@ TEST(ffa_api, ffa_mem_donate_unknown_response)
 	const uint64_t buffer_address = 0x0123456789abcdefULL;
 	const uint32_t page_count = 0x87654321;
 	uint64_t handle = 0x1234567812345678;
-	const uint64_t handle_result = 0xaabbccdd11223344ULL;
 	assert_environment_t assert_env;
 
 	svc_result.a0 = 0x12345678;
@@ -1395,7 +1391,6 @@ TEST(ffa_api, ffa_mem_lend_error)
 	const uint64_t buffer_address = 0x0123456789abcdefULL;
 	const uint32_t page_count = 0x87654321;
 	uint64_t handle = 0x1234567812345678;
-	const uint64_t handle_result = 0xaabbccdd11223344ULL;
 
 	setup_error_response(-1);
 	expect_ffa_svc(0xc4000072, total_length, fragment_length,
@@ -1415,7 +1410,6 @@ TEST(ffa_api, ffa_mem_lend_unknown_response)
 	const uint64_t buffer_address = 0x0123456789abcdefULL;
 	const uint32_t page_count = 0x87654321;
 	uint64_t handle = 0x1234567812345678;
-	const uint64_t handle_result = 0xaabbccdd11223344ULL;
 	assert_environment_t assert_env;
 
 	svc_result.a0 = 0x12345678;
@@ -1476,7 +1470,6 @@ TEST(ffa_api, ffa_mem_share_error)
 	const uint64_t buffer_address = 0x0123456789abcdefULL;
 	const uint32_t page_count = 0x87654321;
 	uint64_t handle = 0x1234567812345678;
-	const uint64_t handle_result = 0xaabbccdd11223344ULL;
 
 	setup_error_response(-1);
 	expect_ffa_svc(0xc4000073, total_length, fragment_length,
@@ -1496,7 +1489,6 @@ TEST(ffa_api, ffa_mem_share_unknown_response)
 	const uint64_t buffer_address = 0x0123456789abcdefULL;
 	const uint32_t page_count = 0x87654321;
 	uint64_t handle = 0x1234567812345678;
-	const uint64_t handle_result = 0xaabbccdd11223344ULL;
 	assert_environment_t assert_env;
 
 	svc_result.a0 = 0x12345678;
@@ -1562,8 +1554,6 @@ TEST(ffa_api, ffa_mem_retrieve_req_error)
 	const uint32_t page_count = 0x87654321;
 	uint32_t resp_total_length = 0;
 	uint32_t resp_fragment_length = 0;
-	const uint32_t resp_total_length_result = 0xaabbccdd;
-	const uint32_t resp_frament_length_result = 0x11223344;
 
 	setup_error_response(-1);
 	expect_ffa_svc(0xc4000074, total_length, fragment_length,
@@ -1586,8 +1576,6 @@ TEST(ffa_api, ffa_mem_retrieve_req_unknown_response)
 	const uint32_t page_count = 0x87654321;
 	uint32_t resp_total_length = 0;
 	uint32_t resp_fragment_length = 0;
-	const uint32_t resp_total_length_result = 0xaabbccdd;
-	const uint32_t resp_frament_length_result = 0x11223344;
 	assert_environment_t assert_env;
 
 	svc_result.a0 = 0x12345678;
@@ -1719,7 +1707,6 @@ TEST(ffa_api, ffa_mem_perm_get)
 TEST(ffa_api, ffa_mem_perm_get_error)
 {
 	const void *base_addr = (const void *)0x01234567;
-	const uint32_t expected_mem_perm = 0x87654321;
 	uint32_t mem_perm = 0;
 
 	setup_error_response(-1);
@@ -1734,7 +1721,6 @@ TEST(ffa_api, ffa_mem_perm_get_error)
 TEST(ffa_api, ffa_mem_perm_get_unknown_response)
 {
 	const void *base_addr = (const void *)0x01234567;
-	const uint32_t expected_mem_perm = 0x87654321;
 	uint32_t mem_perm = 0;
 	assert_environment_t assert_env;
 

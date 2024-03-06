@@ -371,7 +371,6 @@ TEST(sp_rxtx, sp_rxtx_buffer_alignment_boundary_get_reserved)
 {
 	uintptr_t alignment = 0xfedcba98U;
 	struct ffa_interface_properties props = { 0 };
-	ffa_result result = FFA_DENIED;
 
 	props.interface_properties[FFA_FEATURES_RXTX_MAP_GRANULARITY_INDEX] =
 		3 << FFA_FEATURES_RXTX_MAP_GRANULARITY_SHIFT;
