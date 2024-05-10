@@ -25,6 +25,19 @@ set(TS_WARNING_FLAGS "-Wall -Werror" CACHE STRING "Compiler flags affecting gene
 set(TS_MANDATORY_LINKER_FLAGS "-pie -Wl,--as-needed -Wl,--sort-section=alignment -zmax-page-size=4096"
 	CACHE STRING "Linker flags needed for correct builds.")
 
+set(BTI_ENABLED unset CACHE STRING "Enable Branch Target Identification (BTI)")
+set_property(CACHE BTI_ENABLED PROPERTY STRINGS unset OFF ON)
+
+if(BTI_ENABLED STREQUAL "ON")
+	# branch-protection enables bti while compile force-bti tells the linker to
+	# warn if some object files lack the .note.gnu.property section with the BTI
+	# flag, and to turn on the BTI flag in the output anyway.
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=bti")
+	set(TS_MANDATORY_LINKER_FLAGS "${TS_MANDATORY_LINKER_FLAGS} -zforce-bti")
+elseif(BTI_ENABLED STREQUAL "OFF")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=none")
+endif()
+
 # Set flags affecting all build types
 string(APPEND CMAKE_C_FLAGS_INIT " ${TS_MANDATORY_AARCH_FLAGS}")
 string(APPEND CMAKE_CXX_FLAGS_INIT " ${TS_MANDATORY_AARCH_FLAGS}")

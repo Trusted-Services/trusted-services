@@ -51,6 +51,7 @@ SECTIONS {
 	.dynstr : { *(.dynstr) }
 	.hash : { *(.hash) }
 	.note.gnu.build-id : { *(.note.gnu.build-id) }
+	.note.gnu.property : { *(.note.gnu.property) }
 
 	. = ALIGN(8);
 	__rela_start = .;
