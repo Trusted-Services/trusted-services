@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# Copyright (c) 2021-2022, Arm Limited. All rights reserved.
+# Copyright (c) 2021-2024, Arm Limited. All rights reserved.
 
 """
 This module's goal is to take an ELF file as an input and extract the memory
@@ -12,9 +12,11 @@ binary format SP.
 
 from enum import IntFlag
 from math import ceil
+from elftools import __version__ as module_version
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import P_FLAGS
 
+assert module_version == "0.31"
 
 class ElfSegmentsToManifest:
     """
@@ -22,6 +24,33 @@ class ElfSegmentsToManifest:
     memory layout then it can write this information into a manifest file.
     """
     PAGE_SIZE = 4096
+
+    class GnuNotePropertySection:
+        """ Provides an API to process GNU note property section. """
+
+        GNU_PROPERTY_AARCH64_FEATURE_1_BTI = 1
+
+        def __init__(self, section):
+            self.section = section
+
+        def is_bti_enabled(self):
+            """ Returns whether any of the notes has a BTI enable property """
+
+            def is_bti_property(prop):
+                return prop['pr_type'] == "GNU_PROPERTY_AARCH64_FEATURE_1_AND" and \
+                    prop['pr_data'] & self.GNU_PROPERTY_AARCH64_FEATURE_1_BTI
+
+            def has_bti_property(note):
+                return note["n_name"] == 'GNU' and note["n_type"] == "NT_GNU_PROPERTY_TYPE_0" and \
+                    any(is_bti_property(p) for p in note["n_desc"])
+
+            return any(has_bti_property(n) for n in self.section.iter_notes())
+
+        @staticmethod
+        def is_matching_section(section):
+            """ Checks if the section is a GNU note property section """
+            return section.name == '.note.gnu.property'
+
 
     class Region:
         """ Describes a memory region and its attributes. """
@@ -31,6 +60,8 @@ class ElfSegmentsToManifest:
             R = 0x01
             W = 0x02
             X = 0x04
+            S = 0x08
+            GP = 0x10
 
             def get_attr(self):
                 """ Queries the value of the attributes in manifest format. """
@@ -82,6 +113,11 @@ class ElfSegmentsToManifest:
             self.end_address = region.end_address
             self.sections += region.sections
 
+        def set_bti_if_executable(self):
+            """ Sets GP flag if the region is executable. """
+            if self.attributes & self.ManifestMemAttr.X:
+                self.attributes |= self.ManifestMemAttr.GP
+
         def write_manifest(self, load_base_addr, manifest_file):
             """
             Writes the region into the manifest file. The address is adjusted by load_base_address.
@@ -131,7 +167,16 @@ class ElfSegmentsToManifest:
                 return segment.header.p_align == ElfSegmentsToManifest.PAGE_SIZE
             assert is_aligned(segment), "Segments must be 4k aligned, check LD script"
             self.segment = segment
-            self.sections = [s for s in sections if self.segment.section_in_segment(s)]
+            self.sections = []
+            self.gnu_note = None
+
+            for section in sections:
+                if self.segment.section_in_segment(section):
+                    if ElfSegmentsToManifest.GnuNotePropertySection.is_matching_section(section):
+                        self.gnu_note = ElfSegmentsToManifest.GnuNotePropertySection(section)
+                    else:
+                        self.sections.append(section)
+
             self.regions = []
             self.merge_sections_to_regions()
 
@@ -149,6 +194,11 @@ class ElfSegmentsToManifest:
                 else:
                     self.regions.append(region)
                     current_region = region
+
+            # Set GP only for the executable regions if BTI is enabled in the segment
+            if self.gnu_note and self.gnu_note.is_bti_enabled():
+                for region in self.regions:
+                    region.set_bti_if_executable()
 
         def write_manifest(self, load_base_addr, manifest_file):
             """ Writes the regions into the manifest file. """
