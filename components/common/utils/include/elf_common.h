@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /*-
+ * Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2000, 2001, 2008, 2011, David E. O'Brien
  * Copyright (c) 1998 John D. Polstra.
  * All rights reserved.
@@ -31,13 +32,14 @@
 #ifndef _SYS_ELF_COMMON_H_
 #define	_SYS_ELF_COMMON_H_ 1
 
-#include <stdint.h>
-
 /*
  * ELF definitions that are independent of architecture or word size.
  */
 
 #ifndef __ASSEMBLER__
+
+#include <stdint.h>
+
 /*
  * Note header.  The ".note" section contains an array of notes.  Each
  * begins with this header, aligned to a word boundary.  Immediately

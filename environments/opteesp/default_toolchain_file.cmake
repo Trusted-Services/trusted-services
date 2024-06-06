@@ -34,6 +34,7 @@ if(BTI_ENABLED STREQUAL "ON")
 	# flag, and to turn on the BTI flag in the output anyway.
 	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=bti")
 	set(TS_MANDATORY_LINKER_FLAGS "${TS_MANDATORY_LINKER_FLAGS} -zforce-bti")
+	add_compile_definitions("BTI_ENABLED")
 elseif(BTI_ENABLED STREQUAL "OFF")
 	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=none")
 endif()
