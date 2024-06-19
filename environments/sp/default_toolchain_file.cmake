@@ -24,18 +24,26 @@ set(TS_MANDATORY_AARCH_FLAGS "-fpie -mstrict-align -march=armv8-a+crc" CACHE STR
 set(TS_WARNING_FLAGS "-Wall" CACHE STRING "Compiler flags affecting generating warning messages.")
 set(TS_MANDATORY_LINKER_FLAGS "-Wl,-pie -Wl,--no-dynamic-linker -Wl,--sort-section=alignment -zmax-page-size=4096" CACHE STRING "Linker flags needed for correct builds.")
 
-set(BTI_ENABLED unset CACHE STRING "Enable Branch Target Identification (BTI)")
-set_property(CACHE BTI_ENABLED PROPERTY STRINGS unset OFF ON)
+# branch-protection enables bti/pac while compile force-bti tells the linker to
+# warn if some object files lack the .note.gnu.property section with the BTI
+# flag, and to turn on the BTI flag in the output anyway.
+set(BRANCH_PROTECTION unset CACHE STRING "Enable branch protection")
+set_property(CACHE BRANCH_PROTECTION PROPERTY STRINGS unset 0 1 2 3 4)
 
-if(BTI_ENABLED STREQUAL "ON")
-	# branch-protection enables bti while compile force-bti tells the linker to
-	# warn if some object files lack the .note.gnu.property section with the BTI
-	# flag, and to turn on the BTI flag in the output anyway.
+if(BRANCH_PROTECTION STREQUAL "0")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=none")
+elseif(BRANCH_PROTECTION STREQUAL "1")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=standard")
+	set(TS_MANDATORY_LINKER_FLAGS "${TS_MANDATORY_LINKER_FLAGS} -zforce-bti")
+	add_compile_definitions("BTI_ENABLED")
+elseif(BRANCH_PROTECTION STREQUAL "2")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=pac-ret")
+elseif(BRANCH_PROTECTION STREQUAL "3")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=pac-ret+leaf")
+elseif(BRANCH_PROTECTION STREQUAL "4")
 	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=bti")
 	set(TS_MANDATORY_LINKER_FLAGS "${TS_MANDATORY_LINKER_FLAGS} -zforce-bti")
 	add_compile_definitions("BTI_ENABLED")
-elseif(BTI_ENABLED STREQUAL "OFF")
-	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=none")
 endif()
 
 # Set flags affecting all build types

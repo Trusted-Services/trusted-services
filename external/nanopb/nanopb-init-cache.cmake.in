@@ -12,7 +12,7 @@ set(BUILD_STATIC_LIBS On CACHE BOOL "")
 set(nanopb_BUILD_RUNTIME On CACHE BOOL "")
 set(nanopb_BUILD_GENERATOR On CACHE BOOL "")
 set(nanopb_MSVC_STATIC_RUNTIME Off BOOL "")
-set(BTI_ENABLED @BTI_ENABLED@ CACHE BOOL "")
+set(BRANCH_PROTECTION @BRANCH_PROTECTION@ CACHE STRING "")
 
 # Specify location of python binary and avoid discovery.
 set(Python_EXECUTABLE "@Python_EXECUTABLE@" CACHE PATH "Location of python3 executable")
