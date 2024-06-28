@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,7 +19,7 @@ struct update_agent;
  */
 class direct_fwu_client : public fwu_client {
 public:
-	explicit direct_fwu_client(struct update_agent *update_agent);
+	explicit direct_fwu_client(struct update_agent **update_agent);
 	~direct_fwu_client();
 
 	int begin_staging(void);
@@ -44,7 +44,7 @@ public:
 private:
 	static const size_t READ_BUF_SIZE = 512;
 
-	struct update_agent *m_update_agent;
+	struct update_agent **m_update_agent;
 	uint8_t m_read_buf[READ_BUF_SIZE];
 };
 

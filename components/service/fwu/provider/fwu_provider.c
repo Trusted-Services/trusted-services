@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,7 +11,7 @@
 #include "common/uuid/uuid.h"
 #include "protocols/rpc/common/packed-c/status.h"
 #include "protocols/service/fwu/packed-c/opcodes.h"
-#include "service/fwu/agent/update_agent.h"
+#include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/provider/serializer/fwu_provider_serializer.h"
 #include "fwu_uuid.h"
 
@@ -84,7 +84,7 @@ static rpc_status_t begin_staging_handler(void *context, struct rpc_request *req
 {
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
 
-	req->service_status = update_agent_begin_staging(this_instance->update_agent);
+	req->service_status = update_agent_begin_staging(this_instance->update_agent, 0, 0, NULL);
 
 	return RPC_SUCCESS;
 }
@@ -121,7 +121,8 @@ static rpc_status_t open_handler(void *context, struct rpc_request *req)
 	if (rpc_status == RPC_SUCCESS) {
 		uint32_t handle = 0;
 		req->service_status =
-			update_agent_open(this_instance->update_agent, &image_type_uuid, &handle);
+			update_agent_open(this_instance->update_agent, &image_type_uuid, 0,
+					  &handle);
 
 		if (!req->service_status) {
 			struct rpc_buffer *resp_buf = &req->response;
@@ -202,12 +203,15 @@ static rpc_status_t commit_handler(void *context, struct rpc_request *req)
 								&max_atomic_len);
 
 	if (rpc_status == RPC_SUCCESS) {
+		uint32_t progress = 0;
+		uint32_t total_work = 0;
+
 		req->service_status = update_agent_commit(this_instance->update_agent, handle,
-							  accepted);
+							  accepted, 0, &progress, &total_work);
 
 		if (!req->service_status) {
 			struct rpc_buffer *resp_buf = &req->response;
-			rpc_status = serializer->serialize_commit_resp(resp_buf, 0, 0);
+			rpc_status = serializer->serialize_commit_resp(resp_buf, progress, total_work);
 		}
 	}
 
@@ -226,8 +230,8 @@ static rpc_status_t accept_image_handler(void *context, struct rpc_request *req)
 		rpc_status = serializer->deserialize_accept_req(req_buf, &image_type_uuid);
 
 	if (rpc_status == RPC_SUCCESS)
-		req->service_status = update_agent_accept(this_instance->update_agent,
-							  &image_type_uuid);
+		req->service_status = update_agent_accept_image(this_instance->update_agent,
+								&image_type_uuid);
 
 	return rpc_status;
 }

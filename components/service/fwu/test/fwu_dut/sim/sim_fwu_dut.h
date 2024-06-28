@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,13 +15,14 @@
 #include "service/block_storage/block_store/device/ram/ram_block_store.h"
 #include "service/block_storage/block_store/partitioned/partitioned_block_store.h"
 #include "service/fwu/agent/fw_directory.h"
-#include "service/fwu/agent/update_agent.h"
+#include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/fw_store/banked/bank_scheme.h"
 #include "service/fwu/fw_store/banked/banked_fw_store.h"
 #include "service/fwu/installer/copy/copy_installer.h"
 #include "service/fwu/installer/raw/raw_installer.h"
 #include "service/fwu/provider/fwu_provider.h"
 #include "service/fwu/test/fwu_client/fwu_client.h"
+#include "service/fwu/test/fwu_client/direct/direct_fwu_client.h"
 #include "service/fwu/test/fwu_dut/fwu_dut.h"
 #include "service/fwu/test/metadata_checker/metadata_checker.h"
 
@@ -119,7 +120,7 @@ private:
 	struct copy_installer m_copy_installer_pool[MAX_LOCATIONS];
 
 	/* The core fwu service components */
-	struct update_agent m_update_agent;
+	struct update_agent *m_update_agent;
 	struct fw_store m_fw_store;
 	struct fwu_provider m_fwu_provider;
 };

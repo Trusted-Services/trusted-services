@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "common/uuid/uuid.h"
-#include "service/fwu/agent/update_agent.h"
+#include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/fw_store/banked/banked_fw_store.h"
 
 /*
@@ -98,7 +98,7 @@ private:
 
 	static const struct metadata_serializer *select_metadata_serializer(unsigned int version);
 
-	struct update_agent m_update_agent;
+	struct update_agent *m_update_agent;
 	struct fw_store m_fw_store;
 };
 

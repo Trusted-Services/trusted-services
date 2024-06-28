@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -24,6 +24,7 @@ add_components(TARGET ${TGT}
 		"components/media/volume/index"
 		"components/service/common/include"
 		"components/service/fwu/agent"
+		"components/service/fwu/common"
 		"components/service/fwu/config"
 		"components/service/fwu/config/gpt"
 		"components/service/fwu/fw_store/banked"

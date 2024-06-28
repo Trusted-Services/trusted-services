@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,6 +14,8 @@
 #include "common/endian/le.h"
 #include "media/disk/guid.h"
 #include "media/volume/index/volume_index.h"
+#include "service/fwu/agent/update_agent.h"
+#include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/fw_store/banked/metadata_serializer/v1/metadata_serializer_v1.h"
 #include "service/fwu/fw_store/banked/metadata_serializer/v2/metadata_serializer_v2.h"
 #include "service/fwu/fw_store/banked/volume_id.h"
@@ -54,16 +56,7 @@ sim_fwu_dut::sim_fwu_dut(unsigned int num_locations, unsigned int metadata_versi
 
 	install_factory_images(num_locations);
 
-	/* Initialise fwu service provider prior to boot to ensure that a
-	 * viable service interface exists to safely handle an incoming
-	 * request that occurs prior to the boot method being called.
-	 * Note that the update_agent is in the de-initialized state so
-	 * any operations will be denied.
-	 */
-	memset(&m_update_agent, 0, sizeof(m_update_agent));
-	m_update_agent.state = FWU_STATE_DEINITIALZED;
-
-	m_service_iface = fwu_provider_init(&m_fwu_provider, &m_update_agent);
+	m_service_iface = fwu_provider_init(&m_fwu_provider, NULL);
 
 	fwu_provider_register_serializer(&m_fwu_provider, TS_RPC_ENCODING_PACKED_C,
 					 packedc_fwu_provider_serializer_instance());
@@ -119,9 +112,11 @@ void sim_fwu_dut::boot(bool from_active_bank)
 	int status = banked_fw_store_init(&m_fw_store, select_metadata_serializer());
 	LONGS_EQUAL(0, status);
 
-	status = update_agent_init(&m_update_agent, m_boot_info.boot_index,
-				   direct_fw_inspector_inspect, &m_fw_store);
-	LONGS_EQUAL(0, status);
+	m_update_agent = update_agent_init(m_boot_info.boot_index, direct_fw_inspector_inspect,
+					   &m_fw_store);
+	CHECK(m_update_agent != NULL);
+
+	m_fwu_provider.update_agent = m_update_agent;
 
 	m_is_booted = true;
 }
@@ -132,9 +127,10 @@ void sim_fwu_dut::shutdown(void)
 		return;
 
 	/* Ensure all install streams are closed */
-	update_agent_cancel_staging(&m_update_agent);
+	update_agent_cancel_staging(m_update_agent);
 
-	update_agent_deinit(&m_update_agent);
+	m_fwu_provider.update_agent = NULL;
+	update_agent_deinit(m_update_agent);
 	banked_fw_store_deinit(&m_fw_store);
 
 	m_is_booted = false;

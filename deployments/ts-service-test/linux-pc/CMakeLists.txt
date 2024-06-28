@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2020-2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -97,6 +97,7 @@ add_components(
 		"components/service/block_storage/test/service"
 		"components/service/common/provider"
 		"components/service/fwu/agent"
+		"components/service/fwu/common"
 		"components/service/fwu/fw_store/banked"
 		"components/service/fwu/fw_store/banked/metadata_serializer/v1"
 		"components/service/fwu/fw_store/banked/metadata_serializer/v2"

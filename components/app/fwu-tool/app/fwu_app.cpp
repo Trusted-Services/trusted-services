@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -31,13 +31,12 @@ fwu_app::fwu_app()
 	: m_update_agent()
 	, m_fw_store()
 {
-	memset(&m_update_agent, 0, sizeof(m_update_agent));
 	memset(&m_fw_store, 0, sizeof(m_fw_store));
 }
 
 fwu_app::~fwu_app()
 {
-	update_agent_deinit(&m_update_agent);
+	update_agent_deinit(m_update_agent);
 	banked_fw_store_deinit(&m_fw_store);
 
 	fwu_deconfigure();
@@ -96,10 +95,9 @@ int fwu_app::init_update_agent(unsigned int boot_index, unsigned int metadata_ve
 		return -1;
 	}
 
-	status = update_agent_init(&m_update_agent, boot_index, direct_fw_inspector_inspect,
-				   &m_fw_store);
+	m_update_agent = update_agent_init(boot_index, direct_fw_inspector_inspect, &m_fw_store);
 
-	if (status) {
+	if (!m_update_agent) {
 		IMSG("update agent initialisation error %d", status);
 		return -1;
 	}
@@ -111,27 +109,31 @@ int fwu_app::init_update_agent(unsigned int boot_index, unsigned int metadata_ve
 int fwu_app::update_image(const struct uuid_octets &img_type_uuid, const uint8_t *img_data,
 			  size_t img_size)
 {
-	int status = update_agent_begin_staging(&m_update_agent);
+	int status = update_agent_begin_staging(m_update_agent, 0, 0, NULL);
 
 	if (status)
 		return status;
 
 	uint32_t stream_handle = 0;
+	uint32_t progress = 0;
+	uint32_t total_work = 0;
 
-	status = update_agent_open(&m_update_agent, &img_type_uuid, &stream_handle);
+	status = update_agent_open(m_update_agent, &img_type_uuid, FWU_OP_TYPE_WRITE,
+				   &stream_handle);
 
 	if (!status) {
-		status = update_agent_write_stream(&m_update_agent, stream_handle, img_data,
+		status = update_agent_write_stream(m_update_agent, stream_handle, img_data,
 						   img_size);
 
 		if (!status)
-			status = update_agent_commit(&m_update_agent, stream_handle, false);
+			status = update_agent_commit(m_update_agent, stream_handle, false, 0,
+						     &progress, &total_work);
 	}
 
 	if (!status)
-		status = update_agent_end_staging(&m_update_agent);
+		status = update_agent_end_staging(m_update_agent);
 	else
-		update_agent_cancel_staging(&m_update_agent);
+		update_agent_cancel_staging(m_update_agent);
 
 	return status;
 }
@@ -139,7 +141,8 @@ int fwu_app::update_image(const struct uuid_octets &img_type_uuid, const uint8_t
 int fwu_app::read_object(const struct uuid_octets &object_uuid, std::vector<uint8_t> &data)
 {
 	uint32_t stream_handle = 0;
-	int status = update_agent_open(&m_update_agent, &object_uuid, &stream_handle);
+	int status = update_agent_open(m_update_agent, &object_uuid, FWU_OP_TYPE_READ,
+				       &stream_handle);
 
 	if (status)
 		return status;
@@ -150,6 +153,8 @@ int fwu_app::read_object(const struct uuid_octets &object_uuid, std::vector<uint
 	size_t reported_total_len = 0;
 	size_t read_so_far = 0;
 	size_t vector_capacity = 512;
+	uint32_t progress = 0;
+	uint32_t total_work = 0;
 
 	data.resize(vector_capacity);
 
@@ -157,7 +162,7 @@ int fwu_app::read_object(const struct uuid_octets &object_uuid, std::vector<uint
 		size_t data_len_read = 0;
 		size_t requested_read_len = vector_capacity - read_so_far;
 
-		status = update_agent_read_stream(&m_update_agent, stream_handle,
+		status = update_agent_read_stream(m_update_agent, stream_handle,
 						  &data[read_so_far], requested_read_len,
 						  &data_len_read, &reported_total_len);
 
@@ -181,14 +186,15 @@ int fwu_app::read_object(const struct uuid_octets &object_uuid, std::vector<uint
 
 	} while (!status);
 
-	status = update_agent_commit(&m_update_agent, stream_handle, false);
+	status = update_agent_commit(m_update_agent, stream_handle, false, 0, &progress,
+				     &total_work);
 
 	return status;
 }
 
 struct update_agent *fwu_app::update_agent()
 {
-	return &m_update_agent;
+	return m_update_agent;
 }
 
 const struct metadata_serializer *fwu_app::select_metadata_serializer(unsigned int version)

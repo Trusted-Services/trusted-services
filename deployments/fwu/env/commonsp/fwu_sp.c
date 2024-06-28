@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  */
 
 #include <stddef.h>
@@ -45,7 +45,7 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 	struct ts_rpc_endpoint_sp rpc_endpoint = { 0 };
 	struct fwu_provider service_provider = { 0 };
 	struct rpc_service_interface *service_iface = NULL;
-	struct update_agent update_agent = { 0 };
+	struct update_agent *update_agent = NULL;
 	struct fw_store fw_store = { 0 };
 	struct sp_msg req_msg = { 0 };
 	struct sp_msg resp_msg = { 0 };
@@ -89,14 +89,15 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		goto fatal_error;
 	}
 
-	if (update_agent_init(&update_agent, HARD_CODED_BOOT_INDEX, direct_fw_inspector_inspect,
-			      &fw_store)) {
+	update_agent = update_agent_init(HARD_CODED_BOOT_INDEX, direct_fw_inspector_inspect,
+					 &fw_store);
+	if (!update_agent) {
 		EMSG("Failed to init update agent");
 		goto fatal_error;
 	}
 
 	/* Initialise the FWU service provider */
-	service_iface = fwu_provider_init(&service_provider, &update_agent);
+	service_iface = fwu_provider_init(&service_provider, update_agent);
 
 	if (!service_iface) {
 		EMSG("Failed to init service provider");
