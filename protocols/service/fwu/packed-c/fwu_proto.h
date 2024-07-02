@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,7 +17,7 @@
  * The major version number of the FWU-A access protocol. It will be incremented
  * on significant updates that may include breaking changes.
  */
-#define FWU_PROTOCOL_VERSION_MAJOR 2
+#define FWU_PROTOCOL_VERSION_MAJOR 1
 
 /**
  * The minor version number  It will be incremented in
@@ -32,11 +32,13 @@
 #define FWU_DIRECTORY_CANONICAL_UUID	"deee58d9-5147-4ad3-a290-77666e2341a5"
 #define FWU_METADATA_CANONICAL_UUID	"8a7a84a0-8387-40f6-ab41-a8b9a5a60d23"
 
+#define FWU_OPEN_OP_TYPE_READ  (0)
+#define FWU_OPEN_OP_TYPE_WRITE (1)
+
 /**
  * Image directory
  */
-#define FWU_READ_PERM  (1u << 1)
-#define FWU_WRITE_PERM (1u << 0)
+#define FWU_IMAGE_DIRECTORY_VERSION	(2)
 
 struct __attribute__((__packed__)) ts_fwu_image_info_entry {
 	uint8_t img_type_uuid[OSF_UUID_OCTET_LEN];
@@ -63,14 +65,27 @@ struct __attribute__((__packed__)) ts_fwu_image_directory {
  */
 
 struct __attribute__((__packed__)) ts_fwu_discover_out {
+	int16_t service_status;
 	uint8_t version_major;
 	uint8_t version_minor;
+	uint16_t off_function_presence;
 	uint16_t num_func;
+	uint64_t max_payload_size;
+	uint32_t flags;
+	uint32_t vendor_specific_flags;
 	uint8_t function_presence[];
+};
+
+struct __attribute__((__packed__)) ts_fwu_begin_staging_in {
+	uint32_t reserved;
+	uint32_t vendor_flags;
+	uint32_t partial_update_count;
+	uint8_t update_guid[];
 };
 
 struct __attribute__((__packed__)) ts_fwu_open_in {
 	uint8_t image_type_uuid[OSF_UUID_OCTET_LEN];
+	uint8_t op_type;
 };
 
 struct __attribute__((__packed__)) ts_fwu_open_out {

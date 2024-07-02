@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,9 +9,73 @@
 
 #include "protocols/rpc/common/packed-c/status.h"
 #include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "util.h"
+
+rpc_status_t serialize_discover_resp(const struct rpc_buffer *resp_buf, int16_t service_status,
+				     uint8_t version_major, uint8_t version_minor,
+				     uint16_t num_func, uint64_t max_payload_size, uint32_t flags,
+				     uint32_t vendor_specific_flags, uint8_t *function_presence)
+{
+	rpc_status_t rpc_status = RPC_ERROR_INVALID_RESPONSE_BODY;
+	struct ts_fwu_discover_out *resp_msg = NULL;
+	size_t len = 0;
+
+	if (ADD_OVERFLOW(sizeof(*resp_msg), num_func, &len))
+		return RPC_ERROR_INVALID_RESPONSE_BODY;
+
+	if (len <= resp_buf->size) {
+		resp_msg = (struct ts_fwu_discover_out *)resp_buf->data;
+
+		resp_msg->service_status = service_status;
+		resp_msg->version_major = version_major;
+		resp_msg->version_minor = version_minor;
+		resp_msg->off_function_presence =
+			offsetof(struct ts_fwu_discover_out, function_presence);
+		resp_msg->num_func = num_func;
+		resp_msg->max_payload_size = max_payload_size;
+		resp_msg->flags = flags;
+		resp_msg->vendor_specific_flags = vendor_specific_flags;
+		memcpy(resp_msg->function_presence, function_presence, num_func);
+
+		rpc_status = RPC_SUCCESS;
+	}
+
+	return rpc_status;
+}
+
+rpc_status_t deserialize_begin_staging_req(const struct rpc_buffer *req_buf, uint32_t *vendor_flags,
+					   uint32_t *partial_update_count,
+					   uint32_t max_update_count,
+					   struct uuid_octets *update_guid)
+{
+	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
+	size_t expected_fixed_len = sizeof(struct ts_fwu_begin_staging_in);
+
+	if (expected_fixed_len <= req_buf->data_length) {
+		const struct ts_fwu_begin_staging_in *recv_msg =
+			(const struct ts_fwu_begin_staging_in *)req_buf->data;
+		size_t full_len = 0;
+
+		if (ADD_OVERFLOW(expected_fixed_len, recv_msg->partial_update_count, &full_len))
+			return RPC_ERROR_INVALID_REQUEST_BODY;
+
+		if (recv_msg->partial_update_count > max_update_count)
+			return RPC_ERROR_INTERNAL;
+
+		*vendor_flags = recv_msg->vendor_flags;
+		*partial_update_count = recv_msg->partial_update_count;
+
+		memcpy(update_guid, recv_msg->update_guid,
+		       UUID_OCTETS_LEN * recv_msg->partial_update_count);
+
+		rpc_status = RPC_SUCCESS;
+	}
+
+	return rpc_status;
+}
 
 static rpc_status_t deserialize_open_req(const struct rpc_buffer *req_buf,
-					 struct uuid_octets *image_type_uuid)
+					 struct uuid_octets *image_type_uuid, uint8_t *op_type)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct ts_fwu_open_in);
@@ -20,9 +84,14 @@ static rpc_status_t deserialize_open_req(const struct rpc_buffer *req_buf,
 		const struct ts_fwu_open_in *recv_msg =
 			(const struct ts_fwu_open_in *)req_buf->data;
 
-		memcpy(image_type_uuid->octets, recv_msg->image_type_uuid, UUID_OCTETS_LEN);
-
-		rpc_status = RPC_SUCCESS;
+		if (recv_msg->op_type == FWU_OPEN_OP_TYPE_READ ||
+		    recv_msg->op_type == FWU_OPEN_OP_TYPE_WRITE) {
+			memcpy(image_type_uuid->octets, recv_msg->image_type_uuid, UUID_OCTETS_LEN);
+			*op_type = recv_msg->op_type;
+			rpc_status = RPC_SUCCESS;
+		} else {
+			rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
+		}
 	}
 
 	return rpc_status;
@@ -181,9 +250,17 @@ static rpc_status_t deserialize_accept_req(const struct rpc_buffer *req_buf,
 const struct fwu_provider_serializer *packedc_fwu_provider_serializer_instance(void)
 {
 	static const struct fwu_provider_serializer instance = {
-		deserialize_open_req,	     serialize_open_resp,      deserialize_write_stream_req,
-		deserialize_read_stream_req, read_stream_resp_payload, serialize_read_stream_resp,
-		deserialize_commit_req,	     serialize_commit_resp,    deserialize_accept_req
+		serialize_discover_resp,
+		deserialize_begin_staging_req,
+		deserialize_open_req,
+		serialize_open_resp,
+		deserialize_write_stream_req,
+		deserialize_read_stream_req,
+		read_stream_resp_payload,
+		serialize_read_stream_resp,
+		deserialize_commit_req,
+		serialize_commit_resp,
+		deserialize_accept_req
 	};
 
 	return &instance;

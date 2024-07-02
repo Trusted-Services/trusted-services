@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -92,12 +92,12 @@ struct fmp {
 		struct uuid_octets *uuid = &(img_info[ImageIndex].ImageTypeId);
 
 		if (!is_staging) {
-			status = client->begin_staging();
+			status = client->begin_staging(0, 0, NULL);
 			LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 			is_staging = true;
 		}
 
-		status = client->open(uuid, &stream_handle);
+		status = client->open(uuid, fwu_client::op_type::WRITE, &stream_handle);
 		LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 		status = client->write_stream(stream_handle, static_cast<const uint8_t *>(Image),
@@ -127,7 +127,7 @@ private:
 
 		uuid_guid_octets_from_canonical(&uuid, FWU_DIRECTORY_CANONICAL_UUID);
 
-		status = client->open(&uuid, &stream_handle);
+		status = client->open(&uuid, fwu_client::op_type::READ, &stream_handle);
 		LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 		// Determine the size of the FW directory without reading any info.
@@ -139,7 +139,7 @@ private:
 		// to reset the read seek.
 		status = client->commit(stream_handle, false);
 		LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
-		status = client->open(&uuid, &stream_handle);
+		status = client->open(&uuid, fwu_client::op_type::READ, &stream_handle);
 		LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 		img_dir = (ts_fwu_image_directory *)new uint8_t[reported_total_len];

@@ -54,6 +54,18 @@ struct generic_update_agent {
 
 static int cancel_staging(void *context);
 
+static int discover(void *context, struct fwu_discovery_result *result)
+{
+	result->service_status = 0;
+	result->version_major = FWU_PROTOCOL_VERSION_MAJOR;
+	result->version_minor = FWU_PROTOCOL_VERSION_MINOR;
+	result->max_payload_size = 0;
+	result->flags = 0;
+	result->vendor_specific_flags = 0;
+
+	return FWU_STATUS_SUCCESS;
+}
+
 static int begin_staging(void *context, uint32_t vendor_flags, uint32_t partial_update_count,
 			 const struct uuid_octets *update_guid)
 {
@@ -295,7 +307,7 @@ static int read_stream(void *context, uint32_t handle, uint8_t *buf, size_t buf_
 
 
 static const struct update_agent_interface interface = {
-	.discover = NULL,
+	.discover = discover,
 	.begin_staging = begin_staging,
 	.end_staging = end_staging,
 	.cancel_staging = cancel_staging,

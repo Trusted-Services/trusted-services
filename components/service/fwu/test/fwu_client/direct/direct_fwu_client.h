@@ -22,7 +22,12 @@ public:
 	explicit direct_fwu_client(struct update_agent **update_agent);
 	~direct_fwu_client();
 
-	int begin_staging(void);
+	int discover(int16_t *service_status, uint8_t *version_major, uint8_t *version_minor,
+		     uint16_t *num_func, uint64_t *max_payload_size, uint32_t *flags,
+		     uint32_t *vendor_specific_flags, uint8_t *function_presence);
+
+	int begin_staging(uint32_t vendor_flags, uint32_t partial_update_count,
+			  struct uuid_octets update_guid[]);
 
 	int end_staging(void);
 
@@ -32,7 +37,7 @@ public:
 
 	int select_previous(void);
 
-	int open(const struct uuid_octets *uuid, uint32_t *handle);
+	int open(const struct uuid_octets *uuid, op_type op_type, uint32_t *handle);
 
 	int commit(uint32_t handle, bool accepted);
 

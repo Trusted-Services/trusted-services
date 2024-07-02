@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,15 +10,17 @@
 /**
  * Service-level opcodes
  */
-#define TS_FWU_OPCODE_BASE	      (0x10)
-#define TS_FWU_OPCODE_BEGIN_STAGING   (TS_FWU_OPCODE_BASE + 0)
-#define TS_FWU_OPCODE_END_STAGING     (TS_FWU_OPCODE_BASE + 1)
-#define TS_FWU_OPCODE_CANCEL_STAGING  (TS_FWU_OPCODE_BASE + 2)
-#define TS_FWU_OPCODE_OPEN	      (TS_FWU_OPCODE_BASE + 3)
-#define TS_FWU_OPCODE_WRITE_STREAM    (TS_FWU_OPCODE_BASE + 4)
-#define TS_FWU_OPCODE_READ_STREAM     (TS_FWU_OPCODE_BASE + 5)
-#define TS_FWU_OPCODE_COMMIT	      (TS_FWU_OPCODE_BASE + 6)
-#define TS_FWU_OPCODE_ACCEPT_IMAGE    (TS_FWU_OPCODE_BASE + 7)
-#define TS_FWU_OPCODE_SELECT_PREVIOUS (TS_FWU_OPCODE_BASE + 8)
+#define FWU_FUNC_ID_DISCOVER		(0)
+#define FWU_FUNC_ID_BEGIN_STAGING	(16)
+#define FWU_FUNC_ID_END_STAGING	(17)
+#define FWU_FUNC_ID_CANCEL_STAGING	(18)
+#define FWU_FUNC_ID_OPEN		(19)
+#define FWU_FUNC_ID_WRITE_STREAM	(20)
+#define FWU_FUNC_ID_READ_STREAM	(21)
+#define FWU_FUNC_ID_COMMIT		(22)
+#define FWU_FUNC_ID_ACCEPT_IMAGE	(23)
+#define FWU_FUNC_ID_SELECT_PREVIOUS	(24)
+
+#define FWU_FUNC_ID_COUNT		(10)
 
 #endif /* FWU_PROTO_OPCODES_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,6 +15,7 @@
 #include "protocols/service/fwu/packed-c/fwu_proto.h"
 #include "protocols/service/fwu/packed-c/opcodes.h"
 #include "protocols/service/fwu/packed-c/status.h"
+#include "util.h"
 
 remote_fwu_client::remote_fwu_client()
 	: fwu_client()
@@ -97,19 +98,114 @@ int remote_fwu_client::invoke_no_param(unsigned int opcode)
 	return fwu_status;
 }
 
-int remote_fwu_client::begin_staging(void)
+int remote_fwu_client::discover(int16_t *service_status, uint8_t *version_major,
+				uint8_t *version_minor, uint16_t *num_func,
+				uint64_t *max_payload_size, uint32_t *flags,
+				uint32_t *vendor_specific_flags, uint8_t *function_presence)
 {
-	return invoke_no_param(TS_FWU_OPCODE_BEGIN_STAGING);
+	int fwu_status = FWU_STATUS_NOT_AVAILABLE;
+	struct ts_fwu_discover_out *resp_msg = NULL;
+	size_t max_resp_len = 0;
+
+	if (!m_service_context)
+		return fwu_status;
+
+	if (ADD_OVERFLOW(FWU_FUNC_ID_COUNT, sizeof(*resp_msg), &max_resp_len))
+		return FWU_STATUS_OUT_OF_BOUNDS;
+
+	rpc_call_handle call_handle = NULL;
+	uint8_t *req_buf = NULL;
+
+	call_handle = rpc_caller_session_begin(m_rpc_session, &req_buf, 0, max_resp_len);
+
+	if (call_handle) {
+		uint8_t *resp_buf = NULL;
+		size_t resp_len = 0;
+		service_status_t req_service_status = 0;
+
+		m_client.rpc_status = rpc_caller_session_invoke(call_handle, FWU_FUNC_ID_DISCOVER,
+								&resp_buf, &resp_len,
+								&req_service_status);
+
+		if (m_client.rpc_status == TS_RPC_CALL_ACCEPTED) {
+			fwu_status = req_service_status;
+
+			if (fwu_status == FWU_STATUS_SUCCESS) {
+				if (resp_len <= max_resp_len) {
+					resp_msg = (struct ts_fwu_discover_out *)resp_buf;
+
+					*service_status = resp_msg->service_status;
+					*version_major = resp_msg->version_major;
+					*num_func = resp_msg->num_func;
+					*max_payload_size = resp_msg->max_payload_size;
+					*flags = resp_msg->flags;
+					*vendor_specific_flags = resp_msg->vendor_specific_flags;
+					memcpy(function_presence, resp_msg->function_presence,
+					resp_msg->num_func);
+				} else {
+					fwu_status = FWU_STATUS_OUT_OF_BOUNDS;
+				}
+			}
+		}
+
+		rpc_caller_session_end(call_handle);
+	}
+
+	return fwu_status;
+}
+
+int remote_fwu_client::begin_staging(uint32_t vendor_flags, uint32_t partial_update_count,
+				     struct uuid_octets update_guid[])
+{
+	int fwu_status = FWU_STATUS_NOT_AVAILABLE;
+	struct ts_fwu_begin_staging_in *req_msg = NULL;
+	size_t req_len = 0;
+	size_t uuids_size = 0;
+
+	if (!m_service_context)
+		return fwu_status;
+
+	if (MUL_OVERFLOW(partial_update_count, sizeof(*update_guid), &uuids_size) ||
+	    ADD_OVERFLOW(uuids_size, sizeof(*req_msg), &req_len))
+		return fwu_status;
+
+	rpc_call_handle call_handle = NULL;
+	uint8_t *req_buf = NULL;
+
+	call_handle = rpc_caller_session_begin(m_rpc_session, &req_buf, req_len, 0);
+
+	if (call_handle) {
+		uint8_t *resp_buf = NULL;
+		size_t resp_len = 0;
+		service_status_t service_status = 0;
+
+		req_msg = (struct ts_fwu_begin_staging_in *)req_buf;
+		req_msg->reserved = 0;
+		req_msg->vendor_flags = vendor_flags;
+		req_msg->partial_update_count = partial_update_count;
+		memcpy(req_msg->update_guid, update_guid, uuids_size);
+
+		m_client.rpc_status = rpc_caller_session_invoke(call_handle,
+							FWU_FUNC_ID_BEGIN_STAGING,
+							&resp_buf, &resp_len, &service_status);
+
+		if (m_client.rpc_status == TS_RPC_CALL_ACCEPTED)
+			fwu_status = service_status;
+
+		rpc_caller_session_end(call_handle);
+	}
+
+	return fwu_status;
 }
 
 int remote_fwu_client::end_staging(void)
 {
-	return invoke_no_param(TS_FWU_OPCODE_END_STAGING);
+	return invoke_no_param(FWU_FUNC_ID_END_STAGING);
 }
 
 int remote_fwu_client::cancel_staging(void)
 {
-	return invoke_no_param(TS_FWU_OPCODE_CANCEL_STAGING);
+	return invoke_no_param(FWU_FUNC_ID_CANCEL_STAGING);
 }
 
 int remote_fwu_client::accept(const struct uuid_octets *image_type_uuid)
@@ -136,7 +232,7 @@ int remote_fwu_client::accept(const struct uuid_octets *image_type_uuid)
 		memcpy(req_buf, &req_msg, req_len);
 
 		m_client.rpc_status = rpc_caller_session_invoke(call_handle,
-							TS_FWU_OPCODE_ACCEPT_IMAGE,
+							FWU_FUNC_ID_ACCEPT_IMAGE,
 							&resp_buf, &resp_len, &service_status);
 
 		if (m_client.rpc_status == TS_RPC_CALL_ACCEPTED)
@@ -150,10 +246,10 @@ int remote_fwu_client::accept(const struct uuid_octets *image_type_uuid)
 
 int remote_fwu_client::select_previous(void)
 {
-	return invoke_no_param(TS_FWU_OPCODE_SELECT_PREVIOUS);
+	return invoke_no_param(FWU_FUNC_ID_SELECT_PREVIOUS);
 }
 
-int remote_fwu_client::open(const struct uuid_octets *uuid, uint32_t *handle)
+int remote_fwu_client::open(const struct uuid_octets *uuid, op_type op_type, uint32_t *handle)
 {
 	int fwu_status = FWU_STATUS_NOT_AVAILABLE;
 	struct ts_fwu_open_in req_msg = { 0 };
@@ -163,6 +259,7 @@ int remote_fwu_client::open(const struct uuid_octets *uuid, uint32_t *handle)
 		return fwu_status;
 
 	memcpy(req_msg.image_type_uuid, uuid->octets, OSF_UUID_OCTET_LEN);
+	req_msg.op_type = static_cast<uint8_t>(op_type);
 
 	rpc_call_handle call_handle;
 	uint8_t *req_buf;
@@ -178,7 +275,7 @@ int remote_fwu_client::open(const struct uuid_octets *uuid, uint32_t *handle)
 		memcpy(req_buf, &req_msg, req_len);
 
 		m_client.rpc_status = rpc_caller_session_invoke(call_handle,
-							TS_FWU_OPCODE_OPEN, &resp_buf,
+							FWU_FUNC_ID_OPEN, &resp_buf,
 							&resp_len, &service_status);
 
 		if (m_client.rpc_status == TS_RPC_CALL_ACCEPTED) {
@@ -224,7 +321,7 @@ int remote_fwu_client::commit(uint32_t handle, bool accepted)
 		memcpy(req_buf, &req_msg, req_len);
 
 		m_client.rpc_status = rpc_caller_session_invoke(call_handle,
-							TS_FWU_OPCODE_COMMIT, &resp_buf,
+							FWU_FUNC_ID_COMMIT, &resp_buf,
 							&resp_len, &service_status);
 
 		if (m_client.rpc_status == TS_RPC_CALL_ACCEPTED)
@@ -280,7 +377,7 @@ int remote_fwu_client::write_stream(uint32_t handle, const uint8_t *data, size_t
 			total_written += write_len;
 
 			m_client.rpc_status = rpc_caller_session_invoke(call_handle,
-								TS_FWU_OPCODE_WRITE_STREAM,
+								FWU_FUNC_ID_WRITE_STREAM,
 								&resp_buf, &resp_len, &service_status);
 
 			rpc_caller_session_end(call_handle);
@@ -327,7 +424,7 @@ int remote_fwu_client::read_stream(uint32_t handle, uint8_t *buf, size_t buf_siz
 		memcpy(req_buf, &req_msg, req_len);
 
 		m_client.rpc_status = rpc_caller_session_invoke(call_handle,
-							TS_FWU_OPCODE_READ_STREAM,
+							FWU_FUNC_ID_READ_STREAM,
 							&resp_buf, &resp_len, &service_status);
 
 		size_t proto_overhead = offsetof(ts_fwu_read_stream_out, payload);

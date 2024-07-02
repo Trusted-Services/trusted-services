@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -91,7 +91,7 @@ TEST(FwuImageDirectoryTests, streamRecycling)
 		int status = 0;
 		uint32_t stream_handle = 0;
 
-		status = m_fwu_client->open(&uuid, &stream_handle);
+		status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 		LONGS_EQUAL(0, status);
 
 		stream_handles.push_back(stream_handle);

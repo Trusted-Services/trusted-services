@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -34,7 +34,7 @@ int image_directory_checker::fetch_image_directory(fwu_client *fwu_client)
 
 	uuid_guid_octets_from_canonical(&uuid, FWU_DIRECTORY_CANONICAL_UUID);
 
-	status = fwu_client->open(&uuid, &stream_handle);
+	status = fwu_client->open(&uuid, fwu_client::op_type::READ, &stream_handle);
 	if (status)
 		return status;
 

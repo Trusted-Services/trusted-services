@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -70,10 +70,10 @@ TEST(FwuOversizeImageTests, maxSizeInstall)
 	m_dut->generate_image_data(&image_data, img_size);
 
 	/* Install the image */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->write_stream(stream_handle,
@@ -114,10 +114,10 @@ TEST(FwuOversizeImageTests, oversizeInstallCancelStaging)
 	m_dut->generate_image_data(&image_data, img_size);
 
 	/* Install the image */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->write_stream(stream_handle,
@@ -156,10 +156,10 @@ TEST(FwuOversizeImageTests, oversizeInstallEndStaging)
 	m_dut->generate_image_data(&image_data, img_size);
 
 	/* Install the image */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->write_stream(stream_handle,
@@ -201,7 +201,7 @@ TEST(FwuOversizeImageTests, oversizeInstallMultiLocationEndStaging)
 	m_dut->boot();
 
 	/* Perform multi-image update transaction */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	/* Install good image for location 0 */
@@ -210,7 +210,7 @@ TEST(FwuOversizeImageTests, oversizeInstallMultiLocationEndStaging)
 	size_t img_size = max_image_size(&uuid);
 	m_dut->generate_image_data(&image_data, img_size);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->write_stream(stream_handle,
@@ -226,7 +226,7 @@ TEST(FwuOversizeImageTests, oversizeInstallMultiLocationEndStaging)
 	img_size = max_image_size(&uuid) + 1;
 	m_dut->generate_image_data(&image_data, img_size);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->write_stream(stream_handle,
@@ -242,7 +242,7 @@ TEST(FwuOversizeImageTests, oversizeInstallMultiLocationEndStaging)
 	img_size = max_image_size(&uuid);
 	m_dut->generate_image_data(&image_data, img_size);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->write_stream(stream_handle,

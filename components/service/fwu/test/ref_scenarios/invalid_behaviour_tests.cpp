@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -64,7 +64,7 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInRegular)
 
 	/* Open a fw image when not STAGING */
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_DENIED, status);
 
 	/* Write to a stream when not STAGING. Note also that it's not possible
@@ -103,11 +103,11 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInStaging)
 	m_dut->boot();
 
 	/* Expect to be able to transition to STAGING */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	/* And re-enter STAGING (implicit cancel) */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	/* Opening a couple of streams for installing images associated
@@ -117,11 +117,11 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInStaging)
 	uint32_t stream_handle2 = 0;
 
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle1);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle1);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	m_dut->whole_volume_image_type_uuid(1, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle2);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle2);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	/* Attempting to end staging with open install streams should fail */
@@ -184,14 +184,14 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInTrial)
 	m_dut->boot();
 
 	/* Expect to be able to transition to STAGING */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	/* Install an image into location 0 */
 	uint32_t stream_handle = 0;
 
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	std::vector<uint8_t> image_data;
@@ -214,7 +214,7 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInTrial)
 	/* If we've transitioned to TRAIL, attempting to begin staging
 	 * again should be denied.
 	 */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_DENIED, status);
 
 	/* Activate the update. We'd expect the update to have been installed
@@ -226,7 +226,7 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInTrial)
 	/* If all's well, the DUT should have rebooted to TRIAL. Confirm this by
 	 * trying to begin staging - this should be denied.
 	 */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_DENIED, status);
 
 	/* All other staging related operations should also be denied */
@@ -238,7 +238,7 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInTrial)
 
 	/* Attempting to install images should also be denied */
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_DENIED, status);
 
 	/* Reading the image directory should be ok though */
@@ -250,10 +250,10 @@ TEST(FwuInvalidBehaviourTests, invalidOperationsInTrial)
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	/* Should have transitioned back to REGULAR */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	status = m_fwu_client->cancel_staging();

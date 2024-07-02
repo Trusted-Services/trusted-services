@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -21,9 +21,25 @@
  * implement this interface.
  */
 struct fwu_provider_serializer {
+	/* Operation: discover */
+	rpc_status_t (*serialize_discover_resp)(const struct rpc_buffer *resp_buf,
+						int16_t service_status, uint8_t version_major,
+						uint8_t version_minor, uint16_t num_func,
+						uint64_t max_payload_size, uint32_t flags,
+						uint32_t vendor_specific_flags,
+						uint8_t *function_presence);
+
+	/* Operation: begin staging */
+	rpc_status_t (*deserialize_begin_staging_req)(const struct rpc_buffer *req_buf,
+						      uint32_t *vendor_flags,
+						      uint32_t *partial_update_count,
+						      uint32_t max_update_count,
+						      struct uuid_octets *update_guid);
+
 	/* Operation: open */
 	rpc_status_t (*deserialize_open_req)(const struct rpc_buffer *req_buf,
-					     struct uuid_octets *image_type_uuid);
+					     struct uuid_octets *image_type_uuid,
+					     uint8_t *op_type);
 
 	rpc_status_t (*serialize_open_resp)(struct rpc_buffer *resp_buf, uint32_t handle);
 

@@ -15,7 +15,12 @@
 #include "service/fwu/provider/serializer/fwu_provider_serializer.h"
 #include "fwu_uuid.h"
 
+#ifndef FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT
+#define FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT	(4)
+#endif /* FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT */
+
 /* Service request handlers */
+static rpc_status_t discover_handler(void *context, struct rpc_request *req);
 static rpc_status_t begin_staging_handler(void *context, struct rpc_request *req);
 static rpc_status_t end_staging_handler(void *context, struct rpc_request *req);
 static rpc_status_t cancel_staging_handler(void *context, struct rpc_request *req);
@@ -28,15 +33,16 @@ static rpc_status_t select_previous_handler(void *context, struct rpc_request *r
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
-	{ TS_FWU_OPCODE_BEGIN_STAGING, begin_staging_handler },
-	{ TS_FWU_OPCODE_END_STAGING, end_staging_handler },
-	{ TS_FWU_OPCODE_CANCEL_STAGING, cancel_staging_handler },
-	{ TS_FWU_OPCODE_OPEN, open_handler },
-	{ TS_FWU_OPCODE_WRITE_STREAM, write_stream_handler },
-	{ TS_FWU_OPCODE_READ_STREAM, read_stream_handler },
-	{ TS_FWU_OPCODE_COMMIT, commit_handler },
-	{ TS_FWU_OPCODE_ACCEPT_IMAGE, accept_image_handler },
-	{ TS_FWU_OPCODE_SELECT_PREVIOUS, select_previous_handler }
+	{ FWU_FUNC_ID_DISCOVER, discover_handler },
+	{ FWU_FUNC_ID_BEGIN_STAGING, begin_staging_handler },
+	{ FWU_FUNC_ID_END_STAGING, end_staging_handler },
+	{ FWU_FUNC_ID_CANCEL_STAGING, cancel_staging_handler },
+	{ FWU_FUNC_ID_OPEN, open_handler },
+	{ FWU_FUNC_ID_WRITE_STREAM, write_stream_handler },
+	{ FWU_FUNC_ID_READ_STREAM, read_stream_handler },
+	{ FWU_FUNC_ID_COMMIT, commit_handler },
+	{ FWU_FUNC_ID_ACCEPT_IMAGE, accept_image_handler },
+	{ FWU_FUNC_ID_SELECT_PREVIOUS, select_previous_handler }
 };
 
 struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
@@ -80,13 +86,89 @@ static const struct fwu_provider_serializer *get_fwu_serializer(struct fwu_provi
 	return serializer;
 }
 
+static uint16_t generate_function_presence(const struct update_agent *agent,
+					   uint8_t function_presence[FWU_FUNC_ID_COUNT])
+{
+	uint16_t num_func = 0;
+
+#define ADD_FUNC_IF_PRESENT(func, id) \
+do { \
+	if (agent->interface->func != NULL) \
+		function_presence[num_func++] = (id); \
+} while (0)
+
+	ADD_FUNC_IF_PRESENT(discover, FWU_FUNC_ID_DISCOVER);
+	ADD_FUNC_IF_PRESENT(begin_staging, FWU_FUNC_ID_BEGIN_STAGING);
+	ADD_FUNC_IF_PRESENT(end_staging, FWU_FUNC_ID_END_STAGING);
+	ADD_FUNC_IF_PRESENT(cancel_staging, FWU_FUNC_ID_CANCEL_STAGING);
+	ADD_FUNC_IF_PRESENT(open, FWU_FUNC_ID_OPEN);
+	ADD_FUNC_IF_PRESENT(write_stream, FWU_FUNC_ID_WRITE_STREAM);
+	ADD_FUNC_IF_PRESENT(read_stream, FWU_FUNC_ID_READ_STREAM);
+	ADD_FUNC_IF_PRESENT(commit, FWU_FUNC_ID_COMMIT);
+	ADD_FUNC_IF_PRESENT(accept_image, FWU_FUNC_ID_ACCEPT_IMAGE);
+	ADD_FUNC_IF_PRESENT(select_previous, FWU_FUNC_ID_SELECT_PREVIOUS);
+
+#undef ADD_FUNC_IF_PRESENT
+
+	return num_func;
+}
+
+static rpc_status_t discover_handler(void *context, struct rpc_request *req)
+{
+	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	struct fwu_provider *this_instance = (struct fwu_provider *)context;
+	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
+	struct fwu_discovery_result discovery_result = { 0 };
+	struct rpc_buffer *resp_buf = &req->response;
+
+	if (!serializer)
+		return rpc_status;
+
+	req->service_status = update_agent_discover(this_instance->update_agent, &discovery_result);
+
+	if (!req->service_status) {
+		uint16_t num_func = 0;
+		uint8_t function_presence[FWU_FUNC_ID_COUNT] = { 0 };
+
+		num_func = generate_function_presence(this_instance->update_agent,
+						      function_presence);
+
+		rpc_status = serializer->serialize_discover_resp(
+			resp_buf, discovery_result.service_status, discovery_result.version_major,
+			discovery_result.version_minor, num_func, discovery_result.max_payload_size,
+			discovery_result.flags, discovery_result.vendor_specific_flags,
+			function_presence);
+	} else {
+		/*
+		 * The actual service call failed, but the request was successful on the RPC level
+		 */
+		rpc_status = RPC_SUCCESS;
+	}
+
+	return rpc_status;
+}
+
 static rpc_status_t begin_staging_handler(void *context, struct rpc_request *req)
 {
+	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
+	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
+	uint32_t vendor_flags = 0;
+	uint32_t partial_update_count = 0;
+	struct uuid_octets update_guid[FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT];
 
-	req->service_status = update_agent_begin_staging(this_instance->update_agent, 0, 0, NULL);
+	if (serializer)
+		rpc_status = serializer->deserialize_begin_staging_req(
+			req_buf, &vendor_flags, &partial_update_count,
+			FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT, update_guid);
 
-	return RPC_SUCCESS;
+	if (rpc_status == RPC_SUCCESS)
+		req->service_status = update_agent_begin_staging(
+			this_instance->update_agent, vendor_flags, partial_update_count,
+			update_guid);
+
+	return rpc_status;
 }
 
 static rpc_status_t end_staging_handler(void *context, struct rpc_request *req)
@@ -113,15 +195,16 @@ static rpc_status_t open_handler(void *context, struct rpc_request *req)
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
 	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
-	struct uuid_octets image_type_uuid;
+	struct uuid_octets image_type_uuid = { 0 };
+	uint8_t op_type = 0;
 
 	if (serializer)
-		rpc_status = serializer->deserialize_open_req(req_buf, &image_type_uuid);
+		rpc_status = serializer->deserialize_open_req(req_buf, &image_type_uuid, &op_type);
 
 	if (rpc_status == RPC_SUCCESS) {
 		uint32_t handle = 0;
 		req->service_status =
-			update_agent_open(this_instance->update_agent, &image_type_uuid, 0,
+			update_agent_open(this_instance->update_agent, &image_type_uuid, op_type,
 					  &handle);
 
 		if (!req->service_status) {
