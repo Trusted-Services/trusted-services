@@ -64,6 +64,16 @@ struct __attribute__((__packed__)) ts_fwu_image_directory {
  * Message parameters
  */
 
+struct __attribute__((__packed__)) ts_fwu_request_header {
+	uint32_t func_id;
+	uint8_t payload[];
+};
+
+struct __attribute__((__packed__)) ts_fwu_response_header {
+	uint32_t status;
+	uint8_t payload[];
+};
+
 struct __attribute__((__packed__)) ts_fwu_discover_out {
 	int16_t service_status;
 	uint8_t version_major;

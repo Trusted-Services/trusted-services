@@ -49,6 +49,8 @@ struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
 					struct update_agent *update_agent)
 {
 	const struct rpc_uuid service_uuid = { .uuid = TS_FWU_SERVICE_UUID };
+	struct rpc_service_interface *rpc_interface = NULL;
+
 	/* Initialise the fwu_provider */
 	context->update_agent = update_agent;
 
@@ -58,7 +60,11 @@ struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
 	service_provider_init(&context->base_provider, context, &service_uuid, handler_table,
 			      sizeof(handler_table) / sizeof(struct service_handler));
 
-	return service_provider_get_rpc_interface(&context->base_provider);
+	rpc_interface = service_provider_get_rpc_interface(&context->base_provider);
+	if (!rpc_interface)
+		return NULL;
+
+	return fwu_provider_shim_init(&context->shim, rpc_interface);
 }
 
 void fwu_provider_deinit(struct fwu_provider *context)

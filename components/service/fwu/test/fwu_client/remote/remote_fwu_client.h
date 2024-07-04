@@ -50,6 +50,22 @@ private:
 	void open_session(void);
 	void close_session(void);
 
+	struct fwu_call_handle {
+		struct ts_fwu_request_header *req_header;
+		rpc_call_handle handle;
+	};
+
+	rpc_call_handle fwu_caller_session_begin(struct rpc_caller_session *session,
+					 uint8_t **request_buffer, size_t request_length,
+					 size_t response_max_length);
+
+
+	rpc_status_t fwu_caller_session_invoke(rpc_call_handle handle, uint32_t opcode,
+				       uint8_t **response_buffer, size_t *response_length,
+				       service_status_t *service_status);
+
+	rpc_status_t fwu_caller_session_end(rpc_call_handle handle);
+
 	struct service_client m_client;
 	struct rpc_caller_session *m_rpc_session;
 	struct service_context *m_service_context;
