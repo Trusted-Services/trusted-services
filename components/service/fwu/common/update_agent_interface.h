@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 #include "common/uuid/uuid.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 
 #ifdef __cplusplus
 extern "C" {

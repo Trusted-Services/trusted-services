@@ -10,7 +10,7 @@
 
 #include "common/uuid/uuid.h"
 #include "protocols/rpc/common/packed-c/status.h"
-#include "protocols/service/fwu/packed-c/opcodes.h"
+#include "protocols/service/fwu/opcodes.h"
 #include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/provider/serializer/fwu_provider_serializer.h"
 #include "fwu_uuid.h"

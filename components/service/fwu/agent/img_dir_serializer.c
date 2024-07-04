@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "fw_directory.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 #include "service/fwu/fw_store/fw_store.h"
 
 int img_dir_serializer_serialize(const struct fw_directory *fw_dir, const struct fw_store *fw_store,
@@ -24,7 +24,7 @@ int img_dir_serializer_serialize(const struct fw_directory *fw_dir, const struct
 	if (buf_size < serialized_len)
 		return FWU_STATUS_OUT_OF_BOUNDS;
 
-	struct ts_fwu_image_directory *output = (struct ts_fwu_image_directory *)buf;
+	struct fwu_image_directory *output = (struct fwu_image_directory *)buf;
 
 	/* Clear the output buffer */
 	memset(buf, 0, serialized_len);
@@ -35,10 +35,10 @@ int img_dir_serializer_serialize(const struct fw_directory *fw_dir, const struct
 	assert(boot_info);
 
 	output->directory_version = 2;
-	output->img_info_offset = offsetof(struct ts_fwu_image_directory, img_info_entry);
+	output->img_info_offset = offsetof(struct fwu_image_directory, img_info_entry);
 	output->num_images = fw_directory_num_images(fw_dir);
 	output->correct_boot = (boot_info->active_index == boot_info->boot_index);
-	output->img_info_size = sizeof(struct ts_fwu_image_info_entry);
+	output->img_info_size = sizeof(struct fwu_image_info_entry);
 	output->reserved = 0;
 
 	/* Serialize image info for each image */
@@ -67,6 +67,6 @@ int img_dir_serializer_serialize(const struct fw_directory *fw_dir, const struct
 
 size_t img_dir_serializer_get_len(const struct fw_directory *fw_dir)
 {
-	return offsetof(struct ts_fwu_image_directory, img_info_entry) +
-	       sizeof(struct ts_fwu_image_info_entry) * fw_directory_num_images(fw_dir);
+	return offsetof(struct fwu_image_directory, img_info_entry) +
+	       sizeof(struct fwu_image_info_entry) * fw_directory_num_images(fw_dir);
 }

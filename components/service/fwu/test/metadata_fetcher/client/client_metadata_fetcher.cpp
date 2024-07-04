@@ -10,7 +10,7 @@
 #include <cstring>
 
 #include "common/uuid/uuid.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 
 client_metadata_fetcher::client_metadata_fetcher(fwu_client *fwu_client)
 	: metadata_fetcher()

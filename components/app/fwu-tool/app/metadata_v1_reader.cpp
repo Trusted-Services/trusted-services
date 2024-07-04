@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #include "metadata_reader.h"
-#include "protocols/service/fwu/packed-c/metadata_v1.h"
+#include "protocols/service/fwu/metadata_v1.h"
 
 class metadata_v1_reader : public metadata_version_specific_reader {
 public:

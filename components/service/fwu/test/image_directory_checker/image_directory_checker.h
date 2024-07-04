@@ -11,7 +11,7 @@
 #include <cstdint>
 
 #include "common/uuid/uuid.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 #include "service/fwu/test/fwu_client/fwu_client.h"
 
 /*
@@ -29,8 +29,8 @@ public:
 
 	bool is_contents_equal(const image_directory_checker &rhs) const;
 
-	const struct ts_fwu_image_directory *get_header(void) const;
-	const struct ts_fwu_image_info_entry *
+	const struct fwu_image_directory *get_header(void) const;
+	const struct fwu_image_info_entry *
 	find_entry(const struct uuid_octets *img_type_uuid) const;
 
 private:

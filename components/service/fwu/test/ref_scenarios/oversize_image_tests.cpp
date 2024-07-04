@@ -7,7 +7,7 @@
 #include <CppUTest/TestHarness.h>
 #include <vector>
 
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/test/fwu_dut/fwu_dut.h"
 #include "service/fwu/test/fwu_dut_factory/fwu_dut_factory.h"
 #include "service/fwu/test/image_directory_checker/image_directory_checker.h"
@@ -39,7 +39,7 @@ TEST_GROUP(FwuOversizeImageTests)
 		int status = dir_checker.fetch_image_directory(m_fwu_client);
 		LONGS_EQUAL(0, status);
 
-		const struct ts_fwu_image_info_entry *img_entry = dir_checker.find_entry(uuid);
+		const struct fwu_image_info_entry *img_entry = dir_checker.find_entry(uuid);
 		CHECK_TRUE(img_entry);
 
 		return static_cast<size_t>(img_entry->img_max_size);

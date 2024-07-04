@@ -146,13 +146,13 @@ TEST(FwuImageDirectoryTests, singleFwLocation)
 	status = checker.fetch_image_directory(m_fwu_client);
 	LONGS_EQUAL(0, status);
 
-	const struct ts_fwu_image_directory *dir_header = checker.get_header();
+	const struct fwu_image_directory *dir_header = checker.get_header();
 
 	/* Expect directory header to reflect correct values */
 	CHECK_TRUE(dir_header);
-	UNSIGNED_LONGS_EQUAL(offsetof(struct ts_fwu_image_directory, img_info_entry),
+	UNSIGNED_LONGS_EQUAL(offsetof(struct fwu_image_directory, img_info_entry),
 			     dir_header->img_info_offset);
-	UNSIGNED_LONGS_EQUAL(sizeof(struct ts_fwu_image_info_entry), dir_header->img_info_size);
+	UNSIGNED_LONGS_EQUAL(sizeof(struct fwu_image_info_entry), dir_header->img_info_size);
 	UNSIGNED_LONGS_EQUAL(2, dir_header->directory_version);
 	UNSIGNED_LONGS_EQUAL(1, dir_header->correct_boot);
 	UNSIGNED_LONGS_EQUAL(0, dir_header->reserved);
@@ -163,7 +163,7 @@ TEST(FwuImageDirectoryTests, singleFwLocation)
 
 	m_dut->whole_volume_image_type_uuid(0, &expected_img_type_uuid);
 
-	const struct ts_fwu_image_info_entry *image_entry =
+	const struct fwu_image_info_entry *image_entry =
 		checker.find_entry(&expected_img_type_uuid);
 
 	CHECK_TRUE(image_entry);
@@ -187,7 +187,7 @@ TEST(FwuImageDirectoryTests, multipleFwLocations)
 	status = checker.fetch_image_directory(m_fwu_client);
 	LONGS_EQUAL(0, status);
 
-	const struct ts_fwu_image_directory *dir_header = checker.get_header();
+	const struct fwu_image_directory *dir_header = checker.get_header();
 
 	/* Expect directory header to reflect correct values */
 	CHECK_TRUE(dir_header);
@@ -201,7 +201,7 @@ TEST(FwuImageDirectoryTests, multipleFwLocations)
 
 		m_dut->whole_volume_image_type_uuid(0, &expected_img_type_uuid);
 
-		const struct ts_fwu_image_info_entry *image_entry =
+		const struct fwu_image_info_entry *image_entry =
 			checker.find_entry(&expected_img_type_uuid);
 
 		CHECK_TRUE(image_entry);
@@ -226,7 +226,7 @@ TEST(FwuImageDirectoryTests, zeroFwLocations)
 	status = checker.fetch_image_directory(m_fwu_client);
 	LONGS_EQUAL(0, status);
 
-	const struct ts_fwu_image_directory *dir_header = checker.get_header();
+	const struct fwu_image_directory *dir_header = checker.get_header();
 
 	/* Expect directory header to reflect correct values */
 	CHECK_TRUE(dir_header);

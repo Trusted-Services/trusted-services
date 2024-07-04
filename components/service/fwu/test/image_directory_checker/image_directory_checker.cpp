@@ -69,9 +69,9 @@ size_t image_directory_checker::num_images(void) const
 {
 	size_t num_images = 0;
 
-	if (m_total_read_len >= offsetof(struct ts_fwu_image_directory, img_info_entry)) {
-		const struct ts_fwu_image_directory *header =
-			(const struct ts_fwu_image_directory *)m_buf;
+	if (m_total_read_len >= offsetof(struct fwu_image_directory, img_info_entry)) {
+		const struct fwu_image_directory *header =
+			(const struct fwu_image_directory *)m_buf;
 
 		num_images = header->num_images;
 	}
@@ -86,22 +86,22 @@ bool image_directory_checker::is_contents_equal(const image_directory_checker &r
 	       (memcmp(this->m_buf, rhs.m_buf, this->m_total_read_len) == 0);
 }
 
-const struct ts_fwu_image_directory *image_directory_checker::get_header(void) const
+const struct fwu_image_directory *image_directory_checker::get_header(void) const
 {
-	const struct ts_fwu_image_directory *header = NULL;
+	const struct fwu_image_directory *header = NULL;
 
-	if (m_total_read_len >= offsetof(struct ts_fwu_image_directory, img_info_entry))
-		header = (const struct ts_fwu_image_directory *)m_buf;
+	if (m_total_read_len >= offsetof(struct fwu_image_directory, img_info_entry))
+		header = (const struct fwu_image_directory *)m_buf;
 
 	return header;
 }
 
-const struct ts_fwu_image_info_entry *
+const struct fwu_image_info_entry *
 image_directory_checker::find_entry(const struct uuid_octets *img_type_uuid) const
 {
-	const struct ts_fwu_image_info_entry *found_entry = NULL;
+	const struct fwu_image_info_entry *found_entry = NULL;
 
-	const struct ts_fwu_image_directory *header = get_header();
+	const struct fwu_image_directory *header = get_header();
 
 	if (header) {
 		unsigned int index = 0;
@@ -123,8 +123,8 @@ image_directory_checker::find_entry(const struct uuid_octets *img_type_uuid) con
 
 void image_directory_checker::alloc_buffer(void)
 {
-	m_buf_size = offsetof(struct ts_fwu_image_directory, img_info_entry) +
-		     MAX_IMAGES * sizeof(ts_fwu_image_info_entry);
+	m_buf_size = offsetof(struct fwu_image_directory, img_info_entry) +
+		     MAX_IMAGES * sizeof(fwu_image_info_entry);
 
 	m_buf = new uint8_t[m_buf_size];
 	assert(m_buf);

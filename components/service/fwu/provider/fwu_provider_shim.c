@@ -5,15 +5,14 @@
  */
 
 #include "fwu_provider_shim.h"
-
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 #include "util.h"
 
 static rpc_status_t receive(void *context, struct rpc_request *req)
 {
 	struct rpc_service_interface *fwu_rpc_interface = (struct rpc_service_interface *)context;
-	struct ts_fwu_request_header *req_header = NULL;
-	struct ts_fwu_response_header *resp_header = NULL;
+	struct fwu_request_header *req_header = NULL;
+	struct fwu_response_header *resp_header = NULL;
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_request fwu_req = { 0 };
 
@@ -23,8 +22,8 @@ static rpc_status_t receive(void *context, struct rpc_request *req)
 	if (req->response.size < sizeof(*resp_header))
 		return RPC_ERROR_INVALID_RESPONSE_BODY;
 
-	req_header = (struct ts_fwu_request_header *)req->request.data;
-	resp_header = (struct ts_fwu_response_header *)req->response.data;
+	req_header = (struct fwu_request_header *)req->request.data;
+	resp_header = (struct fwu_response_header *)req->response.data;
 
 	/* Build new RPC request without the request headers */
 	fwu_req = *req;

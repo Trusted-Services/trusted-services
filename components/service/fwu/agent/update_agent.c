@@ -13,8 +13,8 @@
 
 #include "common/uuid/uuid.h"
 #include "img_dir_serializer.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/fwu_proto.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/fw_store/fw_store.h"
 #include "service/fwu/inspector/fw_inspector.h"
 #include "trace.h"

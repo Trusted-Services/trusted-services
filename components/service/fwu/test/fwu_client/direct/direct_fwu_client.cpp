@@ -9,7 +9,7 @@
 #include <cstring>
 
 #include "service/fwu/common/update_agent_interface.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 
 direct_fwu_client::direct_fwu_client(struct update_agent **update_agent)
 	: fwu_client()

@@ -15,7 +15,7 @@
 #include "common/crc32/crc32.h"
 #include "media/volume/index/volume_index.h"
 #include "media/volume/volume.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/fw_store/banked/metadata_serializer/metadata_serializer.h"
 #include "trace.h"
 #include "volume_id.h"

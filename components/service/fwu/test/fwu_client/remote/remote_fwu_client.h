@@ -51,7 +51,7 @@ private:
 	void close_session(void);
 
 	struct fwu_call_handle {
-		struct ts_fwu_request_header *req_header;
+		struct fwu_request_header *req_header;
 		rpc_call_handle handle;
 	};
 

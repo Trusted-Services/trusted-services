@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 
 void installer_init(struct installer *installer, enum install_type install_type,
 		    uint32_t location_id, const struct uuid_octets *location_uuid, void *context,

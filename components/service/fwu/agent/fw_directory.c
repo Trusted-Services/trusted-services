@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 
 void fw_directory_init(struct fw_directory *fw_directory)
 {

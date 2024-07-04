@@ -7,7 +7,7 @@
 #include <CppUTest/TestHarness.h>
 #include <cstddef>
 
-#include "protocols/service/fwu/packed-c/metadata_v2.h"
+#include "protocols/service/fwu/metadata_v2.h"
 
 /* Tests check FWU metadata protocol definitions are aligned to the FWU-A
  * specification.

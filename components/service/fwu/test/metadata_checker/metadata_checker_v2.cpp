@@ -8,7 +8,7 @@
 
 #include <CppUTest/TestHarness.h>
 
-#include "protocols/service/fwu/packed-c/metadata_v2.h"
+#include "protocols/service/fwu/metadata_v2.h"
 #include "service/fwu/agent/fw_directory.h"
 
 const size_t metadata_checker_v2::MAX_FWU_METADATA_SIZE =

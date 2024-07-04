@@ -5,7 +5,7 @@
  */
 
 #include "update_agent_interface.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 
 int update_agent_discover(struct update_agent *update_agent, struct fwu_discovery_result *result)
 {
