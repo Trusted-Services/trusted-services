@@ -206,7 +206,7 @@ Please find the Test Report covering this release in the `project wiki`_.
 .. _`OP-TEE v3.19`: https://github.com/OP-TEE/optee_os/tree/3.19.0
 .. _`Yocto meta-arm` : https://gitlab.oss.arm.com/engineering/yocto/meta-arm/-/tree/master/meta-arm/recipes-security/trusted-services
 .. _`project wiki`: https://github.com/Trusted-Services/trusted-services/wiki/Trusted-Services-test-reports
-.. _`AEM FVP`: https://developer.arm.com/-/media/Files/downloads/ecosystem-models/FVP_Base_RevC-2xAEMvA_11.18_16_Linux64.tgz
+.. _`AEM FVP`: https://developer.arm.com/-/media/Files/downloads/ecosystem-models/FVP_Base_RevC-2xAEMvA_11.22_14_Linux64.tgz
 .. _`PSA API certification tests`: https://github.com/ARM-software/psa-arch-tests
 .. _`OP-TEE git repo documentation`: https://optee.readthedocs.io/en/latest/building/gits/build.html
 .. _`Corstone-1000 product homepage`: https://developer.arm.com/Processors/Corstone-1000
