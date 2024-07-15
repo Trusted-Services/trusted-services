@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -35,20 +35,24 @@ struct __attribute__((__packed__)) fwu_metadata {
 	/* Metadata version */
 	uint32_t version;
 
+	/* Active bank index as directed by update agent [0..n] */
+	uint32_t active_index;
+
+	/* Previous active bank index [0..n] */
+	uint32_t previous_active_index;
+
 	/* The overall metadata size */
 	uint32_t metadata_size;
 
 	/* The size in bytes of the fixed size header */
-	uint16_t header_size;
+	uint16_t descriptor_offset;
 
-	/* Active bank index as directed by update agent [0..n] */
-	uint8_t active_index;
-
-	/* Previous active bank index [0..n] */
-	uint8_t previous_active_index;
+	uint16_t reserved_16;
 
 	/* Bank state bitmaps */
 	uint8_t bank_state[FWU_METADATA_V2_NUM_BANK_STATES];
+
+	uint32_t reserved_1c;
 };
 
 /* Properties of image in a bank */
@@ -91,6 +95,8 @@ struct __attribute__((__packed__)) fwu_fw_store_desc {
 	/* Number of banks */
 	uint8_t num_banks;
 
+	uint8_t reserved_01;
+
 	/* Number of images listed in the img_entry array */
 	uint16_t num_images;
 
@@ -98,7 +104,7 @@ struct __attribute__((__packed__)) fwu_fw_store_desc {
 	uint16_t img_entry_size;
 
 	/* The size of bytes of the bank_entry data structure */
-	uint16_t bank_entry_size;
+	uint16_t bank_info_entry_size;
 
 	/* Array of image_entry structures */
 	struct fwu_image_entry img_entry[];
