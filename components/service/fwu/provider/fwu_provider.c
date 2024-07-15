@@ -54,9 +54,6 @@ struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
 	/* Initialise the fwu_provider */
 	context->update_agent = update_agent;
 
-	for (size_t encoding = 0; encoding < TS_RPC_ENCODING_LIMIT; ++encoding)
-		context->serializers[encoding] = NULL;
-
 	service_provider_init(&context->base_provider, context, &service_uuid, handler_table,
 			      sizeof(handler_table) / sizeof(struct service_handler));
 
@@ -70,26 +67,6 @@ struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
 void fwu_provider_deinit(struct fwu_provider *context)
 {
 	(void)context;
-}
-
-void fwu_provider_register_serializer(struct fwu_provider *context, unsigned int encoding,
-				      const struct fwu_provider_serializer *serializer)
-{
-	if (encoding < TS_RPC_ENCODING_LIMIT) {
-		context->serializers[encoding] = serializer;
-	}
-}
-
-static const struct fwu_provider_serializer *get_fwu_serializer(struct fwu_provider *this_instance,
-								const struct rpc_request *req)
-{
-	const struct fwu_provider_serializer *serializer = NULL;
-	unsigned int encoding = 0;
-
-	if (encoding < TS_RPC_ENCODING_LIMIT)
-		serializer = this_instance->serializers[encoding];
-
-	return serializer;
 }
 
 static uint16_t generate_function_presence(const struct update_agent *agent,
@@ -123,12 +100,8 @@ static rpc_status_t discover_handler(void *context, struct rpc_request *req)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	struct fwu_discovery_result discovery_result = { 0 };
 	struct rpc_buffer *resp_buf = &req->response;
-
-	if (!serializer)
-		return rpc_status;
 
 	req->service_status = update_agent_discover(this_instance->update_agent, &discovery_result);
 
@@ -139,7 +112,7 @@ static rpc_status_t discover_handler(void *context, struct rpc_request *req)
 		num_func = generate_function_presence(this_instance->update_agent,
 						      function_presence);
 
-		rpc_status = serializer->serialize_discover_resp(
+		rpc_status = fwu_serialize_discover_resp(
 			resp_buf, discovery_result.service_status, discovery_result.version_major,
 			discovery_result.version_minor, num_func, discovery_result.max_payload_size,
 			discovery_result.flags, discovery_result.vendor_specific_flags,
@@ -159,15 +132,13 @@ static rpc_status_t begin_staging_handler(void *context, struct rpc_request *req
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	uint32_t vendor_flags = 0;
 	uint32_t partial_update_count = 0;
 	struct uuid_octets update_guid[FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT];
 
-	if (serializer)
-		rpc_status = serializer->deserialize_begin_staging_req(
-			req_buf, &vendor_flags, &partial_update_count,
-			FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT, update_guid);
+	rpc_status = fwu_deserialize_begin_staging_req(
+		req_buf, &vendor_flags, &partial_update_count,
+		FWU_PROVIDER_MAX_PARTIAL_UPDATE_COUNT, update_guid);
 
 	if (rpc_status == RPC_SUCCESS)
 		req->service_status = update_agent_begin_staging(
@@ -200,12 +171,10 @@ static rpc_status_t open_handler(void *context, struct rpc_request *req)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	struct uuid_octets image_type_uuid = { 0 };
 	uint8_t op_type = 0;
 
-	if (serializer)
-		rpc_status = serializer->deserialize_open_req(req_buf, &image_type_uuid, &op_type);
+	rpc_status = fwu_deserialize_open_req(req_buf, &image_type_uuid, &op_type);
 
 	if (rpc_status == RPC_SUCCESS) {
 		uint32_t handle = 0;
@@ -215,7 +184,7 @@ static rpc_status_t open_handler(void *context, struct rpc_request *req)
 
 		if (!req->service_status) {
 			struct rpc_buffer *resp_buf = &req->response;
-			rpc_status = serializer->serialize_open_resp(resp_buf, handle);
+			rpc_status = fwu_serialize_open_resp(resp_buf, handle);
 		}
 	}
 
@@ -227,14 +196,11 @@ static rpc_status_t write_stream_handler(void *context, struct rpc_request *req)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	uint32_t handle = 0;
 	size_t data_len = 0;
 	const uint8_t *data = NULL;
 
-	if (serializer)
-		rpc_status = serializer->deserialize_write_stream_req(req_buf, &handle, &data_len,
-								      &data);
+	rpc_status = fwu_deserialize_write_stream_req(req_buf, &handle, &data_len, &data);
 
 	if (rpc_status == RPC_SUCCESS) {
 		req->service_status = update_agent_write_stream(this_instance->update_agent, handle,
@@ -249,11 +215,9 @@ static rpc_status_t read_stream_handler(void *context, struct rpc_request *req)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	uint32_t handle = 0;
 
-	if (serializer)
-		rpc_status = serializer->deserialize_read_stream_req(req_buf, &handle);
+	rpc_status = fwu_deserialize_read_stream_req(req_buf, &handle);
 
 	if (rpc_status == RPC_SUCCESS) {
 		struct rpc_buffer *resp_buf = &req->response;
@@ -262,15 +226,14 @@ static rpc_status_t read_stream_handler(void *context, struct rpc_request *req)
 		size_t read_len = 0;
 		size_t total_len = 0;
 
-		serializer->read_stream_resp_payload(resp_buf, &payload_buf, &max_payload);
+		fwu_read_stream_resp_payload(resp_buf, &payload_buf, &max_payload);
 
 		req->service_status = update_agent_read_stream(this_instance->update_agent, handle,
 							 payload_buf, max_payload, &read_len,
 							 &total_len);
 
 		if (!req->service_status)
-			rpc_status = serializer->serialize_read_stream_resp(resp_buf, read_len,
-									    total_len);
+			rpc_status = fwu_serialize_read_stream_resp(resp_buf, read_len, total_len);
 
 	}
 
@@ -282,14 +245,11 @@ static rpc_status_t commit_handler(void *context, struct rpc_request *req)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	uint32_t handle = 0;
 	bool accepted = false;
 	size_t max_atomic_len = 0;
 
-	if (serializer)
-		rpc_status = serializer->deserialize_commit_req(req_buf, &handle, &accepted,
-								&max_atomic_len);
+	rpc_status = fwu_deserialize_commit_req(req_buf, &handle, &accepted, &max_atomic_len);
 
 	if (rpc_status == RPC_SUCCESS) {
 		uint32_t progress = 0;
@@ -300,7 +260,7 @@ static rpc_status_t commit_handler(void *context, struct rpc_request *req)
 
 		if (!req->service_status) {
 			struct rpc_buffer *resp_buf = &req->response;
-			rpc_status = serializer->serialize_commit_resp(resp_buf, progress, total_work);
+			rpc_status = fwu_serialize_commit_resp(resp_buf, progress, total_work);
 		}
 	}
 
@@ -312,11 +272,9 @@ static rpc_status_t accept_image_handler(void *context, struct rpc_request *req)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct rpc_buffer *req_buf = &req->request;
 	struct fwu_provider *this_instance = (struct fwu_provider *)context;
-	const struct fwu_provider_serializer *serializer = get_fwu_serializer(this_instance, req);
 	struct uuid_octets image_type_uuid;
 
-	if (serializer)
-		rpc_status = serializer->deserialize_accept_req(req_buf, &image_type_uuid);
+	rpc_status = fwu_deserialize_accept_req(req_buf, &image_type_uuid);
 
 	if (rpc_status == RPC_SUCCESS)
 		req->service_status = update_agent_accept_image(this_instance->update_agent,

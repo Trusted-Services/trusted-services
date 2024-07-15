@@ -20,7 +20,6 @@
 #include "service/fwu/fw_store/banked/metadata_serializer/v2/metadata_serializer_v2.h"
 #include "service/fwu/inspector/direct/direct_fw_inspector.h"
 #include "service/fwu/provider/fwu_provider.h"
-#include "service/fwu/provider/serializer/packed-c/packedc_fwu_provider_serializer.h"
 #include "sp_api.h"
 #include "sp_discovery.h"
 #include "sp_messaging.h"
@@ -103,9 +102,6 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		EMSG("Failed to init service provider");
 		goto fatal_error;
 	}
-
-	fwu_provider_register_serializer(&service_provider, TS_RPC_ENCODING_PACKED_C,
-					 packedc_fwu_provider_serializer_instance());
 
 	/* Associate service interface with FFA call endpoint */
 	rpc_status = ts_rpc_endpoint_sp_init(&rpc_endpoint, 1, 16);

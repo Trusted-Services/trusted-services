@@ -34,7 +34,6 @@ struct update_agent;
 struct fwu_provider {
 	struct service_provider base_provider;
 	struct fwu_provider_shim shim;
-	const struct fwu_provider_serializer *serializers[TS_RPC_ENCODING_LIMIT];
 	struct update_agent *update_agent;
 };
 
@@ -55,16 +54,6 @@ struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
  * \param[in] context    The subject fwu_provider context
  */
 void fwu_provider_deinit(struct fwu_provider *context);
-
-/**
- * \brief Register a serializer
- *
- * \param[in] context    The subject fwu_provider context
- * \param[in] encoding   The encoding scheme
- * \param[in] serializer The serializer
- */
-void fwu_provider_register_serializer(struct fwu_provider *context, unsigned int encoding,
-				      const struct fwu_provider_serializer *serializer);
 
 #ifdef __cplusplus
 } /* extern "C" */

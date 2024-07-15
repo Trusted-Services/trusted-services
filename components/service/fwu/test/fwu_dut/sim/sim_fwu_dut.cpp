@@ -21,7 +21,6 @@
 #include "service/fwu/fw_store/banked/volume_id.h"
 #include "service/fwu/inspector/direct/direct_fw_inspector.h"
 #include "service/fwu/installer/installer_index.h"
-#include "service/fwu/provider/serializer/packed-c/packedc_fwu_provider_serializer.h"
 #include "service/fwu/test/fwu_client/direct/direct_fwu_client.h"
 #include "service/fwu/test/metadata_fetcher/volume/volume_metadata_fetcher.h"
 
@@ -57,9 +56,6 @@ sim_fwu_dut::sim_fwu_dut(unsigned int num_locations, unsigned int metadata_versi
 	install_factory_images(num_locations);
 
 	m_service_iface = fwu_provider_init(&m_fwu_provider, NULL);
-
-	fwu_provider_register_serializer(&m_fwu_provider, TS_RPC_ENCODING_PACKED_C,
-					 packedc_fwu_provider_serializer_instance());
 
 	m_metadata_checker = create_metadata_checker();
 }

@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "packedc_fwu_provider_serializer.h"
+#include "fwu_provider_serializer.h"
 
 #include <string.h>
 
@@ -11,10 +11,11 @@
 #include "protocols/service/fwu/fwu_proto.h"
 #include "util.h"
 
-rpc_status_t serialize_discover_resp(const struct rpc_buffer *resp_buf, int16_t service_status,
-				     uint8_t version_major, uint8_t version_minor,
-				     uint16_t num_func, uint64_t max_payload_size, uint32_t flags,
-				     uint32_t vendor_specific_flags, uint8_t *function_presence)
+rpc_status_t fwu_serialize_discover_resp(const struct rpc_buffer *resp_buf, int16_t service_status,
+					 uint8_t version_major, uint8_t version_minor,
+					 uint16_t num_func, uint64_t max_payload_size,
+					 uint32_t flags, uint32_t vendor_specific_flags,
+					 uint8_t *function_presence)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_RESPONSE_BODY;
 	struct fwu_discover_out *resp_msg = NULL;
@@ -43,10 +44,11 @@ rpc_status_t serialize_discover_resp(const struct rpc_buffer *resp_buf, int16_t 
 	return rpc_status;
 }
 
-rpc_status_t deserialize_begin_staging_req(const struct rpc_buffer *req_buf, uint32_t *vendor_flags,
-					   uint32_t *partial_update_count,
-					   uint32_t max_update_count,
-					   struct uuid_octets *update_guid)
+rpc_status_t fwu_deserialize_begin_staging_req(const struct rpc_buffer *req_buf,
+					       uint32_t *vendor_flags,
+					       uint32_t *partial_update_count,
+					       uint32_t max_update_count,
+					       struct uuid_octets *update_guid)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct fwu_begin_staging_in);
@@ -74,8 +76,9 @@ rpc_status_t deserialize_begin_staging_req(const struct rpc_buffer *req_buf, uin
 	return rpc_status;
 }
 
-static rpc_status_t deserialize_open_req(const struct rpc_buffer *req_buf,
-					 struct uuid_octets *image_type_uuid, uint8_t *op_type)
+rpc_status_t fwu_deserialize_open_req(const struct rpc_buffer *req_buf,
+				      struct uuid_octets *image_type_uuid,
+				      uint8_t *op_type)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct fwu_open_in);
@@ -97,7 +100,7 @@ static rpc_status_t deserialize_open_req(const struct rpc_buffer *req_buf,
 	return rpc_status;
 }
 
-static rpc_status_t serialize_open_resp(struct rpc_buffer *resp_buf, uint32_t handle)
+rpc_status_t fwu_serialize_open_resp(struct rpc_buffer *resp_buf, uint32_t handle)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	size_t fixed_len = sizeof(struct fwu_open_out);
@@ -115,9 +118,8 @@ static rpc_status_t serialize_open_resp(struct rpc_buffer *resp_buf, uint32_t ha
 }
 
 /* Operation: write_stream */
-static rpc_status_t deserialize_write_stream_req(const struct rpc_buffer *req_buf,
-						 uint32_t *handle, size_t *data_length,
-						 const uint8_t **data)
+rpc_status_t fwu_deserialize_write_stream_req(const struct rpc_buffer *req_buf, uint32_t *handle,
+					      size_t *data_length, const uint8_t **data)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct fwu_write_stream_in);
@@ -136,8 +138,7 @@ static rpc_status_t deserialize_write_stream_req(const struct rpc_buffer *req_bu
 }
 
 /* Operation: read_stream */
-static rpc_status_t deserialize_read_stream_req(const struct rpc_buffer *req_buf,
-						uint32_t *handle)
+rpc_status_t fwu_deserialize_read_stream_req(const struct rpc_buffer *req_buf, uint32_t *handle)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct fwu_read_stream_in);
@@ -153,8 +154,8 @@ static rpc_status_t deserialize_read_stream_req(const struct rpc_buffer *req_buf
 	return rpc_status;
 }
 
-static void read_stream_resp_payload(const struct rpc_buffer *resp_buf, uint8_t **payload_buf,
-				     size_t *max_payload)
+void fwu_read_stream_resp_payload(const struct rpc_buffer *resp_buf, uint8_t **payload_buf,
+				  size_t *max_payload)
 {
 	struct fwu_read_stream_out *resp_msg = (struct fwu_read_stream_out *)resp_buf->data;
 	size_t fixed_len = offsetof(struct fwu_read_stream_out, payload);
@@ -166,8 +167,8 @@ static void read_stream_resp_payload(const struct rpc_buffer *resp_buf, uint8_t 
 		*max_payload = resp_buf->size - fixed_len;
 }
 
-static rpc_status_t serialize_read_stream_resp(struct rpc_buffer *resp_buf, size_t read_bytes,
-					       size_t total_bytes)
+rpc_status_t fwu_serialize_read_stream_resp(struct rpc_buffer *resp_buf, size_t read_bytes,
+					    size_t total_bytes)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct fwu_read_stream_out *resp_msg = (struct fwu_read_stream_out *)resp_buf->data;
@@ -190,8 +191,8 @@ static rpc_status_t serialize_read_stream_resp(struct rpc_buffer *resp_buf, size
 }
 
 /* Operation: commit */
-static rpc_status_t deserialize_commit_req(const struct rpc_buffer *req_buf, uint32_t *handle,
-					   bool *accepted, size_t *max_atomic_len)
+rpc_status_t fwu_deserialize_commit_req(const struct rpc_buffer *req_buf, uint32_t *handle,
+					bool *accepted, size_t *max_atomic_len)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct fwu_commit_in);
@@ -209,8 +210,8 @@ static rpc_status_t deserialize_commit_req(const struct rpc_buffer *req_buf, uin
 	return rpc_status;
 }
 
-static rpc_status_t serialize_commit_resp(struct rpc_buffer *resp_buf, size_t progress,
-					  size_t total_work)
+rpc_status_t fwu_serialize_commit_resp(struct rpc_buffer *resp_buf, size_t progress,
+				       size_t total_work)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	struct fwu_commit_out *resp_msg = (struct fwu_commit_out *)resp_buf->data;
@@ -229,8 +230,8 @@ static rpc_status_t serialize_commit_resp(struct rpc_buffer *resp_buf, size_t pr
 }
 
 /* Operation: accept_image */
-static rpc_status_t deserialize_accept_req(const struct rpc_buffer *req_buf,
-					   struct uuid_octets *image_type_uuid)
+rpc_status_t fwu_deserialize_accept_req(const struct rpc_buffer *req_buf,
+					struct uuid_octets *image_type_uuid)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
 	size_t expected_fixed_len = sizeof(struct fwu_accept_image_in);
@@ -244,24 +245,4 @@ static rpc_status_t deserialize_accept_req(const struct rpc_buffer *req_buf,
 	}
 
 	return rpc_status;
-}
-
-/* Singleton method to provide access to the serializer instance */
-const struct fwu_provider_serializer *packedc_fwu_provider_serializer_instance(void)
-{
-	static const struct fwu_provider_serializer instance = {
-		serialize_discover_resp,
-		deserialize_begin_staging_req,
-		deserialize_open_req,
-		serialize_open_resp,
-		deserialize_write_stream_req,
-		deserialize_read_stream_req,
-		read_stream_resp_payload,
-		serialize_read_stream_resp,
-		deserialize_commit_req,
-		serialize_commit_resp,
-		deserialize_accept_req
-	};
-
-	return &instance;
 }

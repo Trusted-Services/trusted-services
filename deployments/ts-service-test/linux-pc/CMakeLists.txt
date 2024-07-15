@@ -106,7 +106,7 @@ add_components(
 		"components/service/fwu/installer/copy"
 		"components/service/fwu/inspector/direct"
 		"components/service/fwu/provider"
-		"components/service/fwu/provider/serializer/packed-c"
+		"components/service/fwu/provider/serializer"
 		"components/service/fwu/test/fwu_client/direct"
 		"components/service/fwu/test/fwu_dut/sim"
 		"components/service/fwu/test/fwu_dut_factory/remote_sim"
