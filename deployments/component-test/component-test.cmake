@@ -122,6 +122,8 @@ add_components(
 		"components/service/fwu/inspector/direct"
 		"components/service/fwu/provider"
 		"components/service/fwu/provider/serializer"
+		"components/service/fwu/psa_fwu_m/interface/mock"
+		"components/service/fwu/psa_fwu_m/interface/mock/test"
 		"components/service/fwu/test/fwu_client/direct"
 		"components/service/fwu/test/fwu_dut"
 		"components/service/fwu/test/fwu_dut/sim"

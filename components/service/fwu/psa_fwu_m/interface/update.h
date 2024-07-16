@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,12 +14,11 @@
 #include <stdint.h>
 
 #include "psa/error.h"
-#ifdef FWU_DEVICE_CONFIG_FILE
-#include FWU_DEVICE_CONFIG_FILE
-#else
-#include "psa/fwu_config.h"
-#endif
 #include "tfm_fwu_defs.h"
+
+#ifndef TFM_FWU_MAX_DIGEST_SIZE
+#define TFM_FWU_MAX_DIGEST_SIZE              32
+#endif /* TFM_FWU_MAX_DIGEST_SIZE */
 
 #ifdef __cplusplus
 extern "C" {
