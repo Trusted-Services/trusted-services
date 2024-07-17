@@ -12,6 +12,8 @@
 #include <service/attestation/provider/attest_provider.h>
 #include <service/attestation/provider/serializer/packed-c/packedc_attest_provider_serializer.h>
 #include <service/crypto/factory/crypto_provider_factory.h>
+#include "service/fwu/psa_fwu_m/agent/psa_fwu_m_update_agent.h"
+#include "service/fwu/provider/fwu_provider.h"
 #include <service/secure_storage/frontend/secure_storage_provider/secure_storage_provider.h>
 #include "service/secure_storage/frontend/secure_storage_provider/secure_storage_uuid.h"
 #include <trace.h>
@@ -128,4 +130,14 @@ struct rpc_service_interface *its_proxy_create(void)
 	its_backend.service_handle = TFM_INTERNAL_TRUSTED_STORAGE_SERVICE_HANDLE;
 
 	return secure_storage_provider_init(&its_provider, backend, &its_uuid);
+}
+
+struct rpc_service_interface *fwu_proxy_create(void)
+{
+	static struct update_agent *agent;
+	static struct fwu_provider fwu_provider = { 0 };
+
+	agent = psa_fwu_m_update_agent_init(NULL, 0, 4096);
+
+	return fwu_provider_init(&fwu_provider, agent);
 }

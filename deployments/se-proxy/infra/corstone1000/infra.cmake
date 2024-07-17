@@ -14,6 +14,7 @@
 add_components(TARGET "se-proxy"
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
+		"components/common/uuid"
 		"components/rpc/common/caller"
 		"components/rpc/rss_comms"
 		"components/messaging/rss_comms/sp"
@@ -21,6 +22,11 @@ add_components(TARGET "se-proxy"
 		"components/service/attestation/key_mngr/local"
 		"components/service/attestation/reporter/psa_ipc"
 		"components/service/crypto/backend/psa_ipc"
+		"components/service/fwu/common"
+		"components/service/fwu/provider"
+		"components/service/fwu/provider/serializer"
+		"components/service/fwu/psa_fwu_m/agent"
+		"components/service/fwu/psa_fwu_m/interface/stub"
 		"components/service/secure_storage/backend/secure_storage_ipc"
 )
 

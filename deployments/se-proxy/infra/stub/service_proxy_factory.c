@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,6 +9,8 @@
 #include "service/attestation/provider/attest_provider.h"
 #include "service/attestation/provider/serializer/packed-c/packedc_attest_provider_serializer.h"
 #include "service/crypto/factory/crypto_provider_factory.h"
+#include "service/fwu/psa_fwu_m/agent/psa_fwu_m_update_agent.h"
+#include "service/fwu/provider/fwu_provider.h"
 #include "service/secure_storage/frontend/secure_storage_provider/secure_storage_provider.h"
 #include "service/secure_storage/frontend/secure_storage_provider/secure_storage_uuid.h"
 
@@ -66,4 +68,14 @@ struct rpc_service_interface *its_proxy_create(void)
 	struct storage_backend *backend = mock_store_init(&its_backend);
 
 	return secure_storage_provider_init(&its_provider, backend, &service_uuid);
+}
+
+struct rpc_service_interface *fwu_proxy_create(void)
+{
+	static struct update_agent *agent;
+	static struct fwu_provider fwu_provider = { 0 };
+
+	agent = psa_fwu_m_update_agent_init(NULL, 0, 4096);
+
+	return fwu_provider_init(&fwu_provider, agent);
 }

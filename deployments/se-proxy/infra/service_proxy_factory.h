@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,6 +17,7 @@ struct rpc_service_interface *attest_proxy_create(void);
 struct rpc_service_interface *crypto_proxy_create(void);
 struct rpc_service_interface *ps_proxy_create(void);
 struct rpc_service_interface *its_proxy_create(void);
+struct rpc_service_interface *fwu_proxy_create(void);
 
 #ifdef __cplusplus
 }
