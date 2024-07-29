@@ -19,7 +19,8 @@ Checkpatch
   - spelling mistakes
   - git commit message formatting
 
-Please find the configuration of this tool in the :download:`TS repository.<../../../.checkpatch>`
+Please find the configuration of this tool in the :download:`TS repository.<../../../.checkpatch>` but do not forget
+to set ``CODESPELL_FILE`` variable in the environment to the local copy of the `codespell dictionary v2.3.0`_.
 
 Cppcheck tool
 '''''''''''''
@@ -65,6 +66,7 @@ The project hosts deployment helping compliance testing. For more information pl
 
 .. _`Checkpatch`: https://docs.kernel.org/dev-tools/checkpatch.html
 .. _`CppCheck`: https://cppcheck.sourceforge.io/
+.. _`codespell dictionary v2.3.0`: https://raw.githubusercontent.com/codespell-project/codespell/v2.3.0/codespell_lib/data/dictionary.txt
 
 *Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.*
 
