@@ -1,7 +1,7 @@
 #
-# Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-pyelftools==0.28
+pyelftools==0.31

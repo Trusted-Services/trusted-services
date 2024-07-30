@@ -6,6 +6,7 @@ Developer Documents
     :caption: Contents:
 
     arch-overview
+    supported-architectural-features
     project-structure
     service-deployment-model
     service-access-protocols
