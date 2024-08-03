@@ -56,6 +56,12 @@ TEST_GROUP(UefiVariableStoreTests)
 		return var_name;
 	}
 
+	std::u16string intToChar16(const int i)
+	{
+		auto s = std::to_string(i);
+		return { s.begin(), s.end() };
+	}
+
 	size_t string_get_size_in_bytes(const std::u16string &string)
 	{
 		return string.size() * sizeof(uint16_t);
@@ -260,12 +266,18 @@ TEST_GROUP(UefiVariableStoreTests)
 						       MAX_VARIABLE_SIZE);
 	}
 
-	static const size_t MAX_VARIABLES = 10;
+	static const size_t MAX_VARIABLES = 5;
 	static const size_t MAX_VARIABLE_SIZE = 3000;
-	static const size_t STORE_CAPACITY = 10000;
+	static const size_t STORE_CAPACITY = MAX_VARIABLES * MAX_VARIABLE_SIZE;
 
 	static const uint32_t OWNER_ID = 100;
-	static const size_t VARIABLE_BUFFER_SIZE = 1024;
+
+	/*
+	 * Make sure the variable buffer in the test is way above the limit
+	 * so the buffer problems will be handled by the component
+	 * under test.
+	 */
+	static const size_t VARIABLE_BUFFER_SIZE = MAX_VARIABLE_SIZE * 2;
 
 	struct uefi_variable_store m_uefi_variable_store;
 	struct mock_store m_persistent_store;
@@ -761,4 +773,94 @@ TEST(UefiVariableStoreTests, noRemoveCheck)
 	status = set_variable(var_name_1, std::string("A data value that exceeds the MaxSize"),
 			      EFI_VARIABLE_NON_VOLATILE);
 	UNSIGNED_LONGLONGS_EQUAL(EFI_INVALID_PARAMETER, status);
+}
+
+TEST(UefiVariableStoreTests, fillStore)
+{
+	efi_status_t status = EFI_SUCCESS;
+
+	/* Fill the variable store with max size variables */
+	for (size_t i = 0; i < MAX_VARIABLES; i++) {
+		std::u16string current_var = u"var_";
+		std::string input_data(MAX_VARIABLE_SIZE, 'a');
+		std::string output_data;
+		current_var += intToChar16(i);
+
+		status = set_variable(current_var, input_data,
+				      EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+					      EFI_VARIABLE_RUNTIME_ACCESS);
+		UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
+
+		/* Verify the write */
+		status = get_variable(current_var, output_data);
+		UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
+
+		/* Expect got variable data to be the same as the set value */
+		UNSIGNED_LONGLONGS_EQUAL(input_data.size(), output_data.size());
+		LONGS_EQUAL(0, input_data.compare(output_data));
+	}
+
+	/* Try adding a small variable to an already full store */
+	status = set_variable(u"var", "a",
+			      EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+				      EFI_VARIABLE_RUNTIME_ACCESS);
+	UNSIGNED_LONGLONGS_EQUAL(EFI_OUT_OF_RESOURCES, status);
+}
+
+TEST(UefiVariableStoreTests, fillIndex)
+{
+	efi_status_t status = EFI_SUCCESS;
+	std::u16string var_name = u"var";
+	std::string input_data = "a";
+	std::string output_data;
+
+	/*
+	 * Fill the variable store with small variables so the index
+	 * will be filled, but the store does not
+	 */
+	for (size_t i = 0; i < MAX_VARIABLES; i++) {
+		std::u16string current_var = u"var_";
+		current_var += intToChar16(i);
+
+		status = set_variable(current_var, input_data,
+				      EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+					      EFI_VARIABLE_RUNTIME_ACCESS);
+		UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
+
+		/* Verify the write */
+		status = get_variable(current_var, output_data);
+		UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
+
+		/* Expect got variable data to be the same as the set value */
+		UNSIGNED_LONGLONGS_EQUAL(input_data.size(), output_data.size());
+		LONGS_EQUAL(0, input_data.compare(output_data));
+	}
+
+	/* Try adding a small variable to an already full store */
+	input_data.resize(1, 'a');
+
+	status = set_variable(u"var", input_data,
+			      EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+				      EFI_VARIABLE_RUNTIME_ACCESS);
+	UNSIGNED_LONGLONGS_EQUAL(EFI_OUT_OF_RESOURCES, status);
+
+	/* Simulate a power-cycle without deleting the NV store content */
+	uefi_variable_store_deinit(&m_uefi_variable_store);
+
+	/* Try loading the non-volatile variables */
+	status = uefi_variable_store_init(&m_uefi_variable_store, OWNER_ID, MAX_VARIABLES,
+					  m_persistent_backend, m_volatile_backend);
+
+	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
+
+	/* Try reading the previously set variables */
+	for (size_t i = 0; i < MAX_VARIABLES; i++) {
+		std::u16string current_var = u"var_";
+		current_var += intToChar16(i);
+
+		status = get_variable(current_var, output_data);
+		UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
+		UNSIGNED_LONGLONGS_EQUAL(input_data.size(), output_data.size());
+		LONGS_EQUAL(0, input_data.compare(output_data));
+	}
 }

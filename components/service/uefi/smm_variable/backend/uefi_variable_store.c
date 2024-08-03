@@ -621,26 +621,41 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 
 	if (persistent_store) {
 		size_t data_len = 0;
+		size_t data_offset = 0;
 
-		psa_status_t psa_status = persistent_store->interface->get(
-			persistent_store->context, context->owner_id,
-			SMM_VARIABLE_INDEX_STORAGE_UID, 0, context->index_sync_buffer_size,
-			context->index_sync_buffer, &data_len);
+		do {
+			psa_status_t psa_status = persistent_store->interface->get(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_UID, data_offset,
+				RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
+				context->index_sync_buffer + data_offset, &data_len);
 
-		switch(psa_status) {
+			switch (psa_status) {
 			case PSA_SUCCESS:
-				(void) variable_index_restore(&context->variable_index, data_len,
-							      context->index_sync_buffer);
+				data_offset += data_len;
+
+				if (data_offset > context->index_sync_buffer_size) {
+					EMSG("Variable index cannot fit the sync buffer");
+					return EFI_LOAD_ERROR;
+				}
+
 				break;
 
 			case PSA_ERROR_DOES_NOT_EXIST:
 				IMSG("Index variable does not exist in NV store, continuing with empty index");
-				break;
+				return EFI_SUCCESS;
 
 			default:
 				EMSG("Loading variable index failed: %d", psa_status);
 				return EFI_LOAD_ERROR;
-		}
+			}
+		} while (data_len == RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
+
+		variable_index_restore(&context->variable_index, data_offset,
+				       context->index_sync_buffer);
+	} else {
+		EMSG("Loading variable index failed, store backend is not accessible");
+		return EFI_LOAD_ERROR;
 	}
 
 	return EFI_SUCCESS;
@@ -649,13 +664,14 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 static efi_status_t sync_variable_index(const struct uefi_variable_store *context)
 {
 	efi_status_t status = EFI_SUCCESS;
+	psa_status_t psa_status = PSA_SUCCESS;
 	bool is_dirty = false;
 
 	/* Sync the variable index to storage if anything is dirty */
-	size_t data_len = 0;
+	size_t remaining_data_len = 0;
 
 	status = variable_index_dump(&context->variable_index, context->index_sync_buffer_size,
-				     context->index_sync_buffer, &data_len, &is_dirty);
+				     context->index_sync_buffer, &remaining_data_len, &is_dirty);
 	if (status != EFI_SUCCESS)
 		return status;
 
@@ -664,16 +680,49 @@ static efi_status_t sync_variable_index(const struct uefi_variable_store *contex
 			context->persistent_store.storage_backend;
 
 		if (persistent_store) {
-			psa_status_t psa_status = persistent_store->interface->set(
-				persistent_store->context, context->owner_id,
-				SMM_VARIABLE_INDEX_STORAGE_UID, data_len,
-				context->index_sync_buffer, PSA_STORAGE_FLAG_NONE);
+			size_t data_offset = 0;
 
-			status = psa_to_efi_storage_status(psa_status);
+			psa_status = persistent_store->interface->remove(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_UID);
+
+			if (psa_status != PSA_SUCCESS && psa_status != PSA_ERROR_DOES_NOT_EXIST)
+				goto end;
+
+			/* Check if the index exists and create if not yet */
+			psa_status = persistent_store->interface->create(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_UID, remaining_data_len,
+				PSA_STORAGE_FLAG_NONE);
+
+			if (psa_status != PSA_SUCCESS)
+				goto end;
+
+			do {
+				size_t data_of_this_iteration = MIN(
+					remaining_data_len, RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
+
+				psa_status = persistent_store->interface->set_extended(
+					persistent_store->context, context->owner_id,
+					SMM_VARIABLE_INDEX_STORAGE_UID, data_offset,
+					data_of_this_iteration,
+					context->index_sync_buffer + data_offset);
+
+				if (psa_status != PSA_SUCCESS)
+					goto end;
+
+				data_offset += RPC_CALLER_SESSION_SHARED_MEMORY_SIZE;
+				remaining_data_len -= data_of_this_iteration;
+
+			} while (remaining_data_len);
+		} else {
+			EMSG("Syncing variable index failed, store backend is not accessible");
+			return EFI_LOAD_ERROR;
 		}
 	}
 
-	return status;
+	end:
+	return psa_to_efi_storage_status(psa_status);
 }
 
 /* Check attribute usage rules */
