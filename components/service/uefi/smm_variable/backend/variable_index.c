@@ -112,7 +112,9 @@ void variable_index_deinit(struct variable_index *context)
 
 size_t variable_index_max_dump_size(struct variable_index *context)
 {
-	return sizeof(struct variable_metadata) * context->max_variables;
+	return (sizeof(struct variable_metadata) + sizeof(bool) +
+		sizeof(struct variable_constraints)) *
+	       context->max_variables;
 }
 
 struct variable_info *variable_index_find(const struct variable_index *context,
@@ -268,37 +270,68 @@ void variable_index_set_constraints(struct variable_info *info,
 				    const struct variable_constraints *constraints)
 {
 	if (info) {
+		struct variable_entry *entry = containing_entry(info);
+
 		info->check_constraints = *constraints;
 		info->is_constraints_set = true;
+
+		mark_dirty(entry);
 	}
 }
 
-bool variable_index_dump(const struct variable_index *context, size_t buffer_size, uint8_t *buffer,
-			 size_t *data_len)
+efi_status_t variable_index_dump(const struct variable_index *context, size_t buffer_size,
+				 uint8_t *buffer, size_t *data_len, bool *any_dirty)
 {
-	bool any_dirty = false;
 	uint8_t *dump_pos = buffer;
 	size_t bytes_dumped = 0;
+
+	*data_len = 0;
+	*any_dirty = false;
 
 	for (size_t pos = 0; pos < context->max_variables; pos++) {
 		struct variable_entry *entry = &context->entries[pos];
 		struct variable_metadata *metadata = &entry->info.metadata;
+		struct variable_constraints *constraints = &entry->info.check_constraints;
 
 		if (entry->in_use && entry->info.is_variable_set &&
-		    (metadata->attributes & EFI_VARIABLE_NON_VOLATILE) &&
-		    ((bytes_dumped + sizeof(struct variable_metadata)) <= buffer_size)) {
+		    (metadata->attributes & EFI_VARIABLE_NON_VOLATILE)) {
+			/* Store metadata */
+			if (bytes_dumped + sizeof(struct variable_metadata) > buffer_size)
+				return EFI_BUFFER_TOO_SMALL;
+
 			memcpy(dump_pos, metadata, sizeof(struct variable_metadata));
 			bytes_dumped += sizeof(struct variable_metadata);
 			dump_pos += sizeof(struct variable_metadata);
+
+			/* Store constraints' status */
+			if (bytes_dumped + sizeof(entry->info.is_constraints_set) > buffer_size)
+				return EFI_BUFFER_TOO_SMALL;
+
+			memcpy(dump_pos, &entry->info.is_constraints_set,
+			       sizeof(entry->info.is_constraints_set));
+			bytes_dumped += sizeof(entry->info.is_constraints_set);
+			dump_pos += sizeof(entry->info.is_constraints_set);
+
+			/* Store constraints, if they are set */
+			if (entry->info.is_constraints_set) {
+				if (bytes_dumped + sizeof(entry->info.check_constraints) >
+				    buffer_size)
+					return EFI_BUFFER_TOO_SMALL;
+
+				memcpy(dump_pos, constraints,
+				       sizeof(entry->info.check_constraints));
+				bytes_dumped += sizeof(entry->info.check_constraints);
+				dump_pos += sizeof(entry->info.check_constraints);
+			}
 		}
 
-		any_dirty |= entry->dirty;
+		*any_dirty |= entry->dirty;
 		entry->dirty = false;
 	}
 
 	*data_len = bytes_dumped;
 
-	return any_dirty;
+	return EFI_SUCCESS;
 }
 
 size_t variable_index_restore(const struct variable_index *context, size_t data_len,
@@ -309,23 +342,50 @@ size_t variable_index_restore(const struct variable_index *context, size_t data_
 	int pos = 0;
 
 	while (bytes_loaded < data_len) {
+		struct variable_entry *entry = &context->entries[pos];
+
 		if ((data_len - bytes_loaded) >= sizeof(struct variable_metadata)) {
-			struct variable_entry *entry = &context->entries[pos];
 			struct variable_metadata *metadata = &entry->info.metadata;
 
+			/* Load metadata */
 			memcpy(metadata, load_pos, sizeof(struct variable_metadata));
-
-			entry->info.is_variable_set = true;
-			entry->in_use = true;
-
 			bytes_loaded += sizeof(struct variable_metadata);
 			load_pos += sizeof(struct variable_metadata);
-
-			++pos;
 		} else {
 			/* Not a whole number of variable_metadata structs! */
 			break;
 		}
+
+		if ((data_len - bytes_loaded) >= sizeof(entry->info.is_constraints_set)) {
+			/* Load constraints' status */
+			memcpy(&entry->info.is_constraints_set, load_pos,
+			       sizeof(entry->info.is_constraints_set));
+			bytes_loaded += sizeof(entry->info.is_constraints_set);
+			load_pos += sizeof(entry->info.is_constraints_set);
+		} else {
+			/* Not enough space for constraints' status! */
+			break;
+		}
+
+		if (entry->info.is_constraints_set) {
+			if ((data_len - bytes_loaded) >= sizeof(struct variable_constraints)) {
+				struct variable_constraints *constraints =
+					&entry->info.check_constraints;
+
+				/* Load constraints if they are set */
+				memcpy(constraints, load_pos, sizeof(struct variable_constraints));
+				bytes_loaded += sizeof(struct variable_constraints);
+				load_pos += sizeof(struct variable_constraints);
+			} else {
+				/* Not a whole number of variable_constraints structs! */
+				break;
+			}
+		}
+
+		entry->info.is_variable_set = true;
+		entry->in_use = true;
+
+		++pos;
 	}
 
 	return bytes_loaded;

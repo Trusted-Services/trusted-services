@@ -581,8 +581,10 @@ efi_status_t uefi_variable_store_set_var_check_property(
 	status = variable_checker_set_constraints(&constraints, info->is_constraints_set,
 						  &property->VariableProperty);
 
-	if (status == EFI_SUCCESS)
+	if (status == EFI_SUCCESS) {
 		variable_index_set_constraints(info, &constraints);
+		status = sync_variable_index(context);
+	}
 
 	variable_index_remove_unused_entry(&context->variable_index, info);
 
@@ -647,13 +649,15 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 static efi_status_t sync_variable_index(const struct uefi_variable_store *context)
 {
 	efi_status_t status = EFI_SUCCESS;
+	bool is_dirty = false;
 
 	/* Sync the variable index to storage if anything is dirty */
 	size_t data_len = 0;
 
-	bool is_dirty = variable_index_dump(&context->variable_index,
-					    context->index_sync_buffer_size,
-					    context->index_sync_buffer, &data_len);
+	status = variable_index_dump(&context->variable_index, context->index_sync_buffer_size,
+				     context->index_sync_buffer, &data_len, &is_dirty);
+	if (status != EFI_SUCCESS)
+		return status;
 
 	if (is_dirty) {
 		struct storage_backend *persistent_store =
