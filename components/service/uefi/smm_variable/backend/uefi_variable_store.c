@@ -19,6 +19,7 @@
 
 #include "trace.h"
 #include "util.h"
+#include <service/locator/sp/ffa/spffa_service_context.h>
 #include "variable_checker.h"
 #include "variable_index_iterator.h"
 
@@ -146,6 +147,10 @@ static bool compare_name_to_key_store_name(const int16_t *name1, size_t size1,
 #ifndef DEFAULT_MAX_VARIABLE_SIZE
 #define DEFAULT_MAX_VARIABLE_SIZE (4096)
 #endif
+
+_Static_assert(DEFAULT_MAX_VARIABLE_SIZE <= RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
+	       "Maximum UEFI variable size must not exceed RPC buffer size. please increase " \
+	       "RPC_CALLER_SESSION_SHARED_MEMORY_SIZE or decrease DEFAULT_MAX_VARIABLE_SIZE");
 
 efi_status_t uefi_variable_store_init(struct uefi_variable_store *context, uint32_t owner_id,
 				      size_t max_variables,
