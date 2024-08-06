@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <compiler.h>
 
 static uint8_t hex_to_nibble(char hex)
 {
@@ -189,7 +190,7 @@ size_t uuid_parse_to_guid_octets(const char *canonical_form,
 void uuid_octets_from_canonical(struct uuid_octets *uuid_octets,
 	const char *canonical_form)
 {
-	size_t valid_chars = uuid_parse_to_octets(canonical_form,
+	__maybe_unused size_t valid_chars = uuid_parse_to_octets(canonical_form,
 		uuid_octets->octets, sizeof(uuid_octets->octets));
 
 	/* Input string is assumed to be valid. Should not be used if canonical
@@ -201,7 +202,7 @@ void uuid_octets_from_canonical(struct uuid_octets *uuid_octets,
 void uuid_guid_octets_from_canonical(struct uuid_octets *uuid_octets,
 	const char *canonical_form)
 {
-	size_t valid_chars = uuid_parse_to_guid_octets(canonical_form,
+	__maybe_unused size_t valid_chars = uuid_parse_to_guid_octets(canonical_form,
 		uuid_octets->octets, sizeof(uuid_octets->octets));
 
 	assert(valid_chars == UUID_CANONICAL_FORM_LEN);

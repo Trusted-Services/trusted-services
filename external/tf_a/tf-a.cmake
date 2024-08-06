@@ -59,4 +59,10 @@ function(add_tfa_dependency)
 	target_include_directories(${MY_PARAMS_TARGET} PRIVATE "${TFA_SOURCE_DIR}/include")
 	target_include_directories(${MY_PARAMS_TARGET} PRIVATE "${TFA_SOURCE_DIR}/include/arch/aarch64")
 
+	# Disable assertions in TF-A for release builds
+	if ("${UC_CMAKE_BUILD_TYPE}" STREQUAL "MINSIZEREL" OR
+		"${UC_CMAKE_BUILD_TYPE}" STREQUAL "RELEASE" OR
+		"${UC_CMAKE_BUILD_TYPE}" STREQUAL "RELWITHDEBINFO")
+    	target_compile_definitions(${MY_PARAMS_TARGET} PRIVATE "ENABLE_ASSERTIONS=0")
+	endif()
 endfunction()

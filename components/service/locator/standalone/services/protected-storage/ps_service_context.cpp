@@ -10,6 +10,7 @@
 #include "service/secure_storage/frontend/secure_storage_provider/secure_storage_uuid.h"
 #include "media/disk/guid.h"
 #include <assert.h>
+#include <compiler.h>
 
 ps_service_context::ps_service_context(const char *sn) :
 	standalone_service_context(sn),
@@ -37,7 +38,7 @@ void ps_service_context::do_init()
 	m_block_store = client_block_store_factory_create("sn:trustedfirmware.org:block-storage:0");
 	assert(m_block_store != NULL);
 
-	psa_status_t status = sfs_flash_block_store_adapter_init(
+	__maybe_unused psa_status_t status = sfs_flash_block_store_adapter_init(
 		&m_sfs_flash_adapter,
 		0,
 		m_block_store,
