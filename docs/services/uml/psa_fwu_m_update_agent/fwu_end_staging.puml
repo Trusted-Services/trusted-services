@@ -1,0 +1,37 @@
+'-------------------------------------------------------------------------------
+' Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
+'
+' SPDX-License-Identifier: BSD-3-Clause
+'
+'-------------------------------------------------------------------------------
+
+@startuml
+participant "PSA FWU A Update Client" as client
+participant "PSA FWU A Update Agent" as agent
+participant "PSA FWU M Service" as service
+
+autoactivate on
+
+client -> agent: fwu_end_staging()
+
+alt state == Staging
+	loop on all selected images
+		agent -> service: psa_fwu_finish(image)
+		service --> agent
+	end
+
+	agent -> service: psa_fwu_install()
+	service --> agent
+
+	alt all images accepted
+		agent -> service: psa_fwu_accept()
+		service --> agent
+		hnote over agent: state = Regular
+	else
+		hnote over agent: state = Trial
+	end
+end
+
+agent --> client
+
+@enduml
