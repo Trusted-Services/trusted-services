@@ -11,7 +11,7 @@ if (UEFI_AUTH_VAR)
 
 # If enabled an internal mbedtls instance will be used instead of the crypto SP
 if (UEFI_INTERNAL_CRYPTO)
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/x509_only.h"
+set(MBEDTLS_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/internal_crypto_smmgw.h"
 	CACHE STRING "Configuration file for Mbed TLS" FORCE)
 include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
 target_link_libraries(smm-gateway PRIVATE MbedTLS::mbedcrypto)
@@ -20,7 +20,7 @@ target_link_libraries(smm-gateway PRIVATE MbedTLS::mbedx509)
 # Pass the mbedtls config file to C preprocessor so the uefi
 # direct backend will access the mbedtls headers
 target_compile_definitions(smm-gateway PRIVATE
-		MBEDTLS_USER_CONFIG_FILE="${MBEDTLS_USER_CONFIG_FILE}"
+	MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}"
 )
 
 target_compile_definitions(smm-gateway PRIVATE
@@ -32,6 +32,7 @@ add_components(TARGET "smm-gateway"
 	COMPONENTS
 		"components/common/mbedtls"
 		"components/service/uefi/smm_variable/backend/direct"
+		"components/service/crypto/backend/mbedcrypto/trng_adapter/stub"
 )
 
 else()

@@ -32,7 +32,6 @@ set(GIT_OPTIONS
 		COMMAND git branch -f bf-am
 		COMMAND git am ${CMAKE_CURRENT_LIST_DIR}/0001-Add-capability-to-selectively-build-libraries.patch
 		COMMAND git reset bf-am
-		COMMAND ${Python3_EXECUTABLE} scripts/config.py crypto
 )
 
 # Only pass libc settings to Mbed TLS if needed. For environments where the standard

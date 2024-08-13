@@ -184,7 +184,7 @@ target_link_libraries(ts PRIVATE nanopb::protobuf-nanopb-static)
 protobuf_generate_all(TGT "ts" NAMESPACE "protobuf" BASE_DIR "${TS_ROOT}/protocols")
 
 # MbedTLS
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/libmbedx509.h"
+set(MBEDTLS_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_provider_x509.h"
 	CACHE STRING "Configuration file for Mbed TLS" FORCE)
 include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
 target_link_libraries(ts PRIVATE MbedTLS::mbedcrypto)
@@ -192,7 +192,7 @@ target_link_libraries(ts PRIVATE MbedTLS::mbedx509)
 
 # Pass the location of the mbedtls config file to C preprocessor.
 target_compile_definitions(ts PRIVATE
-		MBEDTLS_USER_CONFIG_FILE="${MBEDTLS_USER_CONFIG_FILE}"
+		MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}"
 )
 
 # Qcbor

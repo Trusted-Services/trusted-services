@@ -43,7 +43,7 @@ add_components(
 #-------------------------------------------------------------------------------
 
 # MbedTLS provides libmbedcrypto
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
+set(MBEDTLS_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
 	CACHE STRING "Configuration file for mbedcrypto")
 include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
 target_link_libraries(platform-inspect PRIVATE MbedTLS::mbedcrypto)
