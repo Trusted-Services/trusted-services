@@ -12,3 +12,6 @@ target_sources(${TGT} PRIVATE
 	"${CMAKE_CURRENT_LIST_DIR}/trng_env_tests.c"
 	)
 
+target_include_directories(${TGT} PRIVATE
+	"${CMAKE_CURRENT_LIST_DIR}"
+	)

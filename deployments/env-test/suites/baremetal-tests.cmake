@@ -15,7 +15,6 @@ add_components(TARGET "env-test"
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
 		"components/common/uuid"
-		"components/service/crypto/backend/mbedcrypto"
 		"components/service/crypto/backend/mbedcrypto/trng_adapter/platform"
 		"components/service/crypto/backend/mbedcrypto/trng_adapter/test"
 		"components/service/secure_storage/include"
@@ -34,23 +33,6 @@ add_components(TARGET "env-test"
 
 target_sources(env-test PRIVATE
 	${CMAKE_CURRENT_LIST_DIR}/registration/baremetal_tests.c
-)
-
-#-------------------------------------------------------------------------------
-#  Components used from external projects
-#
-#-------------------------------------------------------------------------------
-
-# Mbed TLS provides libmbedcrypto
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/libmbed_only.h"
-	CACHE STRING "Configuration file for Mbed TLS" FORCE)
-include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
-target_link_libraries(env-test PRIVATE MbedTLS::mbedcrypto)
-
-# Provide the config path to mbedtls
-target_compile_definitions(env-test
-	PRIVATE
-		MBEDTLS_USER_CONFIG_FILE="${MBEDTLS_USER_CONFIG_FILE}"
 )
 
 #-------------------------------------------------------------------------------
