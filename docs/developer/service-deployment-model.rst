@@ -1,5 +1,6 @@
 Service Deployment Model
 ========================
+
 A goal of the Trusted Services project is to provide a toolbox of reusable service components
 that can be deployed across a wide range of platforms. The project structure promotes reuse by
 grouping related source files into subdirectories that represent reusable components. Components
@@ -11,20 +12,19 @@ deployable firmware images reside under the deployments top-level directory. Ben
 deployments parent are sub-directories concerned with building and deploying different
 applications. Applications can generally be classified as one of the following:
 
-  - Service providers
-  - Test suites
-  - Libraries
-  - Development support applications
+  - Service providers (e.g. psa-crypto)
+  - Test suites (e.g. ts-service-test)
+  - Libraries (e.g. libts)
+  - Development support applications (e.g. fwu-tool)
 
 This page is mainly concerned with describing the conventions used to enable service providers
 to be deployed in different environments, on different platforms and with different capabilities.
 The conventions aim to minimize build definition duplication between alternative deployments
 while offering sufficient flexibility to customize capabilities and support different platforms.
-The service deployment model borrows from a pattern used for deploying cloud services where There
-is a similar requirement for deployment flexibility.
 
 Ports and Adapters Architecture
 -------------------------------
+
 An application is decoupled from any particular environment via a set of interfaces that reflect
 the needs of the application. This model conforms to the ports and adapters architectural
 pattern that aims to avoid tight coupling between application components and any particular
@@ -52,6 +52,7 @@ This deployment model has the following characteristics:
 
 Service Deployment Structure
 ----------------------------
+
 By convention, the directory structure for service provider deployments reflects the layers in
 the ports and adapters architecture. The following dependency diagram illustrates the set of
 relationships that exist for a fully defined deployment:
@@ -70,32 +71,39 @@ different deployment definitions:
   * - Build Component
     - Defines
     - Reuse Scope
-  * - Application
-    - | Set of components that form the core application to be deployed.
-    - | All deployments of the application.
-  * - Infra
-    - | The set of adapters that realize the ports that the application depends on.
+  * - Deployment
+    - | Represents an application. Examples: a service provider, demo application, test application,
+      | some tool.
+    - | -
+  * - Infrastructure
+    - | A specific set of SW components that realize the ports that the application depends on.
       | An infrastructure definition may depend on:
 
-        * Environment specific components.
         * Drivers that conform to a driver model.
-        * Platform specific drivers.
     - | Any deployment that uses the same infrastructure to support the application.
       | This will depend on how specific the infrastructure is.  An infrastructure
-      | definition may allow for some level of configurability to enable deployment
+      | definition may allow for some level of configurability to enable a deployment
       | to impose a particular build configuration. Where an infrastructure includes
       | adapters that use a well supported driver model (such as UEFI), the scope
       | for reuse is large.
-  * - Env
+  * - Environment
     - | The set of environment specific components that are common across all
       | deployments of an application for a particular environment.
     - | All deployments of the application into a specific environment. There is
       | scope to improve reuse of environment specific components across multiple
       | deployments.
-  * - Config
-    - | Build configuration variables together with a particular application, infra
-      | and env.
-    - | Depends on how specific the config is.
+  * - Configuration
+    - | Build configuration variables together with a particular application, infrastructure
+      | and environment. Represents a specific build of the application.
+    - | None.
+  * - Platform
+    - | A specific set of hardware drivers and target platform specific settings.
+      | A platform definition may depend on:
+
+            * Hardware driver ports defined by various components.
+            * Hardware specific resources.
+            * Target specific resource selection.
+    - | None.
 
 Deployment Directory Structure
 ------------------------------
@@ -112,12 +120,11 @@ the service deployment model as follows::
 Configuration Definitions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 To build a particular configuration of the block-storage service provider (in this case, one
-that uses flash storage on the N1SDP platform), use::
+that uses flash storage emulated with semihosting on the AEM FVP platform), use::
 
-  cd deployments/block-storage/config/n1sdp-flash
+  cd deployments/block-storage/config/semihosted-opteesp
   cmake -B build
-  cd build
-  make
+  cmake --build build
 
 The CMakeLists.txt file for the n1sdp-flash deployment of the block-storage service provider
 includes:

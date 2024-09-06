@@ -7,19 +7,18 @@
 
 @startuml
 
-package Deployment
-package Application
-package Infrastructure
-package Environment
-package Platform
-package BuildConfig
-package Adapter
+component Deployment
+component Infrastructure
+component Environment
+component Configuration
+component Adapter
+component Adapter as pl_adapter
+component Platform
 
-Deployment -down.> Application
 Deployment -down.> Infrastructure
 Deployment -down.> Environment
-Deployment -down.> "0..1" Platform
-Deployment -down.> "0..1" BuildConfig
+Deployment -down.> Configuration
+Deployment -down.> Platform
 Infrastructure -down.> "0..*" Adapter
-
+Platform -down.> "0..*" "pl_adapter"
 @enduml
