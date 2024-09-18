@@ -75,5 +75,12 @@ if (NOT "${UC_CMAKE_BUILD_TYPE}" IN_LIST TS_SUPPORTED_BUILD_TYPES)
 	message(FATAL_ERROR "Unknown build type \"${CMAKE_BUILD_TYPE}\" specified in CMAKE_BUILD_TYPE.")
 endif()
 
+# Set postfix of libraries according the build type.
+if (UC_CMAKE_BUILD_TYPE STREQUAL "DEBUGCOVERAGE")
+	set(CMAKE_${UC_CMAKE_BUILD_TYPE}_POSTFIX "c")
+elseif(UC_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+	set(CMAKE_${UC_CMAKE_BUILD_TYPE}_POSTFIX "d")
+endif()
+
 # Default protocol UUID used by TS SPs.
 set(TS_RPC_UUID_CANON "bdcd76d7-825e-4751-963b-86d4f84943ac" CACHE STRING "Trusted Services PRC (protocol) UUID.")

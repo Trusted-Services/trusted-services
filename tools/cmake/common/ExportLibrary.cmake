@@ -44,6 +44,7 @@ function(export_library)
 
 
 	string(TOLOWER "${MY_PARAMS_LIB_NAME}" LC_LIB_NAME)
+	set(_version_file_name "${LC_LIB_NAME}ConfigVersion.cmake")
 
 	# Set default install location if none specified
 	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -76,7 +77,7 @@ function(export_library)
 	include(CMakePackageConfigHelpers)
 	get_target_property(_ver ${MY_PARAMS_TARGET} VERSION)
 	write_basic_package_version_file(
-		"${CMAKE_CURRENT_BINARY_DIR}/${LC_LIB_NAME}ConfigVersion.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/${_version_file_name}"
 		VERSION "${_ver}"
 		COMPATIBILITY SameMajorVersion
 	)
@@ -87,6 +88,7 @@ function(export_library)
 
 	get_filename_component(_configured_pkgcfg_name "${MY_PARAMS_PKG_CONFIG_FILE}" NAME_WLE)
 	set(_configured_pkgcfg_name "${CMAKE_CURRENT_BINARY_DIR}/${_configured_pkgcfg_name}")
+
 	configure_package_config_file(
 			"${MY_PARAMS_PKG_CONFIG_FILE}"
 			"${_configured_pkgcfg_name}"
@@ -108,7 +110,7 @@ function(export_library)
 	install(
 		FILES
 			"${_configured_pkgcfg_name}"
-			"${CMAKE_CURRENT_BINARY_DIR}/${LC_LIB_NAME}ConfigVersion.cmake"
+			"${CMAKE_CURRENT_BINARY_DIR}/${_version_file_name}"
 		DESTINATION
 			${ConfigPackageLocation}
 		COMPONENT

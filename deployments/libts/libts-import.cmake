@@ -25,15 +25,23 @@ if(NOT libts_FOUND)
 						   "If you wish to debug the search process pass -DCMAKE_FIND_DEBUG_MODE=ON to cmake.")
 		message(FATAL_ERROR ${_msg})
 	endif()
+	# Set build type, if a specific value is required. This leaves the default value in the hands of the
+	# libts deployment being built.
+	if (DEFINED LIBTS_BUILD_TYPE)
+		set(_libts_build_type_arg "-DCMAKE_BUILD_TYPE=${LIBTS_BUILD_TYPE}")
+	endif()
+
 	# If not successful, build libts as a sub-project.
 	execute_process(COMMAND
 		${CMAKE_COMMAND} -E env "CROSS_COMPILE=${CROSS_COMPILE}"
 		${CMAKE_COMMAND}
+			${_libts_build_type_arg}
 			-S ${TS_ROOT}/deployments/libts/${TS_ENV}
 			-B ${CMAKE_CURRENT_BINARY_DIR}/libts
 		RESULT_VARIABLE
 			_exec_error
 		)
+	unset(_libts_build_type_arg)
 	if (NOT _exec_error EQUAL 0)
 		message(FATAL_ERROR "Configuring libts failed. ${_exec_error}")
 	endif()
@@ -65,4 +73,33 @@ if(NOT libts_FOUND)
 	find_package(libts "${_verstring}" QUIET REQUIRED PATHS ${CMAKE_CURRENT_BINARY_DIR}/libts_install/${TS_ENV}/lib/cmake/libts)
 else()
 	message(STATUS "Using prebuilt libts from ${libts_DIR}")
+endif()
+
+# Cmake will use the same build type of the imported target as used by the main project. If no mapping is configured and
+# the matching build type is not found, cmake will fall back to any build type. Details of the fall back mechanism are not
+# documented.
+# If a mapping is defined, and the imported target does not define the mapped build type, cmake will treat the library
+# as not found.
+#
+# If LIBTS_BUILD_TYPE is set and the main project wants to use a specific build type, configure build type mapping to
+# only allow using the requested build type.
+if (DEFINED LIBTS_BUILD_TYPE)
+	set_target_properties(libts::ts PROPERTIES
+		MAP_IMPORTED_CONFIG_DEBUG				${LIBTS_BUILD_TYPE}
+		MAP_IMPORTED_CONFIG_MINSIZEREL			${LIBTS_BUILD_TYPE}
+		MAP_IMPORTED_CONFIG_MINSIZWITHDEBINFO	${LIBTS_BUILD_TYPE}
+		MAP_IMPORTED_CONFIG_RELEASE				${LIBTS_BUILD_TYPE}
+		MAP_IMPORTED_CONFIG_RELWITHDEBINFO		${LIBTS_BUILD_TYPE}
+		MAP_IMPORTED_CONFIG_DEBUGCOVERAGE		${LIBTS_BUILD_TYPE}
+	)
+
+	# Do a manual check and issue a better message than the default one.
+	get_property(_libts_build_type TARGET libts::ts PROPERTY IMPORTED_CONFIGURATIONS)
+	string(TOUPPER ${LIBTS_BUILD_TYPE} _uc_libts_build_type)
+	if(${_uc_libts_build_type} IN_LIST _libts_build_type)
+	else()
+		message(FATAL_ERROR "Installed libts package does not supports required build type ${LIBTS_BUILD_TYPE}.")
+	endif()
+	unset(_libts_build_type)
+	unset(_uc_libts_build_type)
 endif()
