@@ -63,7 +63,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 # List of supported build types. Needs to be in alignment with the toolchain file
-set(TS_SUPPORTED_BUILD_TYPES DEBUG "MINSIZEREL" "MINSIZWITHDEBINFO" "RELEASE" "RELWITHDEBINFO" CACHE
+set(TS_SUPPORTED_BUILD_TYPES "DEBUG" "MINSIZEREL" "MINSIZWITHDEBINFO" "RELEASE" "RELWITHDEBINFO" "DEBUGCOVERAGE" CACHE
   STRING "List of supported build types.")
 
 # Convert the build type string to upper case to help case insensitive comparison.
