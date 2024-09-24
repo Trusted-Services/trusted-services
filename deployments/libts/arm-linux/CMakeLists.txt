@@ -24,6 +24,13 @@ set(MM_COMM_BUFFER_ADDRESS "0x881000000" CACHE STRING "Address of MM communicte 
 set(MM_COMM_BUFFER_SIZE "8*4*1024" CACHE STRING "Size of the MM communicate buffer in bytes")
 
 #-------------------------------------------------------------------------------
+#  For user-specific tracing set to TRACE_LEVEL_NONE and implement:
+#  void trace_puts(const char *str)
+#-------------------------------------------------------------------------------
+
+set(TRACE_PREFIX "LIBTS" CACHE STRING "Trace prefix")
+set(TRACE_LEVEL "TRACE_LEVEL_DEBUG" CACHE STRING "Trace level")
+#-------------------------------------------------------------------------------
 #  Components that are specific to deployment in the arm-linux environment.
 #
 #-------------------------------------------------------------------------------

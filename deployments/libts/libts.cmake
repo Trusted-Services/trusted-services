@@ -24,6 +24,10 @@ unset(_patch)
 
 add_library(libts::ts ALIAS ts)
 
+if (COVERAGE)
+	set(LIBTS_BUILD_TYPE "DebugCoverage" CACHE STRING "Build type." FORCE)
+endif()
+
 #-------------------------------------------------------------------------------
 #  Components that are common across all deployments
 #
@@ -32,6 +36,8 @@ add_components(
 	TARGET "ts"
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
+		"environments/${TS_ENV}"
+		"components/common/trace"
 		"components/rpc/common/caller"
 		"components/rpc/common/interface"
 		"components/service/locator"
@@ -45,6 +51,7 @@ add_components(
 
 # Enable exporting interface symbols for library public interface
 target_compile_definitions(ts PRIVATE
+	EXPORT_PUBLIC_INTERFACE_TRACE
 	EXPORT_PUBLIC_INTERFACE_RPC_CALLER
 	EXPORT_PUBLIC_INTERFACE_RPC_SERVICE
 	EXPORT_PUBLIC_INTERFACE_SERVICE_LOCATOR

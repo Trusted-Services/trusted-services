@@ -16,6 +16,10 @@ option(CFG_FORCE_PREBUILT_LIBTS Off)
 version_semver_read(FILE "${CMAKE_CURRENT_LIST_DIR}/version.txt" MAJOR _major MINOR _minor PATCH _patch)
 set(_verstring "${_major}.${_minor}.${_patch}")
 
+if (COVERAGE)
+	set(LIBTS_BUILD_TYPE "DebugCoverage" CACHE STRING "Build type." FORCE)
+endif()
+
 find_package(libts "${_verstring}" QUIET PATHS ${CMAKE_CURRENT_BINARY_DIR}/libts_install/${TS_ENV}/lib/cmake/libts)
 if(NOT libts_FOUND)
 	if (CFG_FORCE_PREBUILT_LIBTS)

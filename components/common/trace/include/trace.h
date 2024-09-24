@@ -8,6 +8,12 @@
 
 #include "compiler.h"
 
+#ifdef EXPORT_PUBLIC_INTERFACE_TRACE
+#define TRACE_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define TRACE_EXPORTED
+#endif
+
 #define TRACE_LEVEL_NONE	(0)
 #define TRACE_LEVEL_ERROR	(1)
 #define TRACE_LEVEL_INFO	(2)
@@ -30,6 +36,7 @@
 
 extern void (*trace_puts_interface)(const char *str);
 void trace_puts(const char *str);
+TRACE_EXPORTED
 void trace_printf(const char *func, int line, int level, const char *fmt, ...) __printf(4, 5);
 
 #if TRACE_LEVEL >= TRACE_LEVEL_ERROR
