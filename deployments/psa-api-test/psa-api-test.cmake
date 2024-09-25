@@ -24,6 +24,11 @@ target_sources(${PROJECT_NAME} PRIVATE
 #  libpsa will be imported for the environment. Making sure the link order is
 #  correct.
 #-------------------------------------------------------------------------------
+if (COVERAGE)
+	set(LIBPSA_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsa build type" FORCE)
+	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
+endif()
+
 include(${TS_ROOT}/deployments/libpsa/libpsa-import.cmake)
 target_link_libraries( ${PROJECT_NAME} PRIVATE libpsa::psa)
 

@@ -14,6 +14,11 @@
 #  Use libpsa for locating PSA services. An appropriate version of
 #  libpsa will be imported for the environment.
 #-------------------------------------------------------------------------------
+if (COVERAGE)
+	set(LIBPSA_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsa build type" FORCE)
+	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
+endif()
+
 include(${TS_ROOT}/deployments/libpsa/libpsa-import.cmake)
 target_link_libraries(platform-inspect PRIVATE libpsa::psa)
 

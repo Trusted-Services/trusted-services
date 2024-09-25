@@ -16,6 +16,10 @@
 #  libts will be imported for the environment in which tests are
 #  deployed.
 #-------------------------------------------------------------------------------
+if (COVERAGE)
+	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
+endif()
+
 include(${TS_ROOT}/deployments/libts/libts-import.cmake)
 target_link_libraries(ts-remote-test PRIVATE libts::ts)
 
