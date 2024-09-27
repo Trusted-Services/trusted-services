@@ -20,7 +20,7 @@
 #define TRACE_LEVEL_DEBUG	(3)
 
 #ifndef TRACE_LEVEL
-#define TRACE_LEVEL	TRACE_LEVEL_ERROR
+#error "Trace level is not defined!"
 #endif /* TRACE_LEVEL */
 
 /**
