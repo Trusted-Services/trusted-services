@@ -13,7 +13,7 @@ void __noreturn platform_assert(const char *file, int line, const char *func,
 				const char *failedexpr)
 {
 #if TRACE_LEVEL >= TRACE_LEVEL_ERROR
-	trace_printf(func, line, TRACE_LEVEL_ERROR, "assertion %s failed", failedexpr);
+	ts_trace_printf(func, line, TRACE_LEVEL_ERROR, "assertion %s failed", failedexpr);
 #endif /* TRACE_LEVEL */
 
 	while (1)
