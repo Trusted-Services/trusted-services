@@ -6,4 +6,4 @@
 
 @PACKAGE_INIT@
 
-include("${CMAKE_CURRENT_LIST_DIR}/libpsaTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/libpsatsTargets.cmake")

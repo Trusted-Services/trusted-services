@@ -20,17 +20,17 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 #-------------------------------------------------------------------------------
-#  Use libpsa for locating PSA services. An appropriate version of
-#  libpsa will be imported for the environment. Making sure the link order is
+#  Use libpsats for locating PSA services. An appropriate version of
+#  libpsats will be imported for the environment. Making sure the link order is
 #  correct.
 #-------------------------------------------------------------------------------
 if (COVERAGE)
-	set(LIBPSA_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsa build type" FORCE)
+	set(LIBPSATS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsats build type" FORCE)
 	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
 endif()
 
-include(${TS_ROOT}/deployments/libpsa/libpsa-import.cmake)
-target_link_libraries( ${PROJECT_NAME} PRIVATE libpsa::psa)
+include(${TS_ROOT}/deployments/libpsats/libpsats-import.cmake)
+target_link_libraries( ${PROJECT_NAME} PRIVATE libpsats::psats)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE val_nspe test_combine pal_nspe)
 

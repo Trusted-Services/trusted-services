@@ -11,13 +11,13 @@
 #include <service_locator.h>
 #include <stdio.h>
 
-#include "libpsa.h"
+#include "libpsats.h"
 #include "trace.h"
 
 static struct rpc_caller_session *rpc_session;
 static struct service_context *attestation_service_context;
 
-LIBPSA_EXPORTED psa_status_t libpsa_init_attestation_context(const char *service_name)
+LIBPSATS_EXPORTED psa_status_t libpsats_init_attestation_context(const char *service_name)
 {
 	psa_status_t result = PSA_ERROR_GENERIC_ERROR;
 	psa_status_t provision_result = PSA_ERROR_GENERIC_ERROR;
@@ -40,7 +40,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_attestation_context(const char *service
 
 	if (!rpc_session) {
 		EMSG("Failed to open rpc session\n");
-		libpsa_deinit_attestation_context();
+		libpsats_deinit_attestation_context();
 		return result;
 	}
 
@@ -61,7 +61,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_attestation_context(const char *service
 	return result;
 }
 
-LIBPSA_EXPORTED void libpsa_deinit_attestation_context(void)
+LIBPSATS_EXPORTED void libpsats_deinit_attestation_context(void)
 {
 	psa_iat_client_deinit();
 	attest_provision_client_deinit();

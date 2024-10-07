@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "attest_report_fetcher.h"
-#include "libpsa.h"
+#include "libpsats.h"
 
 int main(void)
 {
@@ -20,15 +20,15 @@ int main(void)
 	std::string error_msg;
 	std::vector<uint8_t> attest_report;
 
-	psa_status = libpsa_init_crypto_context("sn:trustedfirmware.org:crypto:0");
+	psa_status = libpsats_init_crypto_context("sn:trustedfirmware.org:crypto:0");
 	if (psa_status) {
-		printf("libpsa_init_crypto_context failed: %d\n", psa_status);
+		printf("libpsats_init_crypto_context failed: %d\n", psa_status);
 		goto cleanup;
 	}
 
-	psa_status = libpsa_init_attestation_context("sn:trustedfirmware.org:attestation:0");
+	psa_status = libpsats_init_attestation_context("sn:trustedfirmware.org:attestation:0");
 	if (psa_status) {
-		printf("libpsa_init_crypto_context failed: %d\n", psa_status);
+		printf("libpsats_init_crypto_context failed: %d\n", psa_status);
 		goto cleanup;
 	}
 
@@ -45,8 +45,8 @@ int main(void)
 		printf("%s\n", error_msg.c_str());
 
 cleanup:
-	libpsa_deinit_crypto_context();
-	libpsa_deinit_attestation_context();
+	libpsats_deinit_crypto_context();
+	libpsats_deinit_attestation_context();
 
 	return rval;
 }

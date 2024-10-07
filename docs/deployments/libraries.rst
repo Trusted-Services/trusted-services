@@ -31,13 +31,13 @@ deployed in secure processing environments. For more information, see:
   * - Used by
     - * Userspace applications
 
-.. _libs-libpsa:
+.. _libs-libpsats:
 
-libpsa
+libpsats
 ------
-Trusted Services implements the `PSA Certified APIs`_. Libpsa encapsulates the service client implementations
-which implement this API. Linux uuser-space applications can use libpsa to easily access the PSA services
-implemented by the project. Libpsa depends on libts for RPC and service discovery services.
+Trusted Services implements the `PSA Certified APIs`_. Libpsats encapsulates the service client implementations
+which implement this API. Linux uuser-space applications can use libpsats to easily access the PSA services
+implemented by the project. Libpsats depends on libts for RPC and service discovery services.
 
 .. list-table::
   :widths: 1 2
@@ -56,7 +56,7 @@ Build and integration examples
 
 Build as shared library::
 
-  cmake -S ./trusted-services/deployments/libpsa/linux-pc/ -B ./build
+  cmake -S ./trusted-services/deployments/libpsats/linux-pc/ -B ./build
   make -C build && make -C build install
 
 .. warning::
@@ -65,38 +65,38 @@ Build as shared library::
 To integrate the library libts shall also be integrated. To achieve this add the listed
 lines to the application's cmake files::
 
-  find_package(libpsa "1.0.0" REQUIRED PATHS "<install path>")
+  find_package(libpsats "1.0.0" REQUIRED PATHS "<install path>")
   find_package(libts "2.0.0" REQUIRED PATHS "<install path>")
-  target_link_libraries(ts-demo PRIVATE libpsa::psa)
+  target_link_libraries(ts-demo PRIVATE libpsats::psats)
 
 Initialization
 ..............
 
-Before calling any function from libpsa the proper part of the library has to be initialized.
+Before calling any function from libpsats the proper part of the library has to be initialized.
 Before exiting the application (or when PSA services are no longer needed) the initialized
-parts must be deinitialized. To access the library **libpsa.h** must be included::
+parts must be deinitialized. To access the library **libpsats.h** must be included::
 
-   psa_status_t libpsa_init_crypto_context(const char *service_name);
-   void libpsa_deinit_crypto_context(void);
+   psa_status_t libpsats_init_crypto_context(const char *service_name);
+   void libpsats_deinit_crypto_context(void);
 
-   psa_status_t libpsa_init_attestation_context(const char *service_name);
-   void libpsa_deinit_attestation_context(void);
+   psa_status_t libpsats_init_attestation_context(const char *service_name);
+   void libpsats_deinit_attestation_context(void);
 
-   psa_status_t libpsa_init_its_context(const char *service_name);
-   void libpsa_deinit_its_context(void);
+   psa_status_t libpsats_init_its_context(const char *service_name);
+   void libpsats_deinit_its_context(void);
 
-   psa_status_t libpsa_init_ps_context(const char *service_name);
-   void libpsa_deinit_ps_context(void);
+   psa_status_t libpsats_init_ps_context(const char *service_name);
+   void libpsats_deinit_ps_context(void);
 
 The example below initializes and then deinitializes crypto::
 
-    psa_status_t psa_status = libpsa_init_crypto_context("sn:trustedfirmware.org:crypto:0");
+    psa_status_t psa_status = libpsats_init_crypto_context("sn:trustedfirmware.org:crypto:0");
     if (psa_status) {
-        printf("libpsa_init_crypto_context failed: %d\n", psa_status);
+        printf("libpsats_init_crypto_context failed: %d\n", psa_status);
         return PSA_ERROR_GENERIC_ERROR;
     }
 
-    libpsa_deinit_crypto_context();
+    libpsats_deinit_crypto_context();
 
 Known issues and Limitations
 ............................

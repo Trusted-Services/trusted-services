@@ -9,13 +9,13 @@
 #include <service_locator.h>
 #include <stdio.h>
 
-#include "libpsa.h"
+#include "libpsats.h"
 #include "trace.h"
 
 static struct rpc_caller_session *rpc_session;
 static struct service_context *crypto_service_context;
 
-LIBPSA_EXPORTED psa_status_t libpsa_init_crypto_context(const char *service_name)
+LIBPSATS_EXPORTED psa_status_t libpsats_init_crypto_context(const char *service_name)
 {
 	psa_status_t result = PSA_ERROR_GENERIC_ERROR;
 
@@ -37,7 +37,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_crypto_context(const char *service_name
 
 	if (!rpc_session) {
 		EMSG("Failed to open rpc session\n");
-		libpsa_deinit_crypto_context();
+		libpsats_deinit_crypto_context();
 		return result;
 	}
 
@@ -49,7 +49,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_crypto_context(const char *service_name
 	return result;
 }
 
-LIBPSA_EXPORTED void libpsa_deinit_crypto_context(void)
+LIBPSATS_EXPORTED void libpsats_deinit_crypto_context(void)
 {
 	psa_crypto_client_deinit();
 

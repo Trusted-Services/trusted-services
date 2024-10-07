@@ -5,7 +5,7 @@
  */
 
 #include "../psa_api_test_common.h"
-#include "libpsa.h"
+#include "libpsats.h"
 #include "trace.h"
 
 psa_status_t test_setup(const char *service_name_crypto, const char *service_name_iat,
@@ -16,9 +16,9 @@ psa_status_t test_setup(const char *service_name_crypto, const char *service_nam
 	if (!service_name_ps)
 		service_name_ps = "sn:trustedfirmware.org:protected-storage:0";
 
-	psa_status = libpsa_init_ps_context(service_name_ps);
+	psa_status = libpsats_init_ps_context(service_name_ps);
 	if (psa_status) {
-		EMSG("libpsa_init_ps_context failed: %d\n", psa_status);
+		EMSG("libpsats_init_ps_context failed: %d\n", psa_status);
 		return psa_status;
 	}
 
@@ -27,5 +27,5 @@ psa_status_t test_setup(const char *service_name_crypto, const char *service_nam
 
 void test_teardown(void)
 {
-	libpsa_deinit_ps_context();
+	libpsats_deinit_ps_context();
 }

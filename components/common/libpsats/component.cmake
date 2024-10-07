@@ -9,8 +9,8 @@ if (NOT DEFINED TGT)
 endif()
 
 target_sources(${TGT} PRIVATE
-	"${CMAKE_CURRENT_LIST_DIR}/libpsa-attestation.c"
-	"${CMAKE_CURRENT_LIST_DIR}/libpsa-crypto.c"
-	"${CMAKE_CURRENT_LIST_DIR}/libpsa-its.c"
-	"${CMAKE_CURRENT_LIST_DIR}/libpsa-ps.c"
+	"${CMAKE_CURRENT_LIST_DIR}/libpsats-attestation.c"
+	"${CMAKE_CURRENT_LIST_DIR}/libpsats-crypto.c"
+	"${CMAKE_CURRENT_LIST_DIR}/libpsats-its.c"
+	"${CMAKE_CURRENT_LIST_DIR}/libpsats-ps.c"
 	)

@@ -11,7 +11,7 @@
 #include <t_cose/t_cose_sign1_verify.h>
 #include <vector>
 
-#include "libpsa.h"
+#include "libpsats.h"
 
 static bool fetch_iak_public_key(psa_key_id_t &iak_id, std::string &error_msg);
 static bool verify_token(std::vector<uint8_t> &report, const uint8_t *token, size_t token_len,

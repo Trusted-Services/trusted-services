@@ -10,14 +10,14 @@
 #include <service_locator.h>
 #include <stdio.h>
 
-#include "libpsa.h"
+#include "libpsats.h"
 #include "trace.h"
 
 static struct rpc_caller_session *rpc_session;
 static struct service_context *its_service_context;
 static struct secure_storage_client its_storage_client;
 
-LIBPSA_EXPORTED psa_status_t libpsa_init_its_context(const char *service_name)
+LIBPSATS_EXPORTED psa_status_t libpsats_init_its_context(const char *service_name)
 {
 	psa_status_t result = PSA_ERROR_GENERIC_ERROR;
 
@@ -39,7 +39,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_its_context(const char *service_name)
 
 	if (!rpc_session) {
 		EMSG("Failed to open rpc session\n");
-		libpsa_deinit_its_context();
+		libpsats_deinit_its_context();
 		return result;
 	}
 
@@ -48,7 +48,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_its_context(const char *service_name)
 
 	if (!its_storage_backend) {
 		EMSG("Failed to initialize storage backend\n");
-		libpsa_deinit_its_context();
+		libpsats_deinit_its_context();
 		return result;
 	}
 
@@ -57,7 +57,7 @@ LIBPSA_EXPORTED psa_status_t libpsa_init_its_context(const char *service_name)
 	return result;
 }
 
-LIBPSA_EXPORTED void libpsa_deinit_its_context(void)
+LIBPSATS_EXPORTED void libpsats_deinit_its_context(void)
 {
 	psa_its_frontend_init(NULL);
 	secure_storage_client_deinit(&its_storage_client);

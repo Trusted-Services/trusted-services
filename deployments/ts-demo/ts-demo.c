@@ -9,7 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "libpsa.h"
+#include "libpsats.h"
 
 int main(int argc, char *argv[])
 {
@@ -19,16 +19,16 @@ int main(int argc, char *argv[])
 	if (argc > 1)
 		service_name = argv[1];
 
-	psa_status = libpsa_init_crypto_context(service_name);
+	psa_status = libpsats_init_crypto_context(service_name);
 
 	if (psa_status) {
-		printf("libpsa_init_crypto_context failed: %d\n", psa_status);
+		printf("libpsats_init_crypto_context failed: %d\n", psa_status);
 		return psa_status;
 	}
 
 	psa_status = run_ts_demo(true);
 
-	libpsa_deinit_its_context();
+	libpsats_deinit_its_context();
 
 	if (psa_status)
 		printf("\n*** ts-demo failed ***\n\n");

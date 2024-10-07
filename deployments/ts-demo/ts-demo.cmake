@@ -12,16 +12,16 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  Use libpsa for locating PSA services. An appropriate version of
-#  libpsa will be imported for the environment.
+#  Use libpsats for locating PSA services. An appropriate version of
+#  libpsats will be imported for the environment.
 #-------------------------------------------------------------------------------
 if (COVERAGE)
-	set(LIBPSA_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsa build type" FORCE)
+	set(LIBPSATS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsats build type" FORCE)
 	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
 endif()
 
-include(${TS_ROOT}/deployments/libpsa/libpsa-import.cmake)
-target_link_libraries(ts-demo PRIVATE libpsa::psa)
+include(${TS_ROOT}/deployments/libpsats/libpsats-import.cmake)
+target_link_libraries(ts-demo PRIVATE libpsats::psats)
 
 #-------------------------------------------------------------------------------
 #  Common main for all deployments

@@ -6,27 +6,27 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  The base build file shared between deployments of 'libpsa' for different
-#  environments.  libpsa provides an interface for accessing PSA API-s.
+#  The base build file shared between deployments of 'libpsats' for different
+#  environments.  libpsats provides an interface for accessing PSA API-s.
 #  Building with each build type results in different postfix for the library.
 #  For details, please refer to deployment.cmake.
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  Common API version implemented by all libpsa deployments
+#  Common API version implemented by all libpsats deployments
 #-------------------------------------------------------------------------------
 version_semver_read(FILE "${CMAKE_CURRENT_LIST_DIR}/version.txt"
 					MAJOR _major MINOR _minor PATCH _patch)
-set_target_properties(psa PROPERTIES VERSION "${_major}.${_minor}.${_patch}")
-set_target_properties(psa PROPERTIES SOVERSION "${_major}")
+set_target_properties(psats PROPERTIES VERSION "${_major}.${_minor}.${_patch}")
+set_target_properties(psats PROPERTIES SOVERSION "${_major}")
 unset(_major)
 unset(_minor)
 unset(_patch)
 
-add_library(libpsa::psa ALIAS psa)
+add_library(libpsats::psats ALIAS psats)
 
 if (COVERAGE)
-	set(LIBPSA_BUILD_TYPE "DebugCoverage" CACHE STRING "Build type." FORCE)
+	set(LIBPSATS_BUILD_TYPE "DebugCoverage" CACHE STRING "Build type." FORCE)
 endif()
 
 #-------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ endif()
 #  deployed.
 #-------------------------------------------------------------------------------
 include(${TS_ROOT}/deployments/libts/libts-import.cmake)
-target_link_libraries(psa PUBLIC libts::ts)
+target_link_libraries(psats PUBLIC libts::ts)
 
 #-------------------------------------------------------------------------------
 #  Components that are common across all deployments
@@ -43,13 +43,13 @@ target_link_libraries(psa PUBLIC libts::ts)
 #-------------------------------------------------------------------------------
 
 add_components(
-	TARGET "psa"
+	TARGET "psats"
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
 		"environments/${TS_ENV}"
 		"components/common/utils"
 		"components/common/trace"
-		"components/common/libpsa"
+		"components/common/libpsats"
 		"components/common/tlv"
 		"components/service/common/include"
 		"components/service/common/client"
@@ -70,8 +70,8 @@ add_components(
 #-------------------------------------------------------------------------------
 
 # Enable exporting interface symbols for library public interface
-target_compile_definitions(psa PRIVATE
-	EXPORT_PUBLIC_INTERFACE_LIBPSA
+target_compile_definitions(psats PRIVATE
+	EXPORT_PUBLIC_INTERFACE_LIBPSATS
 	EXPORT_PUBLIC_INTERFACE_PSA_CRYPTO
 	EXPORT_PUBLIC_INTERFACE_PSA_ATTEST
 	EXPORT_PUBLIC_INTERFACE_PSA_ITS
@@ -86,9 +86,9 @@ include(${TS_ROOT}/tools/cmake/common/ExportLibrary.cmake REQUIRED)
 
 # Exports library information in preparation for install
 export_library(
-	TARGET "psa"
-	LIB_NAME "libpsa"
-	PKG_CONFIG_FILE "${CMAKE_CURRENT_LIST_DIR}/libpsaConfig.cmake.in"
+	TARGET "psats"
+	LIB_NAME "libpsats"
+	PKG_CONFIG_FILE "${CMAKE_CURRENT_LIST_DIR}/libpsatsConfig.cmake.in"
 )
 
 install(DIRECTORY "${TS_ROOT}/components/service/crypto/include"
@@ -102,6 +102,6 @@ install(FILES "${TS_ROOT}/components/service/common/include/psa/error.h"
 		DESTINATION ${TS_ENV}/include/psa
 )
 
-install(FILES "${TS_ROOT}/components/common/libpsa/libpsa.h"
+install(FILES "${TS_ROOT}/components/common/libpsats/libpsats.h"
 		DESTINATION ${TS_ENV}/include
 )
