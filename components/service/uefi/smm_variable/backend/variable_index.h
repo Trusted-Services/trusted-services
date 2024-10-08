@@ -75,6 +75,7 @@ struct variable_entry {
  */
 struct variable_index {
 	size_t max_variables;
+	uint32_t counter;
 	struct variable_entry *entries;
 };
 
@@ -220,7 +221,7 @@ efi_status_t variable_index_dump(const struct variable_index *context, size_t bu
  *
  * @return     Number of bytes loaded
  */
-size_t variable_index_restore(const struct variable_index *context, size_t data_len,
+size_t variable_index_restore(struct variable_index *context, size_t data_len,
 			      const uint8_t *buffer);
 
 #ifdef __cplusplus

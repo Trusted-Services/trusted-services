@@ -5,6 +5,7 @@
  */
 
 #include <CppUTest/TestHarness.h>
+#include <limits>
 #include <service/secure_storage/backend/mock_store/mock_store.h>
 #include <service/uefi/smm_variable/backend/uefi_variable_store.h>
 #include <string.h>
@@ -269,8 +270,16 @@ TEST_GROUP(UefiVariableStoreTests)
 	static const size_t MAX_VARIABLES = 5;
 	static const size_t MAX_VARIABLE_SIZE = 3000;
 	static const size_t STORE_CAPACITY = MAX_VARIABLES * MAX_VARIABLE_SIZE;
+	static const size_t VARIABLE_INDEX_MAX_SIZE =
+		sizeof(uint32_t) +
+		MAX_VARIABLES * (sizeof(struct variable_metadata) +
+				 sizeof(struct variable_constraints) + sizeof(bool));
 
 	static const uint32_t OWNER_ID = 100;
+
+	/* Synchronize these with the variables with the store */
+	uint64_t DEFAULT_VARIABLE_INDEX_STORAGE_A_UID = 1;
+	uint64_t DEFAULT_VARIABLE_INDEX_STORAGE_B_UID = 2;
 
 	/*
 	 * Make sure the variable buffer in the test is way above the limit
@@ -863,4 +872,160 @@ TEST(UefiVariableStoreTests, fillIndex)
 		UNSIGNED_LONGLONGS_EQUAL(input_data.size(), output_data.size());
 		LONGS_EQUAL(0, input_data.compare(output_data));
 	}
+}
+
+TEST(UefiVariableStoreTests, variableIndexCounterOverflow)
+{
+	efi_status_t efi_status = EFI_SUCCESS;
+	psa_status_t psa_status = PSA_SUCCESS;
+	std::u16string var_name = u"var";
+	std::string input_data = "a";
+	uint32_t attributes = EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+			      EFI_VARIABLE_RUNTIME_ACCESS;
+	/* There are no variables set in the index, only the counter is there */
+	uint8_t buffer[sizeof(uint32_t)] = { 0 };
+
+	mock_store_reset(&m_persistent_store);
+
+	/* Counter of index A is 0 */
+	psa_status = m_persistent_store.backend.interface->set(
+		m_persistent_store.backend.context, OWNER_ID, DEFAULT_VARIABLE_INDEX_STORAGE_A_UID,
+		sizeof(buffer), &buffer, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, psa_status);
+
+	/* Set max counter value */
+	buffer[0] = 0xFF;
+	buffer[1] = 0xFF;
+	buffer[2] = 0xFF;
+	buffer[3] = 0xFF;
+
+	/* Counter of index B is max value */
+	psa_status = m_persistent_store.backend.interface->set(
+		m_persistent_store.backend.context, OWNER_ID, DEFAULT_VARIABLE_INDEX_STORAGE_B_UID,
+		sizeof(buffer), &buffer, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, psa_status);
+
+	/* At next initialization of the store index A should be the latest index with counter value 0 */
+	uefi_variable_store_deinit(&m_uefi_variable_store);
+
+	efi_status = uefi_variable_store_init(&m_uefi_variable_store, OWNER_ID, MAX_VARIABLES,
+					      m_persistent_backend, m_volatile_backend);
+	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, efi_status);
+
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.active_variable_index_uid,
+				 DEFAULT_VARIABLE_INDEX_STORAGE_A_UID);
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.variable_index.counter, 0);
+
+	/* After setting a variable to trigger sync and rebooting index B should be the latest index with counter value 1*/
+	efi_status = set_variable(var_name, input_data, attributes);
+	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, efi_status);
+
+	power_cycle();
+
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.active_variable_index_uid,
+				 DEFAULT_VARIABLE_INDEX_STORAGE_B_UID);
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.variable_index.counter, 1);
+}
+
+TEST(UefiVariableStoreTests, oneEmptyVariableIndexExists)
+{
+	psa_status_t status = PSA_SUCCESS;
+
+	/* Only, variable index A exists, but it is empty */
+	mock_store_reset(&m_persistent_store);
+
+	status = m_persistent_store.backend.interface->create(m_persistent_store.backend.context,
+							      OWNER_ID,
+							      DEFAULT_VARIABLE_INDEX_STORAGE_A_UID,
+							      100, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, status);
+
+	power_cycle();
+
+	/* Empty index is considered non-existing so default index (A) is selected */
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.active_variable_index_uid,
+				 DEFAULT_VARIABLE_INDEX_STORAGE_A_UID);
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.variable_index.counter, 0);
+
+	/* Only, variable index B exists, but it is empty*/
+	mock_store_reset(&m_persistent_store);
+
+	status = m_persistent_store.backend.interface->create(m_persistent_store.backend.context,
+							      OWNER_ID,
+							      DEFAULT_VARIABLE_INDEX_STORAGE_B_UID,
+							      100, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, status);
+
+	power_cycle();
+
+	/* Empty index is considered non-existing so default index (A) is selected */
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.active_variable_index_uid,
+				 DEFAULT_VARIABLE_INDEX_STORAGE_A_UID);
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.variable_index.counter, 0);
+}
+
+TEST(UefiVariableStoreTests, oneVariableIndexAlreadySet)
+{
+	efi_status_t status = EFI_SUCCESS;
+	/* Empty variable index with zero counter value */
+	uint8_t buffer[VARIABLE_INDEX_MAX_SIZE] = { 0 };
+
+	/* Set index A in the store with some data, so it will be found as the currently active index */
+	mock_store_reset(&m_persistent_store);
+
+	status = m_persistent_store.backend.interface->set(
+		m_persistent_store.backend.context, OWNER_ID, DEFAULT_VARIABLE_INDEX_STORAGE_A_UID,
+		sizeof(buffer), &buffer, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, status);
+
+	power_cycle();
+
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.active_variable_index_uid,
+				 DEFAULT_VARIABLE_INDEX_STORAGE_A_UID);
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.variable_index.counter, 0);
+
+	/* Set index B in the store with some data, so it will be found as the currently active index */
+	mock_store_reset(&m_persistent_store);
+
+	status = m_persistent_store.backend.interface->set(
+		m_persistent_store.backend.context, OWNER_ID, DEFAULT_VARIABLE_INDEX_STORAGE_B_UID,
+		sizeof(buffer), &buffer, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, status);
+
+	power_cycle();
+
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.active_variable_index_uid,
+				 DEFAULT_VARIABLE_INDEX_STORAGE_B_UID);
+	UNSIGNED_LONGLONGS_EQUAL(m_uefi_variable_store.variable_index.counter, 0);
+}
+
+TEST(UefiVariableStoreTests, variableIndexesWithSameData)
+{
+	psa_status_t psa_status = PSA_SUCCESS;
+	efi_status_t efi_status = EFI_SUCCESS;
+	/* Empty variable index with zero counter value */
+	uint8_t buffer[VARIABLE_INDEX_MAX_SIZE] = { 0 };
+
+	/* Set both indexes to the same data and counter value */
+	mock_store_reset(&m_persistent_store);
+
+	psa_status = m_persistent_store.backend.interface->set(
+		m_persistent_store.backend.context, OWNER_ID, DEFAULT_VARIABLE_INDEX_STORAGE_A_UID,
+		sizeof(buffer), &buffer, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, psa_status);
+
+	psa_status = m_persistent_store.backend.interface->set(
+		m_persistent_store.backend.context, OWNER_ID, DEFAULT_VARIABLE_INDEX_STORAGE_B_UID,
+		sizeof(buffer), &buffer, PSA_STORAGE_FLAG_NONE);
+	UNSIGNED_LONGLONGS_EQUAL(PSA_SUCCESS, psa_status);
+
+	/*
+	 * Initializing the store should fail, because if there are two indexes with the same counter it cannot be decided
+	 * which has the valid data.
+	 */
+	uefi_variable_store_deinit(&m_uefi_variable_store);
+
+	efi_status = uefi_variable_store_init(&m_uefi_variable_store, OWNER_ID, MAX_VARIABLES,
+					      m_persistent_backend, m_volatile_backend);
+	UNSIGNED_LONGLONGS_EQUAL(EFI_LOAD_ERROR, efi_status);
 }

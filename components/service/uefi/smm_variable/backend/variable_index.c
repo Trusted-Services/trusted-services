@@ -95,6 +95,7 @@ static struct variable_entry *containing_entry(const struct variable_info *info)
 efi_status_t variable_index_init(struct variable_index *context, size_t max_variables)
 {
 	context->max_variables = max_variables;
+	context->counter = 0;
 	context->entries =
 		(struct variable_entry *)malloc(sizeof(struct variable_entry) * max_variables);
 
@@ -112,9 +113,9 @@ void variable_index_deinit(struct variable_index *context)
 
 size_t variable_index_max_dump_size(struct variable_index *context)
 {
-	return (sizeof(struct variable_metadata) + sizeof(bool) +
-		sizeof(struct variable_constraints)) *
-	       context->max_variables;
+	return sizeof(context->counter) + (sizeof(struct variable_metadata) + sizeof(bool) +
+					   sizeof(struct variable_constraints)) *
+						  context->max_variables;
 }
 
 struct variable_info *variable_index_find(const struct variable_index *context,
@@ -288,6 +289,16 @@ efi_status_t variable_index_dump(const struct variable_index *context, size_t bu
 	*data_len = 0;
 	*any_dirty = false;
 
+	/*
+	 * Intentionally letting the counter overflow.
+	 * The buffer (index_sync_buffer) is provided by malloc, which allocates memory to a boundary
+	 * suitable for any default data type of the system (e.g uint32_t)
+	 */
+	*((uint32_t *)dump_pos) = context->counter + 1;
+	bytes_dumped += sizeof(context->counter);
+	dump_pos += sizeof(context->counter);
+
+	/* Store variables */
 	for (size_t pos = 0; pos < context->max_variables; pos++) {
 		struct variable_entry *entry = &context->entries[pos];
 		struct variable_metadata *metadata = &entry->info.metadata;
@@ -334,12 +345,18 @@ efi_status_t variable_index_dump(const struct variable_index *context, size_t bu
 	return EFI_SUCCESS;
 }
 
-size_t variable_index_restore(const struct variable_index *context, size_t data_len,
+size_t variable_index_restore(struct variable_index *context, size_t data_len,
 			      const uint8_t *buffer)
 {
 	size_t bytes_loaded = 0;
 	const uint8_t *load_pos = buffer;
 	int pos = 0;
+
+	if (data_len >= sizeof(context->counter)) {
+		context->counter = *((uint32_t *)load_pos);
+		bytes_loaded += sizeof(context->counter);
+		load_pos += sizeof(context->counter);
+	}
 
 	while (bytes_loaded < data_len) {
 		struct variable_entry *entry = &context->entries[pos];

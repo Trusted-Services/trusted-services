@@ -28,9 +28,12 @@
 #include "service/crypto/client/psa/crypto_client.h"
 #endif
 
+static psa_status_t get_active_variable_uid(struct uefi_variable_store *context,
+					    uint64_t *active_index_uid, uint32_t *counter);
+
 static efi_status_t load_variable_index(struct uefi_variable_store *context);
 
-static efi_status_t sync_variable_index(const struct uefi_variable_store *context);
+static efi_status_t sync_variable_index(struct uefi_variable_store *context);
 
 static efi_status_t check_capabilities(const SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var);
 
@@ -137,9 +140,17 @@ static bool compare_name_to_key_store_name(const int16_t *name1, size_t size1,
 #endif
 
 /* Private UID for storing the variable index - may be overridden at build-time */
-#ifndef SMM_VARIABLE_INDEX_STORAGE_UID
-#define SMM_VARIABLE_INDEX_STORAGE_UID (1)
+#ifndef SMM_VARIABLE_INDEX_STORAGE_A_UID
+#define SMM_VARIABLE_INDEX_STORAGE_A_UID (1)
 #endif
+
+#ifndef SMM_VARIABLE_INDEX_STORAGE_B_UID
+#define SMM_VARIABLE_INDEX_STORAGE_B_UID (2)
+#endif
+
+_Static_assert(SMM_VARIABLE_INDEX_STORAGE_A_UID != SMM_VARIABLE_INDEX_STORAGE_B_UID,
+	       "SMM_VARIABLE_INDEX_STORAGE_A_UID must not be the same value as "
+	       "SMM_VARIABLE_INDEX_STORAGE_B_UID");
 
 /* Default maximum variable size -
  * may be overridden using uefi_variable_store_set_storage_limits()
@@ -393,7 +404,7 @@ efi_status_t uefi_variable_store_set_variable(const struct uefi_variable_store *
 		 * index entry.
 		 */
 		if (should_sync_index)
-			status = sync_variable_index(context);
+			status = sync_variable_index((struct uefi_variable_store *)context);
 
 		/* Store any variable data to the storage backend with the updated metadata */
 		if (info->is_variable_set && (status == EFI_SUCCESS)) {
@@ -615,40 +626,148 @@ efi_status_t uefi_variable_store_get_var_check_property(
 	return status;
 }
 
+/* Checks which index contains the latest data, which shall be loaded */
+static psa_status_t get_active_variable_uid(struct uefi_variable_store *context,
+					    uint64_t *active_index_uid, uint32_t *counter)
+{
+	uint32_t counter_A = 0;
+	uint32_t counter_B = 0;
+	size_t data_len = 0;
+	psa_status_t psa_status_A = PSA_SUCCESS;
+	psa_status_t psa_status_B = PSA_SUCCESS;
+	struct storage_backend *persistent_store = context->persistent_store.storage_backend;
+
+	/* Set default value for the case when the index does not exist yet */
+	*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_A_UID;
+	*counter = 0;
+
+	if (persistent_store) {
+		psa_status_A = persistent_store->interface->get(persistent_store->context,
+								context->owner_id,
+								SMM_VARIABLE_INDEX_STORAGE_A_UID, 0,
+								sizeof(counter_A), &counter_A,
+								&data_len);
+
+		if (psa_status_A == PSA_SUCCESS && data_len == 0) {
+			psa_status_A = persistent_store->interface->remove(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_A_UID);
+
+			if (psa_status_A == PSA_SUCCESS)
+				psa_status_A = PSA_ERROR_DOES_NOT_EXIST;
+			else {
+				EMSG("Erronous state of variable index");
+				return PSA_ERROR_STORAGE_FAILURE;
+			}
+		}
+
+		psa_status_B = persistent_store->interface->get(persistent_store->context,
+								context->owner_id,
+								SMM_VARIABLE_INDEX_STORAGE_B_UID, 0,
+								sizeof(counter_B), &counter_B,
+								&data_len);
+
+		if (psa_status_B == PSA_SUCCESS && data_len == 0) {
+			psa_status_B = persistent_store->interface->remove(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_B_UID);
+
+			if (psa_status_B == PSA_SUCCESS)
+				psa_status_B = PSA_ERROR_DOES_NOT_EXIST;
+			else {
+				EMSG("Erronous state of variable index");
+				return PSA_ERROR_STORAGE_FAILURE;
+			}
+		}
+
+		if ((psa_status_A != PSA_SUCCESS && psa_status_A != PSA_ERROR_DOES_NOT_EXIST) ||
+		    (psa_status_B != PSA_SUCCESS && psa_status_B != PSA_ERROR_DOES_NOT_EXIST))
+			return PSA_ERROR_STORAGE_FAILURE;
+
+		if (psa_status_A == PSA_ERROR_DOES_NOT_EXIST) {
+			if (psa_status_B == PSA_ERROR_DOES_NOT_EXIST)
+				return PSA_ERROR_DOES_NOT_EXIST;
+
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_B_UID;
+			*counter = counter_B;
+
+			return PSA_SUCCESS;
+		} else if (psa_status_B == PSA_ERROR_DOES_NOT_EXIST) {
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_A_UID;
+			*counter = counter_A;
+
+			return PSA_SUCCESS;
+		}
+
+		if (counter_A + 1 == counter_B) {
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_B_UID;
+			*counter = counter_B;
+			return PSA_SUCCESS;
+		} else if (counter_B + 1 == counter_A) {
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_A_UID;
+			*counter = counter_A;
+			return PSA_SUCCESS;
+		} else {
+			EMSG("UEFI metadata variable index is invalid.");
+			return PSA_ERROR_STORAGE_FAILURE;
+		}
+	} else {
+		EMSG("Store backend is not accessible");
+		return PSA_ERROR_STORAGE_FAILURE;
+	}
+
+	return PSA_ERROR_STORAGE_FAILURE;
+}
+
 static efi_status_t load_variable_index(struct uefi_variable_store *context)
 {
 	struct storage_backend *persistent_store = context->persistent_store.storage_backend;
+	psa_status_t psa_status = PSA_SUCCESS;
 
 	if (persistent_store) {
 		size_t data_len = 0;
 		size_t data_offset = 0;
+		struct psa_storage_info_t variable_index_info = { 0 };
+
+		psa_status = get_active_variable_uid(context, &context->active_variable_index_uid,
+						     &context->variable_index.counter);
+		switch (psa_status) {
+		case PSA_SUCCESS:
+			break;
+
+		case PSA_ERROR_DOES_NOT_EXIST:
+			IMSG("Variable index does not exist in NV store, continuing with empty index");
+			return EFI_SUCCESS;
+
+		default:
+			EMSG("Loading variable index failed: %d", psa_status);
+			return EFI_LOAD_ERROR;
+		}
+
+		/* Make sure the variable index fits the buffer */
+		persistent_store->interface->get_info(persistent_store->context, context->owner_id,
+						      context->active_variable_index_uid,
+						      &variable_index_info);
+
+		if (variable_index_info.size > context->index_sync_buffer_size) {
+			EMSG("Variable index cannot fit the sync buffer");
+			return EFI_LOAD_ERROR;
+		}
 
 		do {
-			psa_status_t psa_status = persistent_store->interface->get(
+			psa_status = persistent_store->interface->get(
 				persistent_store->context, context->owner_id,
-				SMM_VARIABLE_INDEX_STORAGE_UID, data_offset,
+				context->active_variable_index_uid, data_offset,
 				RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
 				context->index_sync_buffer + data_offset, &data_len);
 
-			switch (psa_status) {
-			case PSA_SUCCESS:
-				data_offset += data_len;
-
-				if (data_offset > context->index_sync_buffer_size) {
-					EMSG("Variable index cannot fit the sync buffer");
-					return EFI_LOAD_ERROR;
-				}
-
-				break;
-
-			case PSA_ERROR_DOES_NOT_EXIST:
-				IMSG("Index variable does not exist in NV store, continuing with empty index");
-				return EFI_SUCCESS;
-
-			default:
+			if (psa_status != PSA_SUCCESS) {
 				EMSG("Loading variable index failed: %d", psa_status);
 				return EFI_LOAD_ERROR;
 			}
+
+			data_offset += data_len;
+
 		} while (data_len == RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
 
 		variable_index_restore(&context->variable_index, data_offset,
@@ -661,7 +780,7 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 	return EFI_SUCCESS;
 }
 
-static efi_status_t sync_variable_index(const struct uefi_variable_store *context)
+static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 {
 	efi_status_t status = EFI_SUCCESS;
 	psa_status_t psa_status = PSA_SUCCESS;
@@ -681,19 +800,24 @@ static efi_status_t sync_variable_index(const struct uefi_variable_store *contex
 
 		if (persistent_store) {
 			size_t data_offset = 0;
+			uint64_t next_index_uid = 0;
+
+			/* Write the older one */
+			next_index_uid = (context->active_variable_index_uid ==
+							  SMM_VARIABLE_INDEX_STORAGE_A_UID ?
+						  SMM_VARIABLE_INDEX_STORAGE_B_UID :
+						  SMM_VARIABLE_INDEX_STORAGE_A_UID);
 
 			psa_status = persistent_store->interface->remove(
-				persistent_store->context, context->owner_id,
-				SMM_VARIABLE_INDEX_STORAGE_UID);
+				persistent_store->context, context->owner_id, next_index_uid);
 
 			if (psa_status != PSA_SUCCESS && psa_status != PSA_ERROR_DOES_NOT_EXIST)
 				goto end;
 
 			/* Check if the index exists and create if not yet */
 			psa_status = persistent_store->interface->create(
-				persistent_store->context, context->owner_id,
-				SMM_VARIABLE_INDEX_STORAGE_UID, remaining_data_len,
-				PSA_STORAGE_FLAG_NONE);
+				persistent_store->context, context->owner_id, next_index_uid,
+				remaining_data_len, PSA_STORAGE_FLAG_NONE);
 
 			if (psa_status != PSA_SUCCESS)
 				goto end;
@@ -704,8 +828,7 @@ static efi_status_t sync_variable_index(const struct uefi_variable_store *contex
 
 				psa_status = persistent_store->interface->set_extended(
 					persistent_store->context, context->owner_id,
-					SMM_VARIABLE_INDEX_STORAGE_UID, data_offset,
-					data_of_this_iteration,
+					next_index_uid, data_offset, data_of_this_iteration,
 					context->index_sync_buffer + data_offset);
 
 				if (psa_status != PSA_SUCCESS)
@@ -1717,7 +1840,7 @@ static void purge_orphan_index_entries(const struct uefi_variable_store *context
 	}
 
 	if (any_orphans)
-		sync_variable_index(context);
+		sync_variable_index((struct uefi_variable_store *)context);
 }
 
 static struct delegate_variable_store *
