@@ -66,6 +66,9 @@ target_link_options(ts PRIVATE -Wl,--exclude-libs,ALL)
 #-------------------------------------------------------------------------------
 include(${TS_ROOT}/tools/cmake/common/ExportLibrary.cmake REQUIRED)
 
+set_property(TARGET "ts" APPEND PROPERTY
+			PUBLIC_HEADER "${TS_ROOT}/components/common/trace/include/trace.h")
+
 # Exports library information in preparation for install
 export_library(
 	TARGET "ts"
