@@ -140,7 +140,7 @@ function(LazyFetch_ConfigAndBuild)
 	endif()
 
 	if (DEFINED ${UC_DEP_NAME}_VERBOSE_BUILD OR DEFINED ENV{${UC_DEP_NAME}_VERBOSE_BUILD})
-		set(_CMAKE_VERBOSE_CFG_FLAG "--verbose")
+		set(_CMAKE_VERBOSE_BLD_FLAG "--verbose")
 	endif()
 
 	if (BUILD_INSTALL_DIR)
