@@ -30,6 +30,11 @@ add_components(TARGET "fwu"
 		"components/service/fwu/installer/copy"
 		"components/service/fwu/installer/factory/default"
 		"components/service/fwu/inspector/direct"
+		"components/service/log/factory"
+		"components/service/log/client"
+		"components/rpc/common/caller"
+		"components/rpc/ts_rpc/caller/sp"
+		"components/service/common/client"
 )
 
 #################################################################
