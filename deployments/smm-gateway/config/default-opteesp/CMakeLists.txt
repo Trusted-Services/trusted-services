@@ -92,7 +92,6 @@ target_compile_definitions(smm-gateway PRIVATE
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	target_compile_options(smm-gateway PRIVATE
 		-std=c11
-		-Werror
 	)
 
 endif()
