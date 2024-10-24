@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,18 +25,12 @@
 extern "C" {
 #endif
 
-#if TFM_UNIQUE_ERROR_CODES == 1
-#include "error_codes_mapping.h"
-#else
-#define MHU_ERROR_BASE 0x1u
-#endif /* TFM_UNIQUE_ERROR_CODES */
-
 /**
  * Generic MHU error enumeration types.
  */
 enum mhu_error_t {
     MHU_ERR_NONE =  0,
-    MHU_ERR_SIGNAL_WAIT_CLEAR_INVALID_ARG = MHU_ERROR_BASE,
+    MHU_ERR_SIGNAL_WAIT_CLEAR_INVALID_ARG,
     MHU_ERR_WAIT_SIGNAL_CLEAR_INVALID_ARG,
     MHU_ERR_CLEAR_WAIT_SIGNAL_INVALID_ARG,
     MHU_ERR_VALIDATE_BUFFER_PARAMS_INVALID_ARG,

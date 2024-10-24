@@ -30,12 +30,6 @@
 extern "C" {
 #endif
 
-#if TFM_UNIQUE_ERROR_CODES == 1
-#include "error_codes_mapping.h"
-#else
-#define MHU_V_3_X_ERROR_BASE 0x1u
-#endif /* TFM_UNIQUE_ERROR_CODES */
-
 /* MHU Architecture Major Revision 3 */
 #define MHU_MAJOR_REV_V3 (0x2u)
 /* MHU Architecture Minor Revision 0 */
@@ -63,7 +57,7 @@ enum mhu_v3_x_error_t {
     /* No error */
     MHU_V_3_X_ERR_NONE = 0x0u,
     /* Invalid input param in init function */
-    MHU_V_3_X_ERR_INIT_INVALID_PARAM = MHU_V_3_X_ERROR_BASE,
+    MHU_V_3_X_ERR_INIT_INVALID_PARAM,
     /* MHU Revision not supported error */
     MHU_V_3_X_ERR_INIT_UNSUPPORTED_VERSION,
     /* Invalid input param in get_num_channel function */
@@ -123,7 +117,7 @@ enum mhu_v3_x_frame_t {
  */
 struct mhu_v3_x_dev_t {
     /* Base address of the MHUv3 frame */
-    const uintptr_t base;
+    uintptr_t base;
     /* Type of the MHUv3 frame */
     enum mhu_v3_x_frame_t frame;
     /* Minor revision of the MHUv3 */
