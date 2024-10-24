@@ -34,7 +34,7 @@ deployed in secure processing environments. For more information, see:
 .. _libs-libpsats:
 
 libpsats
-------
+--------
 Trusted Services implements the `PSA Certified APIs`_. Libpsats encapsulates the service client implementations
 which implement this API. Linux uuser-space applications can use libpsats to easily access the PSA services
 implemented by the project. Libpsats depends on libts for RPC and service discovery services.
