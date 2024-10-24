@@ -23,8 +23,8 @@ Feature Highlights
 - Introduce the :ref:`Logging Service`.
 - Add crypto key store partitioning support to the Crypto Service. This feature allows isolating clients running in
   different SPs.
-- Add the "RSS Com" protocol. RSS Com is a new protocol used between secure partitions and security subsystems like the
-  Secure Enclave on Corstone-1000 or RSS on Kronos.
+- Add the "RSE Com" protocol. RSE Com is a new protocol used between secure partitions and security subsystems like the
+  Secure Enclave on Corstone-1000 or Runtime Security Engine on `RD-1 AE`_.
 
 
 Deprecations
@@ -212,7 +212,7 @@ Please find the Test Report covering this release in the `project wiki`_.
 .. _`Corstone-1000 product homepage`: https://developer.arm.com/Processors/Corstone-1000
 .. _`Arm FWU-A specification`: https://developer.arm.com/documentation/den0118
 .. _`Trusted Services organization`: https://github.com/Trusted-Services
-
+.. _`RD-1 AE`: https://developer.arm.com/Tools%20and%20Software/Arm%20Reference%20Design-1%20AE
 
 *Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.*
 

@@ -25,7 +25,7 @@
  *    storage volume (* n banks). A volume will normally map to a flash partition.
  * 2. SCP firmware, if present, is always updated as a single unit and resides in
  *    a separate storage volume.
- * 3. RSS firmware, if present, is always updated as a single unit and resides in
+ * 3. RSE firmware, if present, is always updated as a single unit and resides in
  *    a separate storage volume.
  */
 
@@ -62,7 +62,7 @@ struct installer *installer_factory_create_installer(enum install_type installat
 	if (installation_type == INSTALL_TYPE_WHOLE_VOLUME) {
 #ifdef RAW_INSTALLER_AVAILABLE
 		static const char *const raw_installer_compatibility[] = {
-			LOCATION_UUID_AP_FW, LOCATION_UUID_SCP_FW, LOCATION_UUID_RSS_FW, NULL
+			LOCATION_UUID_AP_FW, LOCATION_UUID_SCP_FW, LOCATION_UUID_RSE_FW, NULL
 		};
 
 		if (check_supported_locations(raw_installer_compatibility, location_uuid)) {
@@ -79,7 +79,7 @@ struct installer *installer_factory_create_installer(enum install_type installat
 	} else if (installation_type == INSTALL_TYPE_WHOLE_VOLUME_COPY) {
 #ifdef COPY_INSTALLER_AVAILABLE
 		static const char *const copy_installer_compatibility[] = {
-			LOCATION_UUID_AP_FW, LOCATION_UUID_SCP_FW, LOCATION_UUID_RSS_FW, NULL
+			LOCATION_UUID_AP_FW, LOCATION_UUID_SCP_FW, LOCATION_UUID_RSE_FW, NULL
 		};
 
 		if (check_supported_locations(copy_installer_compatibility, location_uuid)) {

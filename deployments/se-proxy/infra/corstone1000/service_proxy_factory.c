@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <psa/sid.h>
 #include "rpc/common/endpoint/rpc_service_interface.h"
-#include <rpc/rss_comms/caller/sp/rss_comms_caller.h>
+#include <rpc/rse_comms/caller/sp/rse_comms_caller.h>
 #include <service/attestation/provider/attest_provider.h>
 #include <service/attestation/provider/serializer/packed-c/packedc_attest_provider_serializer.h>
 #include <service/crypto/factory/crypto_provider_factory.h>
@@ -31,15 +31,15 @@ struct rpc_service_interface *attest_proxy_create(void)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 
 	/* Static objects for proxy instance */
-	static struct rpc_caller_interface rss_comms = { 0 };
+	static struct rpc_caller_interface rse_comms = { 0 };
 	static struct rpc_caller_session rpc_session = { 0 };
 	static struct attest_provider attest_provider = { 0 };
 
-	rpc_status = rss_comms_caller_init(&rss_comms);
+	rpc_status = rse_comms_caller_init(&rse_comms);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
-	rpc_status = rpc_caller_session_open(&rpc_session, &rss_comms, &dummy_uuid, 0, 0);
+	rpc_status = rpc_caller_session_open(&rpc_session, &rse_comms, &dummy_uuid, 0, 0);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
@@ -60,14 +60,14 @@ struct rpc_service_interface *crypto_proxy_create(void)
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 
 	/* Static objects for proxy instance */
-	static struct rpc_caller_interface rss_comms = { 0 };
+	static struct rpc_caller_interface rse_comms = { 0 };
 	static struct rpc_caller_session rpc_session = { 0 };
 
-	rpc_status = rss_comms_caller_init(&rss_comms);
+	rpc_status = rse_comms_caller_init(&rse_comms);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
-	rpc_status = rpc_caller_session_open(&rpc_session, &rss_comms, &dummy_uuid, 0, 0);
+	rpc_status = rpc_caller_session_open(&rpc_session, &rse_comms, &dummy_uuid, 0, 0);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
@@ -89,14 +89,14 @@ struct rpc_service_interface *ps_proxy_create(void)
 	const struct rpc_uuid ps_uuid = { .uuid = TS_PSA_PROTECTED_STORAGE_UUID };
 
 	/* Static objects for proxy instance */
-	static struct rpc_caller_interface rss_comms = { 0 };
+	static struct rpc_caller_interface rse_comms = { 0 };
 	static struct rpc_caller_session rpc_session = { 0 };
 
-	rpc_status = rss_comms_caller_init(&rss_comms);
+	rpc_status = rse_comms_caller_init(&rse_comms);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
-	rpc_status = rpc_caller_session_open(&rpc_session, &rss_comms, &dummy_uuid, 0, 0);
+	rpc_status = rpc_caller_session_open(&rpc_session, &rse_comms, &dummy_uuid, 0, 0);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
@@ -115,14 +115,14 @@ struct rpc_service_interface *its_proxy_create(void)
 	const struct rpc_uuid its_uuid = { .uuid = TS_PSA_INTERNAL_TRUSTED_STORAGE_UUID };
 
 	/* Static objects for proxy instance */
-	static struct rpc_caller_interface rss_comms = { 0 };
+	static struct rpc_caller_interface rse_comms = { 0 };
 	static struct rpc_caller_session rpc_session = { 0 };
 
-	rpc_status = rss_comms_caller_init(&rss_comms);
+	rpc_status = rse_comms_caller_init(&rse_comms);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
-	rpc_status = rpc_caller_session_open(&rpc_session, &rss_comms, &dummy_uuid, 0, 0);
+	rpc_status = rpc_caller_session_open(&rpc_session, &rse_comms, &dummy_uuid, 0, 0);
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 

@@ -9,8 +9,8 @@
 
 #include "protocols/rpc/common/packed-c/status.h"
 #include "psa/client.h"
-#include "rss_comms_caller.h"
-#include "rss_comms_protocol.h"
+#include "rse_comms_caller.h"
+#include "rse_comms_protocol.h"
 #include "trace.h"
 
 /* This value should be set according to the implemented channels
@@ -37,12 +37,12 @@ static uint8_t select_protocol_version(const struct psa_invec *in_vec, size_t in
 		out_size_total += out_vec[i].len;
 	}
 
-	comms_embed_msg_min_size = sizeof(struct serialized_rss_comms_header_t) +
-				   sizeof(struct rss_embed_msg_t) - PLAT_RSS_COMMS_PAYLOAD_MAX_SIZE;
+	comms_embed_msg_min_size = sizeof(struct serialized_rse_comms_header_t) +
+				   sizeof(struct rse_embed_msg_t) - PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE;
 
-	comms_embed_reply_min_size = sizeof(struct serialized_rss_comms_header_t) +
-				     sizeof(struct rss_embed_reply_t) -
-				     PLAT_RSS_COMMS_PAYLOAD_MAX_SIZE;
+	comms_embed_reply_min_size = sizeof(struct serialized_rse_comms_header_t) +
+				     sizeof(struct rse_embed_reply_t) -
+				     PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE;
 
 	/* Use embed if we can pack into one message and reply, else use
 	 * pointer_access. The underlying MHU transport protocol uses a
@@ -59,9 +59,9 @@ static uint8_t select_protocol_version(const struct psa_invec *in_vec, size_t in
 	     COMMS_MHU_MSG_SIZE - sizeof(uint32_t)) ||
 	    (comms_embed_reply_min_size + out_size_total >
 	     COMMS_MHU_MSG_SIZE - sizeof(uint32_t))) {
-		return RSS_COMMS_PROTOCOL_POINTER_ACCESS;
+		return RSE_COMMS_PROTOCOL_POINTER_ACCESS;
 	} else {
-		return RSS_COMMS_PROTOCOL_EMBED;
+		return RSE_COMMS_PROTOCOL_EMBED;
 	}
 }
 
@@ -73,22 +73,22 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	psa_status_t psa_status = PSA_ERROR_INVALID_ARGUMENT;
 	psa_status_t return_val = PSA_ERROR_INVALID_ARGUMENT;
-	rss_comms_call_handle rpc_handle = (rss_comms_call_handle)caller;
+	rse_comms_call_handle rpc_handle = (rse_comms_call_handle)caller;
 	size_t req_len = 0;
 	size_t resp_len = 0;
-	struct serialized_rss_comms_msg_t *req = NULL;
-	struct serialized_rss_comms_reply_t *reply = NULL;
+	struct serialized_rse_comms_msg_t *req = NULL;
+	struct serialized_rse_comms_reply_t *reply = NULL;
 	uint8_t protocol_ver = 0;
 
 	protocol_ver = select_protocol_version(in_vec, in_len, out_vec, out_len);
 
-	psa_status = rss_protocol_calculate_msg_len(handle, protocol_ver, in_vec, in_len, &req_len);
+	psa_status = rse_protocol_calculate_msg_len(handle, protocol_ver, in_vec, in_len, &req_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Message size calculation failed: %d", psa_status);
 		return psa_status;
 	}
 
-	rpc_handle = rss_comms_caller_begin(caller, (uint8_t **)&req, req_len);
+	rpc_handle = rse_comms_caller_begin(caller, (uint8_t **)&req, req_len);
 	if (!rpc_handle) {
 		EMSG("Could not get handle");
 		return PSA_ERROR_GENERIC_ERROR;
@@ -99,33 +99,33 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 	req->header.client_id = client_id;
 	req->header.protocol_ver = protocol_ver;
 
-	psa_status = rss_protocol_serialize_msg(handle, type, in_vec, in_len, out_vec, out_len, req,
+	psa_status = rse_protocol_serialize_msg(handle, type, in_vec, in_len, out_vec, out_len, req,
 						&req_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Serialize msg failed: %d", psa_status);
 		return psa_status;
 	}
 
-	DMSG("Sending rss_comms message");
+	DMSG("Sending rse_comms message");
 	DMSG("protocol_ver=%u", req->header.protocol_ver);
 	DMSG("seq_num=%u", req->header.seq_num);
 	DMSG("client_id=%u", req->header.client_id);
 
 	resp_len = sizeof(*reply);
 
-	rpc_status = rss_comms_caller_invoke(rpc_handle, 0, (uint8_t **)&reply, &resp_len);
+	rpc_status = rse_comms_caller_invoke(rpc_handle, 0, (uint8_t **)&reply, &resp_len);
 	if (rpc_status != RPC_SUCCESS) {
 		EMSG("Invoke failed: %d", rpc_status);
 		return PSA_ERROR_GENERIC_ERROR;
 	}
 
-	DMSG("Received rss_comms reply");
+	DMSG("Received rse_comms reply");
 	DMSG("protocol_ver=%u", reply->header.protocol_ver);
 	DMSG("seq_num=%u", reply->header.seq_num);
 	DMSG("client_id=%u", reply->header.client_id);
 	DMSG("resp_len=%lu", resp_len);
 
-	psa_status = rss_protocol_deserialize_reply(out_vec, out_len, &return_val, reply, resp_len);
+	psa_status = rse_protocol_deserialize_reply(out_vec, out_len, &return_val, reply, resp_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Protocol deserialize reply failed: %d", psa_status);
 		return psa_status;
@@ -133,7 +133,7 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 
 	DMSG("Return_val=%d", return_val);
 
-	rss_comms_caller_end(rpc_handle);
+	rse_comms_caller_end(rpc_handle);
 
 	seq_num++;
 

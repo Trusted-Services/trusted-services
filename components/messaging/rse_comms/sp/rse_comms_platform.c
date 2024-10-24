@@ -11,68 +11,68 @@
 #include <trace.h>
 
 #include "platform/interface/mhu_interface.h"
-#include "rss_comms_messenger_api.h"
-#include "rss_comms_platform_api.h"
+#include "rse_comms_messenger_api.h"
+#include "rse_comms_platform_api.h"
 
-struct rss_comms_platform {
+struct rse_comms_platform {
 	struct platform_mhu_driver rx_dev;
 	struct platform_mhu_driver tx_dev;
 };
 
-struct rss_comms_platform *rss_comms_platform_init(void)
+struct rse_comms_platform *rse_comms_platform_init(void)
 {
-	struct rss_comms_platform *rss_comms_plat = NULL;
+	struct rse_comms_platform *rse_comms_plat = NULL;
 	int ret = 0;
 
-	rss_comms_plat = calloc(1, sizeof(*rss_comms_plat));
-	if (!rss_comms_plat) {
-		EMSG("rss_comms calloc dev failed");
+	rse_comms_plat = calloc(1, sizeof(*rse_comms_plat));
+	if (!rse_comms_plat) {
+		EMSG("rse_comms calloc dev failed");
 		return NULL;
 	}
 
-	ret = platform_mhu_create(&rss_comms_plat->rx_dev, "mhu-receiver", true);
+	ret = platform_mhu_create(&rse_comms_plat->rx_dev, "mhu-receiver", true);
 	if (ret < 0)
 		goto free_plat;
 
-	ret = platform_mhu_create(&rss_comms_plat->tx_dev, "mhu-sender", false);
+	ret = platform_mhu_create(&rse_comms_plat->tx_dev, "mhu-sender", false);
 	if (ret < 0)
 		goto free_rx_dev;
 
-	return rss_comms_plat;
+	return rse_comms_plat;
 
 free_rx_dev:
-	platform_mhu_destroy(&rss_comms_plat->rx_dev);
+	platform_mhu_destroy(&rse_comms_plat->rx_dev);
 free_plat:
-	free(rss_comms_plat);
+	free(rse_comms_plat);
 
 	return NULL;
 }
 
-int rss_comms_platform_deinit(struct rss_comms_platform *rss_comms_plat)
+int rse_comms_platform_deinit(struct rse_comms_platform *rse_comms_plat)
 {
-	if (!rss_comms_plat)
+	if (!rse_comms_plat)
 		return -1;
 
-	platform_mhu_destroy(&rss_comms_plat->rx_dev);
-	platform_mhu_destroy(&rss_comms_plat->tx_dev);
+	platform_mhu_destroy(&rse_comms_plat->rx_dev);
+	platform_mhu_destroy(&rse_comms_plat->tx_dev);
 
-	free(rss_comms_plat);
+	free(rse_comms_plat);
 
 	return 0;
 }
 
-int rss_comms_platform_invoke(struct rss_comms_platform *rss_comms_plat, uint8_t *resp_buf,
+int rse_comms_platform_invoke(struct rse_comms_platform *rse_comms_plat, uint8_t *resp_buf,
 			      uint8_t *req_buf, size_t *resp_len, size_t req_len)
 {
 	struct platform_mhu_driver *rx_dev = NULL;
 	struct platform_mhu_driver *tx_dev = NULL;
 	int err = 0;
 
-	if (!rss_comms_plat || !resp_buf || !req_buf)
+	if (!rse_comms_plat || !resp_buf || !req_buf)
 		return -1;
 
-	rx_dev = &rss_comms_plat->rx_dev;
-	tx_dev = &rss_comms_plat->tx_dev;
+	rx_dev = &rse_comms_plat->rx_dev;
+	tx_dev = &rse_comms_plat->tx_dev;
 
 	if (!tx_dev->iface || !tx_dev->iface->send)
 		return -1;
@@ -101,13 +101,13 @@ int rss_comms_platform_invoke(struct rss_comms_platform *rss_comms_plat, uint8_t
 	return 0;
 }
 
-int rss_comms_platform_begin(struct rss_comms_platform *rss_comms_plat, uint8_t *req_buf,
+int rse_comms_platform_begin(struct rse_comms_platform *rse_comms_plat, uint8_t *req_buf,
 			     size_t req_len)
 {
 	return 0;
 }
 
-int rss_comms_platform_end(struct rss_comms_platform *rss_comms_plat)
+int rse_comms_platform_end(struct rse_comms_platform *rse_comms_plat)
 {
 	return 0;
 }

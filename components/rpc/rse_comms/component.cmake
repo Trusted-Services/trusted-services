@@ -9,19 +9,19 @@ if (NOT DEFINED TGT)
 endif()
 
 set_property(TARGET ${TGT} APPEND PROPERTY PUBLIC_HEADER
-	"${CMAKE_CURRENT_LIST_DIR}/rss_comms_messenger_api.h"
+	${CMAKE_CURRENT_LIST_DIR}/caller/sp/rse_comms_caller.h
 	)
 
 target_sources(${TGT} PRIVATE
-	"${CMAKE_CURRENT_LIST_DIR}/rss_comms_messenger.c"
-	"${CMAKE_CURRENT_LIST_DIR}/rss_comms_platform.c"
+	"${CMAKE_CURRENT_LIST_DIR}/rse_comms.c"
+	"${CMAKE_CURRENT_LIST_DIR}/caller/sp/rse_comms_caller.c"
+	"${CMAKE_CURRENT_LIST_DIR}/caller/sp/rse_comms_protocol.c"
+	"${CMAKE_CURRENT_LIST_DIR}/caller/sp/rse_comms_protocol_embed.c"
+	"${CMAKE_CURRENT_LIST_DIR}/caller/sp/rse_comms_protocol_pointer_access.c"
 	)
 
 target_include_directories(${TGT}
 	 PUBLIC
-		"${CMAKE_CURRENT_LIST_DIR}"
+		"${CMAKE_CURRENT_LIST_DIR}/caller/sp/"
 	)
 
-set_property(TARGET ${TGT} APPEND PROPERTY TS_PLATFORM_DRIVER_DEPENDENCIES
-	"mhu"
-)

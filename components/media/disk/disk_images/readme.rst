@@ -65,7 +65,7 @@ Disk Image Descriptions
     * - components/media/disk/disk_images/multi_location_fw.img
       - This UEFI disk image contains the set of partitions you'd expect to find in flash for a
         device where firmware is distributed across multiple locations. In this case, there are
-        locations for AP firmware, SCP firmware and RSS firmware.
+        locations for AP firmware, SCP firmware and RSE firmware.
 
 
 --------------
