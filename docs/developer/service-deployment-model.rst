@@ -196,7 +196,7 @@ Arm provided platforms, the structure will look something like this::
   platform
       |-- providers
               |--arm
-                  |-- corstone1000
+                  |-- Corstone1000
                   |-- fvp
                       |-- fvp_base_aemva
                       |-- fvp_base_revc-2xaemv8a
