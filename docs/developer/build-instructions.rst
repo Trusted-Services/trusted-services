@@ -25,10 +25,12 @@ different environments:
 
 .. uml:: uml/BuildFlow.puml
 
+.. _`Selecting the build type`:
+
 Selecting the build type
 -------------------------
 The build type selects code optimization and debug information related compiler settings. The build system follows the
-standard CMake methodology and uses the `CMAKE_BUILD_TYPE`_ variable.
+standard CMake methodology and can be controlled with the `CMAKE_BUILD_TYPE`_ variable.
 
 The build system uses the following build types:
 
@@ -37,26 +39,42 @@ The build system uses the following build types:
 
    * - Build type
      - Purpose
+     - Shared library suffix
      - Description
    * - Debug
      - For debugging purposes.
+     - `d`
      - Optimization is off, debugging information generation is enabled.
+   * - DebugCoverage
+     - For coverage measurement purposes.
+     - `c`
+     - Optimization is off, debugging information generation is enabled, code is compiled to enable gcov based coverage
+       measurement.
    * - MinSizeRel
      - Size optimized release build.
+     - None.
      - Optimization is configured to prefer small code size, debugging information is not generated.
    * - MinSizWithDebInfo
      - For debugging size optimized release build.
+     - None.
      - Optimization is configured to prefer small code size, debugging information generation is enabled.
    * - Release
      - Speed optimized release build.
+     - None.
      - Optimization is configured to prefer execution speed, debugging information is not generated.
    * - RelWithDebugInfo
      - For debugging speed optimized release build.
+     - None.
      - Optimization is configured to prefer execution speed, debugging information generation is enabled.
 
-Build type of external components can be configured with command line parameters. Parameter names follow this pattern:
+Build type of external components can be configured with command line arguments. Argument names follow this pattern:
 ``-D<upper case component name>_BUILD_TYPE=<value>`` e.g. ``-DNANOPB_BUILD_TYPE=Release``. Supported values are
 component specific, please refer to the appropriate cmake file under ``<TS_ROOT>/external/<name>``.
+
+Binaries of the ``Debug`` and ``DebugCoverage`` build types will have a suffix appended to their base name. This allows
+multiple binaries to coexist on the same system at the same time. However the system integrator can only select
+a single "release" build type.
+
 
 Building and Installing
 -----------------------

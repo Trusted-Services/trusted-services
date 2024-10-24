@@ -4,10 +4,19 @@ Some deployments build common functionality into libraries that may be used by
 other deployments or external applications. The following library deployments
 are currently supported:
 
+The libraries will have a build type-specific suffix added to the base name of
+their binaries, allowing multiple binaries to be installed in the same tree.
+(See :ref:`Selecting the build type`) This differentiation applies to the
+``Debug`` and ``DebugCoverage`` build types. The system integrator must choose
+which single ``Release<XXX>`` build type is to be supported in the system.
+Package managers and mutually exclusive release packages can be used to add
+further flexibility.
+
 .. _libs-libts:
 
 libts
 -----
+
 Userspace applications that depend on trusted services may use *libts* for handling
 service discovery and RPC messaging. A major benefit to application developers is
 that *libts* entirely decouples client applications from details of where a service
@@ -29,12 +38,14 @@ deployed in secure processing environments. For more information, see:
     - * | *linux-pc* - service providers integrated into library
       * | *arm-linux* - communicates with service providers in secure processing environment
   * - Used by
-    - * Userspace applications
+    - * Userspace applications.
+
 
 .. _libs-libpsats:
 
 libpsats
 --------
+
 Trusted Services implements the `PSA Certified APIs`_. Libpsats encapsulates the service client implementations
 which implement this API. Linux uuser-space applications can use libpsats to easily access the PSA services
 implemented by the project. Libpsats depends on libts for RPC and service discovery services.
@@ -109,6 +120,7 @@ Known issues and Limitations
 
 libsp
 -----
+
 *libsp* provides a functional interface for using FF-A messaging and memory
 management facilities. *libsp* is used in SP deployments. For more information, see:
 :ref:`libsp`.

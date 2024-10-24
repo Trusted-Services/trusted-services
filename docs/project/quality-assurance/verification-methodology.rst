@@ -62,11 +62,31 @@ Compliance testing
 The project hosts deployment helping compliance testing. For more information please refer to
 :ref:`Platform Certification`.
 
+Measuring Quality of testing
+''''''''''''''''''''''''''''
+
+The primary metric to measure runtime testing quality is code coverage. The project uses two methods to measure code
+coverage:
+
+    - "Host side" coverage measurement, where code coverage is measured using Unit Tests and Component Test executed on
+      the build host.
+
+      The measurement relies on GCCs `-ftest-coverage` compilation switch and the lcov tool. In order to include
+      coverage data of PSA client code and of service providers, `libpsats` and `libts` have to be built using
+      the `DebugCoverage` build type. If the build type override is not used, the build system will automatically build
+      and use the appropriate binaries.
+
+    - Coverage measurement on the target. This feature is only supported by the :ref:`AEM FVP` platform and uses
+      `qa-tools`_.
+
+Coverage measurement is automated in the CI, which is not publicly accessible yet.
+
 ------------------
 
 .. _`Checkpatch`: https://docs.kernel.org/dev-tools/checkpatch.html
 .. _`CppCheck`: https://cppcheck.sourceforge.io/
 .. _`codespell dictionary v2.3.0`: https://raw.githubusercontent.com/codespell-project/codespell/v2.3.0/codespell_lib/data/dictionary.txt
+.. _`qa-tools`: https://gitlab.arm.com/tooling/qa-tools
 
 *Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.*
 
