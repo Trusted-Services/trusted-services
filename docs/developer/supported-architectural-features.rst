@@ -1,6 +1,8 @@
 Supported Architectural Features
 ================================
 
+.. _branch_protection:
+
 Branch Protection
 -----------------
 
