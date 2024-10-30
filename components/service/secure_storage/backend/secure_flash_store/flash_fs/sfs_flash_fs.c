@@ -96,7 +96,7 @@ psa_status_t sfs_flash_fs_file_create(struct sfs_flash_fs_ctx_t *fs_ctx,
 
     /* Check that the file's maximum size is valid */
     if (max_size > fs_ctx->flash_info->max_file_size) {
-        return PSA_ERROR_INVALID_ARGUMENT;
+        return PSA_ERROR_INSUFFICIENT_STORAGE;
     }
 
     /* Check if file already exists */

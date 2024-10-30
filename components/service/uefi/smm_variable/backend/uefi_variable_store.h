@@ -52,6 +52,7 @@ struct uefi_variable_store {
 	uint32_t owner_id;
 	uint8_t *index_sync_buffer;
 	size_t index_sync_buffer_size;
+	uint64_t active_variable_index_uid;
 	struct variable_index variable_index;
 	struct delegate_variable_store persistent_store;
 	struct delegate_variable_store volatile_store;

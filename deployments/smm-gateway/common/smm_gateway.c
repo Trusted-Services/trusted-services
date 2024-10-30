@@ -40,10 +40,6 @@
 #define SMM_UEFI_VARIABLE_STORE_INDEX_SIZE \
 	UEFI_VARIABLE_STORE_INDEX_SIZE(SMM_GATEWAY_MAX_UEFI_VARIABLES)
 
-_Static_assert(SMM_UEFI_VARIABLE_STORE_INDEX_SIZE < RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
-	       "The UEFI variable index does not fit into the RPC shared memory, please increase " \
-	       "RPC_CALLER_SESSION_SHARED_MEMORY_SIZE");
-
 /**
  * The SP heap must be large enough for storing the UEFI variable index, the RPC shared memory and
  * ~16kB of miscellaneous data.

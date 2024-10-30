@@ -75,6 +75,7 @@ struct variable_entry {
  */
 struct variable_index {
 	size_t max_variables;
+	uint32_t counter;
 	struct variable_entry *entries;
 };
 
@@ -201,11 +202,12 @@ void variable_index_set_constraints(struct variable_info *info,
  * @param[in]  buffer_size Size of destination buffer
  * @param[in]  buffer Dump to this buffer
  * @param[out] data_len Length of serialized data
+ * @param[out] any_dirty True if there is unsaved data
  *
- * @return     True if there is unsaved data
+ * @return     EFI_SUCCESS if all the changes are dumped successfully
  */
-bool variable_index_dump(const struct variable_index *context, size_t buffer_size, uint8_t *buffer,
-			 size_t *data_len);
+efi_status_t variable_index_dump(const struct variable_index *context, size_t buffer_size,
+				 uint8_t *buffer, size_t *data_len, bool *any_dirty);
 
 /**
  * @brief      Restore the serialized index contents
@@ -219,7 +221,7 @@ bool variable_index_dump(const struct variable_index *context, size_t buffer_siz
  *
  * @return     Number of bytes loaded
  */
-size_t variable_index_restore(const struct variable_index *context, size_t data_len,
+size_t variable_index_restore(struct variable_index *context, size_t data_len,
 			      const uint8_t *buffer);
 
 #ifdef __cplusplus

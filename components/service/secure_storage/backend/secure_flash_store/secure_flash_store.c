@@ -7,6 +7,7 @@
 
 #include "flash/sfs_flash.h"
 #include "flash_fs/sfs_flash_fs.h"
+#include <limits.h>
 #include "sfs_utils.h"
 #include "secure_flash_store.h"
 #include <string.h>
@@ -15,20 +16,13 @@
 #define SFS_MAX_ASSET_SIZE (4096) /* TODO: comes from flash layout */
 #define SFS_CREATE_FLASH_LAYOUT /* TODO: move this to a proper place */
 
-#ifndef SFS_BUF_SIZE
-/* By default, set the SFS buffer size to the max asset size so that all
- * requests can be handled in one iteration.
- */
-#define SFS_BUF_SIZE SFS_MAX_ASSET_SIZE
-#endif
-
 #define SFS_INVALID_UID 0 /* TODO: are there any invalid UID-s? */
 
 /* Buffer to store asset data from the caller.
  * Note: size must be aligned to the max flash program unit to meet the
  * alignment requirement of the filesystem.
  */
-static uint8_t asset_data[SFS_UTILS_ALIGN(SFS_BUF_SIZE,
+static uint8_t asset_data[SFS_UTILS_ALIGN(SFS_MAX_ASSET_SIZE,
                                           SFS_FLASH_MAX_ALIGNMENT)];
 
 static uint8_t g_fid[SFS_FILE_ID_SIZE];
@@ -233,7 +227,7 @@ static psa_status_t sfs_get_info(void *context, uint32_t client_id, uint64_t uid
     }
 
     /* Copy file info to the PSA info struct */
-    p_info->capacity = g_file_info.size_current;
+    p_info->capacity = g_file_info.size_max;
     p_info->size = g_file_info.size_current;
     p_info->flags = g_file_info.flags;
 
@@ -277,12 +271,33 @@ static psa_status_t sfs_create(void *context,
                             uint32_t create_flags)
 {
     (void)context;
-    (void)client_id;
-    (void)uid;
-    (void)capacity;
-    (void)create_flags;
 
-    return PSA_ERROR_NOT_SUPPORTED;
+    psa_status_t status;
+
+    /* Check that the UID is valid */
+    if (uid == SFS_INVALID_UID)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    /* Check that the create_flags does not contain any unsupported flags */
+    if (create_flags & PSA_STORAGE_FLAG_WRITE_ONCE)
+        return PSA_ERROR_NOT_SUPPORTED;
+
+    /* Set file id */
+    sfs_get_fid(client_id, uid, g_fid);
+
+    /* Read file info */
+    status = sfs_flash_fs_file_get_info(&fs_ctx_sfs, g_fid, &g_file_info);
+
+    if (status == PSA_SUCCESS) {
+        return PSA_ERROR_ALREADY_EXISTS;
+    } else if (status == PSA_ERROR_DOES_NOT_EXIST) {
+        /* Create the file in the file system */
+        status = sfs_flash_fs_file_create(&fs_ctx_sfs, g_fid, capacity,
+                    0, (uint32_t)create_flags,
+                    NULL);
+    }
+
+    return status;
 }
 
 static psa_status_t sfs_set_extended(void *context,
@@ -292,15 +307,47 @@ static psa_status_t sfs_set_extended(void *context,
                             size_t data_length,
                             const void *p_data)
 {
-    /* Optional function not supported by this backend */
-    (void)context;
-    (void)client_id;
-    (void)uid;
-    (void)data_offset;
-    (void)data_length;
-    (void)p_data;
+    psa_status_t status = PSA_SUCCESS;
+    const uint8_t *data = (const uint8_t *)p_data;
 
-    return PSA_ERROR_NOT_SUPPORTED;
+    /* Check that the UID is valid */
+    if (uid == SFS_INVALID_UID)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    /* Get file id */
+    sfs_get_fid(client_id, uid, g_fid);
+
+    /* Read file info */
+    status = sfs_flash_fs_file_get_info(&fs_ctx_sfs, g_fid, &g_file_info);
+    if (status != PSA_SUCCESS)
+        return status;
+
+    if (g_file_info.flags & PSA_STORAGE_FLAG_WRITE_ONCE)
+        return PSA_ERROR_NOT_PERMITTED;
+
+    /* Avoid overflow of the inputs */
+    if (SIZE_MAX - data_offset < data_length)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    if (sizeof(asset_data) < data_length)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    /* Data write must not exceed the file capacity */
+    if (g_file_info.size_max < data_offset + data_length)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    /* Write must not create gaps */
+    if (g_file_info.size_current < data_offset)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    /* Read asset data from the caller */
+    memcpy(asset_data, data, data_length);
+
+    /* Write to the file in the file system */
+    status = sfs_flash_fs_file_write(&fs_ctx_sfs, g_fid,
+                                     data_length, data_offset, asset_data);
+
+    return status;
 }
 
 static uint32_t sfs_get_support(void *context, uint32_t client_id)
@@ -308,8 +355,7 @@ static uint32_t sfs_get_support(void *context, uint32_t client_id)
     (void)context;
     (void)client_id;
 
-    /* No optional functions supported */
-    return 0;
+    return PSA_STORAGE_SUPPORT_SET_EXTENDED;
 }
 
 struct storage_backend *sfs_init(const struct sfs_flash_info_t *flash_binding)
