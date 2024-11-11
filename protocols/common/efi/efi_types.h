@@ -7,7 +7,9 @@
 #ifndef COMMON_EFI_TYPES_H
 #define COMMON_EFI_TYPES_H
 
+#include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 /**
  * Common EFI types
@@ -55,5 +57,16 @@ typedef struct {
  */
 #define EFI_MM_COMMUNICATE_HEADER_SIZE	\
 	(offsetof(EFI_MM_COMMUNICATE_HEADER, Data))
+
+/*
+ * Returns whether the two guid-s equal. To avoid structure padding related error
+ * the fields are checked separately instead of memcmp.
+ */
+static inline bool compare_guid(const EFI_GUID *guid1, const EFI_GUID *guid2)
+{
+	return guid1->Data1 == guid2->Data1 && guid1->Data2 == guid2->Data2 &&
+	       guid1->Data3 == guid2->Data3 &&
+	       !memcmp(&guid1->Data4, &guid2->Data4, sizeof(guid1->Data4));
+}
 
 #endif /* COMMON_EFI_TYPES_H */

@@ -278,8 +278,8 @@ TEST_GROUP(UefiVariableStoreTests)
 	static const uint32_t OWNER_ID = 100;
 
 	/* Synchronize these with the variables with the store */
-	uint64_t DEFAULT_VARIABLE_INDEX_STORAGE_A_UID = 1;
-	uint64_t DEFAULT_VARIABLE_INDEX_STORAGE_B_UID = 2;
+	uint64_t DEFAULT_VARIABLE_INDEX_STORAGE_A_UID = 0x8000000000000001;
+	uint64_t DEFAULT_VARIABLE_INDEX_STORAGE_B_UID = 0x8000000000000002;
 
 	/*
 	 * Make sure the variable buffer in the test is way above the limit

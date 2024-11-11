@@ -46,7 +46,6 @@ check_access_permitted_on_set(const struct uefi_variable_store *context,
 			      const SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var);
 
 #if defined(UEFI_AUTH_VAR)
-static bool compare_guid(const EFI_GUID *guid1, const EFI_GUID *guid2);
 
 /* Creating a map of the EFI SMM variable for easier access */
 typedef struct {
@@ -139,14 +138,9 @@ static bool compare_name_to_key_store_name(const int16_t *name1, size_t size1,
 					   const uint16_t *name2, size_t size2);
 #endif
 
-/* Private UID for storing the variable index - may be overridden at build-time */
-#ifndef SMM_VARIABLE_INDEX_STORAGE_A_UID
-#define SMM_VARIABLE_INDEX_STORAGE_A_UID (1)
-#endif
-
-#ifndef SMM_VARIABLE_INDEX_STORAGE_B_UID
-#define SMM_VARIABLE_INDEX_STORAGE_B_UID (2)
-#endif
+/* Private UID for storing the variable index */
+#define SMM_VARIABLE_INDEX_STORAGE_A_UID UINT64_C(0x8000000000000001)
+#define SMM_VARIABLE_INDEX_STORAGE_B_UID UINT64_C(0x8000000000000002)
 
 _Static_assert(SMM_VARIABLE_INDEX_STORAGE_A_UID != SMM_VARIABLE_INDEX_STORAGE_B_UID,
 	       "SMM_VARIABLE_INDEX_STORAGE_A_UID must not be the same value as "
@@ -941,16 +935,6 @@ check_access_permitted_on_set(const struct uefi_variable_store *context,
 }
 
 #if defined(UEFI_AUTH_VAR)
-/*
- * Returns whether the two guid-s equal. To avoid structure padding related error
- * the fields are checked separately instead of memcmp.
- */
-static bool compare_guid(const EFI_GUID *guid1, const EFI_GUID *guid2)
-{
-	return guid1->Data1 == guid2->Data1 && guid1->Data2 == guid2->Data2 &&
-	       guid1->Data3 == guid2->Data3 &&
-	       !memcmp(&guid1->Data4, &guid2->Data4, sizeof(guid1->Data4));
-}
 
 /*
  * Creates a "map" that contains pointers to some of the fields of the SMM variable and the

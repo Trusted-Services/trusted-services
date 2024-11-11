@@ -10,52 +10,48 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Private functions */
-static uint64_t name_hash(const EFI_GUID *guid, size_t name_size, const int16_t *name)
-{
-	/* Using djb2 hash by Dan Bernstein */
-	uint64_t hash = 5381;
-
-	/* Calculate hash over GUID */
-	hash = ((hash << 5) + hash) + guid->Data1;
-	hash = ((hash << 5) + hash) + guid->Data2;
-	hash = ((hash << 5) + hash) + guid->Data3;
-
-	for (int i = 0; i < 8; ++i) {
-		hash = ((hash << 5) + hash) + guid->Data4[i];
-	}
-
-	/* Extend to cover name up to but not including null terminator */
-	for (size_t i = 0; i < (name_size - sizeof(int16_t)) / sizeof(int16_t); ++i) {
-		/* Only hash till the first null terminator */
-		if (name[i] == 0)
-			break;
-		hash = ((hash << 5) + hash) + name[i];
-	}
-
-	return hash;
-}
-
 static uint64_t generate_uid(const struct variable_index *context, const EFI_GUID *guid,
 			     size_t name_size, const int16_t *name)
 {
-	uint64_t uid = name_hash(guid, name_size, name);
+	/* Find the first unsed UID in the: 1..max_variables inclusive range */
+	for (size_t candidate = 1; candidate <= context->max_variables; candidate++) {
+		for (size_t pos = 0; pos < context->max_variables; pos++) {
+			if (context->entries[pos].in_use &&
+			    context->entries[pos].info.metadata.uid == candidate) {
+				// The candidate UID is already being used
+				goto skip;
+			}
+		}
 
-	/* todo - handle collision  */
-	(void)context;
+		return candidate;
 
-	return uid;
+skip:
+	}
+
+	return 0;
+}
+
+static bool is_matching_entry(const EFI_GUID *guid, const int16_t *name, size_t name_size,
+			      const struct variable_metadata *metadata)
+{
+	if (!compare_guid(guid, &metadata->guid))
+		return false;
+
+	if (name_size != metadata->name_size)
+		return false;
+
+	return (memcmp(name, metadata->name, name_size) == 0);
 }
 
 static int find_variable(const struct variable_index *context, const EFI_GUID *guid,
 			 size_t name_size, const int16_t *name)
 {
 	int found_pos = -1;
-	uint64_t uid = name_hash(guid, name_size, name);
 
 	for (size_t pos = 0; pos < context->max_variables; pos++) {
 		if ((context->entries[pos].in_use) &&
-		    (uid == context->entries[pos].info.metadata.uid)) {
+		    is_matching_entry(guid, name, name_size,
+				      &context->entries[pos].info.metadata)) {
 			found_pos = pos;
 			break;
 		}
@@ -200,6 +196,9 @@ static struct variable_entry *add_entry(const struct variable_index *context, co
 
 			/* Initialize metadata */
 			info->metadata.uid = generate_uid(context, guid, name_size, name);
+			if (!info->metadata.uid)
+				return NULL;
+
 			info->metadata.guid = *guid;
 			memset(&info->metadata.timestamp, 0, sizeof(EFI_TIME));
 			memset(&info->metadata.fingerprint, 0, FINGERPRINT_SIZE);
