@@ -13,7 +13,12 @@ get_property(_platform_driver_dependencies TARGET ${TGT}
 	PROPERTY TS_PLATFORM_DRIVER_DEPENDENCIES
 )
 
-set(CFG_SFS_FLASH_AREA_SIZE "32*1024" CACHE STRING "Size of SFS ram store")
+set(CFG_SFS_FLASH_AREA_SIZE "128*1024" CACHE STRING "Size of SFS ram store")
+set(CFG_SFS_SECTORS_PER_BLOCK "4" CACHE STRING "Number of sectors per block in the SFS ram store")
+set(CFG_SFS_MAX_ASSET_SIZE "16*1024" CACHE STRING "Max asset size of SFS ram store")
+
+# Set the RPC buffer size of the storage client so the maximum supported asset size can be transmitted
+set(CFG_STORAGE_CLIENT_RPC_BUF_SIZE "${CFG_SFS_MAX_ASSET_SIZE} + 4096" CACHE STRING "RPC buffer size of storage client")
 
 # Test memory region base address for manifest testing in spm_test deployments.
 set(CFG_TEST_MEM_REGION_ADDRESS  0x6248000 CACHE STRING "Base address of memory region used to test mainfest processing.")

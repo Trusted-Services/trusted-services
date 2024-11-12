@@ -19,13 +19,17 @@
 #define SFS_SECTOR_SIZE (0x1000)
 
 /* Adjust so that the maximum required asset size will fit in one block */
+#ifndef SFS_SECTORS_PER_BLOCK
 #define SFS_SECTORS_PER_BLOCK (0x1)
+#endif
 
 /* Adjust to match the size of the flash device's physical program unit */
 #define SFS_FLASH_PROGRAM_UNIT (0x1)
 
 /* The maximum asset size to be stored in the SFS area */
+#ifndef SFS_MAX_ASSET_SIZE
 #define SFS_MAX_ASSET_SIZE (4096)
+#endif
 
 /* The maximum number of assets to be stored in the SFS area */
 #define SFS_NUM_ASSETS (10)
