@@ -832,6 +832,9 @@ static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 				remaining_data_len -= data_of_this_iteration;
 
 			} while (remaining_data_len);
+
+			variable_index_confirm_write(&context->variable_index);
+			context->active_variable_index_uid = next_index_uid;
 		} else {
 			EMSG("Syncing variable index failed, store backend is not accessible");
 			return EFI_LOAD_ERROR;

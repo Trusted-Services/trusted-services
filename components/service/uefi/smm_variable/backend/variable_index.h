@@ -210,6 +210,14 @@ efi_status_t variable_index_dump(const struct variable_index *context, size_t bu
 				 uint8_t *buffer, size_t *data_len, bool *any_dirty);
 
 /**
+ * @brief     Confirms the successful write of the variable index into the storage
+ *            by stepping the counter.
+ *
+ * @param[in] context variable_index
+ */
+void variable_index_confirm_write(struct variable_index *context);
+
+/**
  * @brief      Restore the serialized index contents
  *
  * Should be called straight after the variable index is initialized to

@@ -344,6 +344,11 @@ efi_status_t variable_index_dump(const struct variable_index *context, size_t bu
 	return EFI_SUCCESS;
 }
 
+void variable_index_confirm_write(struct variable_index *context)
+{
+	context->counter++;
+}
+
 size_t variable_index_restore(struct variable_index *context, size_t data_len,
 			      const uint8_t *buffer)
 {
