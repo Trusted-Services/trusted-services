@@ -47,7 +47,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -102,3 +102,28 @@ autosectionlabel_maxdepth = 1
 # -- Options for plantuml ----------------------------------------------------
 
 plantuml_output_format = 'svg_img'
+
+# if plantuml wrapper executable is specified use it.
+_p=os.environ.get('PLANTUML')
+if _p is None:
+    # if a specific jar file is specified use it with an "inline" wrapper
+    jar=os.environ.get('PLANTUML_JAR_PATH')
+    if jar is not None:
+        # if JAVA_HOME look for the JVM under that location
+        java_home=os.environ.get('JAVA_HOME')
+        if java_home is not None:
+            java=os.path.join(java_home, "bin", "java")
+        else:
+            # if not, look for JVM on the PATH
+            import shutil
+            java=shutil.which("java")
+        # if the JVM does not exist, fall back to java
+        if not os.path.exists(java):
+                java='java'
+        # Set the wrapper command
+        _p="%s -Djava.awt.headless=true -Djava.net.useSystemProxies=true -jar %s" % (java, jar)
+
+# if a plantuml executable was discovered, use that, or leave the default value
+# unchanged
+if _p is not None:
+    plantuml=_p

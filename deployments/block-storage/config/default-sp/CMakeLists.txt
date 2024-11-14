@@ -71,7 +71,6 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "location to install build output to." FORCE)
 endif()
 install(TARGETS block-storage
-			PUBLIC_HEADER DESTINATION ${TS_ENV}/include
 			RUNTIME DESTINATION ${TS_ENV}/bin
 		)
 

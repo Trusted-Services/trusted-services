@@ -39,7 +39,7 @@ TEST(FwuDefaultInstallerFactoryTests, configureInstallersFlow)
 {
 	struct uuid_octets ap_fw_uuid;
 	struct uuid_octets scp_fw_uuid;
-	struct uuid_octets rss_fw_uuid;
+	struct uuid_octets rse_fw_uuid;
 
 	/* Check configuration operations that will be performed when
 	 * constructing a set of installers for a platform. The platform
@@ -89,25 +89,25 @@ TEST(FwuDefaultInstallerFactoryTests, configureInstallersFlow)
 	installer_index_register(installer);
 	CHECK_TRUE(installer_index_find_by_location_uuid(&scp_fw_uuid));
 
-	/* Configure installers for updating RSS firmware */
-	uuid_guid_octets_from_canonical(&rss_fw_uuid, LOCATION_UUID_RSS_FW);
+	/* Configure installers for updating RSE firmware */
+	uuid_guid_octets_from_canonical(&rse_fw_uuid, LOCATION_UUID_RSE_FW);
 
 	/* Expect no installer to initially be registered */
-	CHECK_FALSE(installer_index_find_by_location_uuid(&rss_fw_uuid));
+	CHECK_FALSE(installer_index_find_by_location_uuid(&rse_fw_uuid));
 
 	/* Configure for whole volume and copy installation */
-	installer = installer_factory_create_installer(INSTALL_TYPE_WHOLE_VOLUME, 0, &rss_fw_uuid);
+	installer = installer_factory_create_installer(INSTALL_TYPE_WHOLE_VOLUME, 0, &rse_fw_uuid);
 	CHECK_TRUE(installer);
 
 	installer_index_register(installer);
-	CHECK_TRUE(installer_index_find_by_location_uuid(&rss_fw_uuid));
+	CHECK_TRUE(installer_index_find_by_location_uuid(&rse_fw_uuid));
 
 	installer =
-		installer_factory_create_installer(INSTALL_TYPE_WHOLE_VOLUME_COPY, 0, &rss_fw_uuid);
+		installer_factory_create_installer(INSTALL_TYPE_WHOLE_VOLUME_COPY, 0, &rse_fw_uuid);
 	CHECK_TRUE(installer);
 
 	installer_index_register(installer);
-	CHECK_TRUE(installer_index_find_by_location_uuid(&rss_fw_uuid));
+	CHECK_TRUE(installer_index_find_by_location_uuid(&rse_fw_uuid));
 
 	/* Now try and construct an installer for an unsupported partition type. */
 	struct uuid_octets unsupported_location_uuid;

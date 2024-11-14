@@ -8,7 +8,7 @@
 
 @DTS_NODE@ {
 	compatible = "arm,ffa-manifest-1.0";
-	ffa-version = <0x00010000>; /* 31:16 - Major, 15:0 - Minor */
+	ffa-version = <@CFG_FFA_VERSION@>; /* 31:16 - Major, 15:0 - Minor */
 	uuid = <@EXPORT_SP_UUID_DT@>;
 	description = "Attestation";
 	execution-ctx-count = <1>;

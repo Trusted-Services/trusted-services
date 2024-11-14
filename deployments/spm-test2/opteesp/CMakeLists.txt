@@ -19,6 +19,8 @@ set(SP_NUMBER 2)
 set(SP_HEAP_SIZE "32 * 1024" CACHE STRING "SP heap size in bytes")
 set(SP_BOOT_ORDER "0" CACHE STRING "Boot order of the SP")
 set(TRACE_PREFIX "SPM-TEST${SP_NUMBER}" CACHE STRING "Trace prefix")
+# SPM test SP2 is set to use FF-A v1.0 to cover v1.0 support as well
+set(FFA_VERSION 0x00010000 CACHE STRING "The supported FF-A protocol's version: (major << 16) | minor")
 
 #-------------------------------------------------------------------------------
 #  Components that are spm-test specific to deployment in the opteesp

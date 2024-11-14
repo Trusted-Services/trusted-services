@@ -208,27 +208,43 @@ TEST(UefiVariableIndexTests, enumerateStore)
 
 TEST(UefiVariableIndexTests, dumpLoadRoadtrip)
 {
-	uint8_t buffer[MAX_VARIABLES * sizeof(struct variable_metadata)];
+	uint8_t buffer[sizeof(uint32_t) +
+		       MAX_VARIABLES * (sizeof(struct variable_metadata) + sizeof(bool))];
 
 	create_variables();
 
 	/* Expect the info for two NV variables to have been dumped */
 	size_t dump_len = 0;
-	bool is_dirty = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len);
+	bool is_dirty = false;
+	efi_status_t status = EFI_SUCCESS;
+
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
 
 	CHECK_TRUE(is_dirty);
-	UNSIGNED_LONGS_EQUAL((sizeof(struct variable_metadata) * 2), dump_len);
+	UNSIGNED_LONGS_EQUAL(EFI_SUCCESS, status);
+	/*
+	 * Variable index counter is at the beginning, which is followed by metadata and
+	 * constraint status byte of both NV variables
+	 */
+	UNSIGNED_LONGS_EQUAL(sizeof(uint32_t) +
+				     ((sizeof(struct variable_metadata) + sizeof(bool)) * 2),
+			     dump_len);
 
 	/* Expect no records to be dirty when the dump is repeated */
 	dump_len = 0;
-	is_dirty = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len);
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
 
+	UNSIGNED_LONGS_EQUAL(EFI_SUCCESS, status);
 	CHECK_FALSE(is_dirty);
-	UNSIGNED_LONGS_EQUAL((sizeof(struct variable_metadata) * 2), dump_len);
+	UNSIGNED_LONGS_EQUAL(sizeof(uint32_t) +
+				     ((sizeof(struct variable_metadata) + sizeof(bool)) * 2),
+			     dump_len);
 
 	/* Tear down and reinitialize to simulate a reboot */
 	variable_index_deinit(&m_variable_index);
-	efi_status_t status = variable_index_init(&m_variable_index, MAX_VARIABLES);
+	status = variable_index_init(&m_variable_index, MAX_VARIABLES);
 	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, status);
 
 	/* Load the dumped contents */
@@ -261,9 +277,65 @@ TEST(UefiVariableIndexTests, dumpLoadRoadtrip)
 	UNSIGNED_LONGLONGS_EQUAL(EFI_NOT_FOUND, status);
 }
 
+TEST(UefiVariableIndexTests, dumpLoadConstrainedVariable)
+{
+	uint8_t buffer[sizeof(uint32_t) +
+		       MAX_VARIABLES * (sizeof(struct variable_metadata) + sizeof(bool))];
+
+	create_variables();
+
+	struct variable_constraints constraints;
+	constraints.revision = 10;
+	constraints.property = VAR_CHECK_VARIABLE_PROPERTY_READ_ONLY;
+	constraints.attributes = 0;
+	constraints.min_size = 1;
+	constraints.max_size = 100;
+
+	/* Set check constraints on one of the variables */
+	struct variable_info *info = variable_index_find(&m_variable_index, &guid_2,
+							 string_get_size_in_bytes(name_2),
+							 (const int16_t *)name_2.data());
+
+	CHECK_TRUE(info);
+	CHECK_TRUE(info->is_variable_set);
+	CHECK_FALSE(info->is_constraints_set);
+
+	variable_index_set_constraints(info, &constraints);
+
+	CHECK_TRUE(info->is_constraints_set);
+	CHECK_TRUE(info->is_variable_set);
+
+	size_t dump_len = 0;
+	bool is_dirty = false;
+	efi_status_t status = EFI_SUCCESS;
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
+
+	UNSIGNED_LONGS_EQUAL(EFI_SUCCESS, status);
+	CHECK_TRUE(is_dirty);
+
+	/*
+	 * Variable index counter is at the beginning, which is followed by metadata and
+	 * constraint status byte of both NV variables, but only one of them has
+	 * constraints
+	 */
+	UNSIGNED_LONGS_EQUAL(sizeof(uint32_t) +
+				     (sizeof(struct variable_metadata) + sizeof(bool)) * 2 +
+				     sizeof(struct variable_constraints),
+			     dump_len);
+
+	/* Load the dumped contents */
+	size_t load_len = variable_index_restore(&m_variable_index, dump_len, buffer);
+	UNSIGNED_LONGS_EQUAL(dump_len, load_len);
+}
+
 TEST(UefiVariableIndexTests, dumpBufferTooSmall)
 {
-	uint8_t buffer[1 * sizeof(struct variable_metadata) + 1];
+	/*
+	 * Enough to fit the variable index counter and the metadata and constraint
+	 * status of a single variable
+	 */
+	uint8_t buffer[sizeof(uint32_t) + sizeof(struct variable_metadata) + sizeof(bool)];
 
 	create_variables();
 
@@ -272,15 +344,21 @@ TEST(UefiVariableIndexTests, dumpBufferTooSmall)
 	 * exceed the length of the buffer.
 	 */
 	size_t dump_len = 0;
-	bool is_dirty = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len);
+	bool is_dirty = false;
+	efi_status_t status = EFI_SUCCESS;
+
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
 
 	CHECK_TRUE(is_dirty);
-	UNSIGNED_LONGS_EQUAL(sizeof(struct variable_metadata) * 1, dump_len);
+	UNSIGNED_LONGS_EQUAL(EFI_BUFFER_TOO_SMALL, status);
+	UNSIGNED_LONGS_EQUAL(0, dump_len);
 }
 
 TEST(UefiVariableIndexTests, removeVariable)
 {
-	uint8_t buffer[MAX_VARIABLES * sizeof(struct variable_metadata)];
+	uint8_t buffer[sizeof(uint32_t) +
+		       MAX_VARIABLES * (sizeof(struct variable_metadata) + sizeof(bool))];
 	struct variable_info *info = NULL;
 
 	create_variables();
@@ -293,10 +371,19 @@ TEST(UefiVariableIndexTests, removeVariable)
 
 	/* Expect index to be dirty and for only one NV variable to be left */
 	size_t dump_len = 0;
-	bool is_dirty = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len);
+	bool is_dirty = false;
+	efi_status_t status = EFI_SUCCESS;
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
 
 	CHECK_TRUE(is_dirty);
-	UNSIGNED_LONGS_EQUAL((sizeof(struct variable_metadata) * 1), dump_len);
+	UNSIGNED_LONGS_EQUAL(EFI_SUCCESS, status);
+	/*
+	 * Dump to now contains the variable index counter and metadata,
+	 * constraint status data of a variable
+	 */
+	UNSIGNED_LONGS_EQUAL(sizeof(uint32_t) + sizeof(struct variable_metadata) + sizeof(bool),
+			     dump_len);
 
 	/* Remove the volatile variable */
 	info = variable_index_find(&m_variable_index, &guid_1, string_get_size_in_bytes(name_1),
@@ -306,10 +393,13 @@ TEST(UefiVariableIndexTests, removeVariable)
 
 	/* Expect index not to be dirty because there was no change to any NV variable */
 	dump_len = 0;
-	is_dirty = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len);
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
 
 	CHECK_FALSE(is_dirty);
-	UNSIGNED_LONGS_EQUAL((sizeof(struct variable_metadata) * 1), dump_len);
+	UNSIGNED_LONGS_EQUAL(EFI_SUCCESS, status);
+	UNSIGNED_LONGS_EQUAL(sizeof(uint32_t) + sizeof(struct variable_metadata) + sizeof(bool),
+			     dump_len);
 
 	/* Remove the remaining NV variable */
 	info = variable_index_find(&m_variable_index, &guid_1, string_get_size_in_bytes(name_3),
@@ -317,16 +407,17 @@ TEST(UefiVariableIndexTests, removeVariable)
 
 	variable_index_clear_variable(&m_variable_index, info);
 
-	/* Expect index to be dirty and dump to now be empty */
+	/* Expect index to be dirty and dump to now contains only the variable index counter */
 	dump_len = 0;
-	is_dirty = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len);
+	status = variable_index_dump(&m_variable_index, sizeof(buffer), buffer, &dump_len,
+				     &is_dirty);
 
 	CHECK_TRUE(is_dirty);
-	UNSIGNED_LONGS_EQUAL((sizeof(struct variable_metadata) * 0), dump_len);
+	UNSIGNED_LONGS_EQUAL(EFI_SUCCESS, status);
+	UNSIGNED_LONGS_EQUAL(sizeof(uint32_t), dump_len);
 
 	/* Enumerate and now expect an empty index */
 	info = NULL;
-	efi_status_t status = EFI_SUCCESS;
 
 	info = variable_index_find_next(&m_variable_index, &guid_1,
 					string_get_size_in_bytes(null_name),  (const int16_t *) null_name.data(),

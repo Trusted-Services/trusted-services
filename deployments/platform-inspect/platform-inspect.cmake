@@ -11,12 +11,16 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  Use libts for locating and accessing trusted services. An appropriate version
-#  of libts will be imported for the environment in which platform-inspect is
-#  built.
+#  Use libpsats for locating PSA services. An appropriate version of
+#  libpsats will be imported for the environment.
 #-------------------------------------------------------------------------------
-include(${TS_ROOT}/deployments/libts/libts-import.cmake)
-target_link_libraries(platform-inspect PRIVATE libts::ts)
+if (COVERAGE)
+	set(LIBPSATS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsats build type" FORCE)
+	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
+endif()
+
+include(${TS_ROOT}/deployments/libpsats/libpsats-import.cmake)
+target_link_libraries(platform-inspect PRIVATE libpsats::psats)
 
 #-------------------------------------------------------------------------------
 #  Components that are common across all deployments
@@ -29,11 +33,6 @@ add_components(
 		"components/app/platform-inspect"
 		"components/common/tlv"
 		"components/common/cbor_dump"
-		"components/service/common/client"
-		"components/service/common/include"
-		"components/service/attestation/include"
-		"components/service/attestation/client/psa"
-		"components/service/attestation/client/provision"
 		"components/service/attestation/reporter/dump/raw"
 		"components/service/attestation/reporter/dump/pretty"
 )
@@ -44,7 +43,7 @@ add_components(
 #-------------------------------------------------------------------------------
 
 # MbedTLS provides libmbedcrypto
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
+set(MBEDTLS_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
 	CACHE STRING "Configuration file for mbedcrypto")
 include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
 target_link_libraries(platform-inspect PRIVATE MbedTLS::mbedcrypto)

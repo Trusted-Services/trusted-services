@@ -81,30 +81,6 @@ static efi_status_t sanitize_access_variable_param(struct rpc_request *req, size
 	return efi_status;
 }
 
-static efi_status_t sanitize_get_next_var_name_param(struct rpc_request *req, size_t *param_len)
-{
-	efi_status_t efi_status = EFI_INVALID_PARAMETER;
-	*param_len = 0;
-	const struct rpc_buffer *req_buf = &req->request;
-
-	if (req_buf->data_length >= SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_NAME_OFFSET) {
-		const SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *param =
-			(const SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *)req_buf->data;
-
-		size_t max_space_for_name =
-			req_buf->data_length -
-			SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_NAME_OFFSET;
-
-		if (param->NameSize <= max_space_for_name) {
-			*param_len =
-				SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_TOTAL_SIZE(param);
-			efi_status = EFI_SUCCESS;
-		}
-	}
-
-	return efi_status;
-}
-
 static efi_status_t sanitize_var_check_property_param(struct rpc_request *req, size_t *param_len)
 {
 	efi_status_t efi_status = EFI_INVALID_PARAMETER;
@@ -146,7 +122,7 @@ static rpc_status_t get_variable_handler(void *context, struct rpc_request *req)
 			struct rpc_buffer *req_buf = &req->request;
 			size_t max_data_len = resp_buf->size - param_len;
 
-			memmove(resp_buf->data, req_buf->data, param_len);
+			memcpy(resp_buf->data, req_buf->data, param_len);
 
 			efi_status = uefi_variable_store_get_variable(
 				&this_instance->variable_store,
@@ -167,30 +143,21 @@ static rpc_status_t get_next_variable_name_handler(void *context, struct rpc_req
 {
 	struct smm_variable_provider *this_instance = (struct smm_variable_provider *)context;
 
-	size_t param_len = 0;
-	efi_status_t efi_status = sanitize_get_next_var_name_param(req, &param_len);
+	efi_status_t efi_status = EFI_SUCCESS;
+	size_t variable_size = 0;
 
-	if (efi_status == EFI_SUCCESS) {
-		/* Valid get next variable name header */
-		struct rpc_buffer *resp_buf = &req->response;
+	/* Valid get next variable name header */
+	struct rpc_buffer *resp_buf = &req->response;
+	struct rpc_buffer *req_buf = &req->request;
 
-		if (resp_buf->size >= param_len) {
-			struct rpc_buffer *req_buf = &req->request;
-			size_t max_name_len =
-				resp_buf->size -
-				SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_NAME_OFFSET;
+	memcpy(resp_buf->data, req_buf->data, req_buf->data_length);
 
-			memmove(resp_buf->data, req_buf->data, param_len);
+	efi_status = uefi_variable_store_get_next_variable_name(
+		&this_instance->variable_store,
+		(SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *)resp_buf->data,
+		&variable_size);
 
-			efi_status = uefi_variable_store_get_next_variable_name(
-				&this_instance->variable_store,
-				(SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *)resp_buf->data,
-				max_name_len, &resp_buf->data_length);
-		} else {
-			/* Reponse buffer not big enough */
-			efi_status = EFI_BAD_BUFFER_SIZE;
-		}
-	}
+	resp_buf->data_length = variable_size;
 
 	req->service_status = efi_status;
 
@@ -242,7 +209,7 @@ static rpc_status_t query_variable_info_handler(void *context, struct rpc_reques
 		struct rpc_buffer *resp_buf = &req->response;
 
 		if (resp_buf->size >= req_buf->data_length) {
-			memmove(resp_buf->data, req_buf->data, req_buf->data_length);
+			memcpy(resp_buf->data, req_buf->data, req_buf->data_length);
 
 			efi_status = uefi_variable_store_query_variable_info(
 				&this_instance->variable_store,
@@ -310,7 +277,7 @@ static rpc_status_t get_var_check_property_handler(void *context, struct rpc_req
 
 		if (resp_buf->size >= param_len) {
 			struct rpc_buffer *req_buf = &req->request;
-			memmove(resp_buf->data, req_buf->data, param_len);
+			memcpy(resp_buf->data, req_buf->data, param_len);
 			resp_buf->data_length = param_len;
 
 			efi_status = uefi_variable_store_get_var_check_property(

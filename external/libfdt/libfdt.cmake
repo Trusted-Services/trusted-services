@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -18,7 +18,6 @@ set(DTC_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/dtc-src" CACHE PATH "Locat
 set(GIT_OPTIONS
 	GIT_REPOSITORY ${DTC_URL}
 	GIT_TAG ${DTC_REFSPEC}
-	PATCH_COMMAND git stash COMMAND git apply ${CMAKE_CURRENT_LIST_DIR}/fix-strnlen.patch
 )
 
 include(${TS_ROOT}/tools/cmake/common/LazyFetch.cmake REQUIRED)

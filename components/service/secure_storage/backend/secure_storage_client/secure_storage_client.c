@@ -293,7 +293,7 @@ static psa_status_t secure_storage_set_extended(void *context,
 	handle = rpc_caller_session_begin(this_context->client.session, &request, request_length,
 					  0);
 	if (!handle)
-		goto out;
+		return PSA_ERROR_INVALID_ARGUMENT;
 
 	/* Populating request descriptor */
 	request_desc = (struct secure_storage_request_set_extended *)request;
@@ -311,7 +311,6 @@ static psa_status_t secure_storage_set_extended(void *context,
 	if (psa_status == PSA_SUCCESS && rpc_status != RPC_SUCCESS)
 		psa_status = PSA_ERROR_GENERIC_ERROR;
 
-out:
 	return psa_status;
 }
 

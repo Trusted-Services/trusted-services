@@ -12,6 +12,10 @@ build:
     python: "3.8"
   apt_packages:
     - plantuml
+    - wget
+  jobs:
+    post_install:
+        - wget https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar -O $HOME/plantuml.jar
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:

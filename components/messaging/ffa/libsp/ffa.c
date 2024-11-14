@@ -79,7 +79,7 @@ ffa_result ffa_version(uint32_t *version)
 	uint32_t self_version = 0;
 
 	self_version = (FFA_VERSION_MAJOR << FFA_VERSION_MAJOR_SHIFT) |
-		       (FFA_VERSION_MINOR << FFA_VERSION_MINOR);
+		       (FFA_VERSION_MINOR << FFA_VERSION_MINOR_SHIFT);
 
 	ffa_svc(FFA_VERSION, self_version, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
 		FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
@@ -173,6 +173,7 @@ ffa_result ffa_rxtx_unmap(uint16_t id)
 	return FFA_OK;
 }
 
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
 ffa_result ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t *count)
 {
 	struct ffa_params result = {0};
@@ -193,6 +194,31 @@ ffa_result ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t *count)
 	*count = result.a2;
 	return FFA_OK;
 }
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+ffa_result ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t flags, uint32_t *count,
+				  uint32_t *size)
+{
+	struct ffa_params result = {0};
+	uint32_t abi_uuid[4] = {0};
+
+	ffa_uuid_to_abi_format(uuid, abi_uuid);
+
+	ffa_svc(FFA_PARTITION_INFO_GET, abi_uuid[0], abi_uuid[1], abi_uuid[2],
+		abi_uuid[3], flags, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		&result);
+
+	if (result.a0 == FFA_ERROR) {
+		*count = UINT32_C(0);
+		*size = UINT32_C(0);
+		return ffa_get_errorcode(&result);
+	}
+
+	assert(result.a0 == FFA_SUCCESS_32);
+	*count = result.a2;
+	*size = result.a3;
+	return FFA_OK;
+}
+#endif /* CFG_FFA_VERSION */
 
 ffa_result ffa_id_get(uint16_t *id)
 {
@@ -212,6 +238,41 @@ ffa_result ffa_id_get(uint16_t *id)
 	return FFA_OK;
 }
 
+static void handle_framework_msg(struct ffa_params *result)
+{
+	if (result->a0 == FFA_INTERRUPT) {
+		ffa_interrupt_handler(result->a2);
+		ffa_return_from_interrupt(result);
+	} else if (result->a0 == FFA_MSG_SEND_DIRECT_REQ_32 && FFA_IS_FRAMEWORK_MSG(result->a2)) {
+		ffa_result res = FFA_OK;
+		uint16_t src_id = result->a1 >> 16;
+		uint16_t dst_id = result->a1;
+		uint64_t handle = reg_pair_to_64(result->a4, result->a3);
+		uint16_t vm_id = result->a5;
+
+		switch (result->a2 & FFA_FRAMEWORK_MSG_TYPE_MASK) {
+		case FFA_FRAMEWORK_MSG_VM_CREATED:
+			res = ffa_vm_created_handler(vm_id, handle);
+			ffa_svc(FFA_MSG_SEND_DIRECT_RESP_32, ((uint32_t)dst_id << 16) | src_id,
+				FFA_MSG_FLAG_FRAMEWORK | FFA_FRAMEWORK_MSG_VM_CREATED_ACK,
+				(uint64_t)res, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+				FFA_PARAM_MBZ, result);
+			break;
+		case FFA_FRAMEWORK_MSG_VM_DESTROYED:
+			res = ffa_vm_destroyed_handler(vm_id, handle);
+			ffa_svc(FFA_MSG_SEND_DIRECT_RESP_32, ((uint32_t)dst_id << 16) | src_id,
+				FFA_MSG_FLAG_FRAMEWORK | FFA_FRAMEWORK_MSG_VM_DESTROYED_ACK,
+				(uint64_t)res, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+				FFA_PARAM_MBZ, result);
+			break;
+		default:
+			ffa_svc(FFA_ERROR, FFA_PARAM_MBZ, FFA_INVALID_PARAMETERS, FFA_PARAM_MBZ,
+				FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, result);
+			break;
+		}
+	}
+}
+
 ffa_result ffa_msg_wait(struct ffa_direct_msg *msg)
 {
 	struct ffa_params result = {0};
@@ -220,9 +281,10 @@ ffa_result ffa_msg_wait(struct ffa_direct_msg *msg)
 		FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
 		&result);
 
-	while (result.a0 == FFA_INTERRUPT) {
-		ffa_interrupt_handler(result.a2);
-		ffa_return_from_interrupt(&result);
+	/* FF-A framework messages are handled outside of the main partition message handler loop */
+	while ((result.a0 == FFA_INTERRUPT) ||
+		(result.a0 == FFA_MSG_SEND_DIRECT_REQ_32 && FFA_IS_FRAMEWORK_MSG(result.a2))) {
+		handle_framework_msg(&result);
 	}
 
 	if (result.a0 == FFA_ERROR) {
@@ -299,9 +361,10 @@ static ffa_result ffa_msg_send_direct_resp(uint32_t function_id,
 		SHIFT_U32(source, FFA_MSG_SEND_DIRECT_RESP_SOURCE_ID_SHIFT) |
 		dest, FFA_PARAM_MBZ, a0, a1, a2, a3, a4, &result);
 
-	while (result.a0 == FFA_INTERRUPT) {
-		ffa_interrupt_handler(result.a2);
-		ffa_return_from_interrupt(&result);
+	/* FF-A framework messages are handled outside of the main partition message handler loop */
+	while ((result.a0 == FFA_INTERRUPT) ||
+		(result.a0 == FFA_MSG_SEND_DIRECT_REQ_32 && FFA_IS_FRAMEWORK_MSG(result.a2))) {
+		handle_framework_msg(&result);
 	}
 
 	if (result.a0 == FFA_ERROR) {

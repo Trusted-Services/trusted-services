@@ -19,12 +19,33 @@ struct sp_uuid {
 	uint8_t uuid[16];
 };
 
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+enum sp_partition_id_type {
+	sp_partition_id_type_pe_endpoint_id = 0,
+	sp_partition_id_type_sepid_independent,
+	sp_partition_id_type_sepid_dependent,
+	sp_partition_id_type_auxiliary_id
+};
+
+enum sp_execution_state {
+	sp_execution_state_aarch32 = 0,
+	sp_execution_state_aarch64,
+};
+#endif /* CFG_FFA_VERSION */
+
 struct sp_partition_info {
 	uint16_t partition_id;
 	uint16_t execution_context_count;
 	bool supports_direct_requests;
 	bool can_send_direct_requests;
 	bool supports_indirect_requests;
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	enum sp_partition_id_type partition_id_type;
+	bool inform_vm_create;
+	bool inform_vm_destroy;
+	enum sp_execution_state execution_state;
+	struct sp_uuid uuid;
+#endif /* CFG_FFA_VERSION */
 };
 
 /**
@@ -86,6 +107,19 @@ sp_result sp_discovery_partition_info_get(const struct sp_uuid *uuid,
  */
 sp_result sp_discovery_partition_info_get_all(struct sp_partition_info info[],
 					      uint32_t *count);
+
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+/**
+ * @brief          Queries the count of partitions.
+ *
+ * @param[in]      uuid  The UUID of the partition
+ * @param[out]     count The count of matching partitions
+ *
+ * @return         The SP API result
+ */
+sp_result sp_discovery_partition_info_get_count(const struct sp_uuid *uuid,
+						uint32_t *count);
+#endif /* CFG_FFA_VERSION */
 
 #ifdef __cplusplus
 }

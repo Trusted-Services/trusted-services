@@ -9,6 +9,7 @@
 #define VARIABLE_INDEX_H
 
 #include <protocols/common/efi/efi_status.h>
+#include <protocols/common/efi/efi_types.h>
 #include <protocols/service/smm_variable/smm_variable_proto.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -24,6 +25,7 @@ extern "C" {
  * Implementation limits
  */
 #define VARIABLE_INDEX_MAX_NAME_SIZE (64)
+#define FINGERPRINT_SIZE             (32)
 
 /**
  * \brief variable_metadata structure definition
@@ -32,6 +34,8 @@ extern "C" {
  */
 struct variable_metadata {
 	EFI_GUID guid;
+	EFI_TIME timestamp;
+	uint8_t fingerprint[FINGERPRINT_SIZE];
 	size_t name_size;
 	int16_t name[VARIABLE_INDEX_MAX_NAME_SIZE];
 	uint32_t attributes;
@@ -71,6 +75,7 @@ struct variable_entry {
  */
 struct variable_index {
 	size_t max_variables;
+	uint32_t counter;
 	struct variable_entry *entries;
 };
 
@@ -197,11 +202,20 @@ void variable_index_set_constraints(struct variable_info *info,
  * @param[in]  buffer_size Size of destination buffer
  * @param[in]  buffer Dump to this buffer
  * @param[out] data_len Length of serialized data
+ * @param[out] any_dirty True if there is unsaved data
  *
- * @return     True if there is unsaved data
+ * @return     EFI_SUCCESS if all the changes are dumped successfully
  */
-bool variable_index_dump(const struct variable_index *context, size_t buffer_size, uint8_t *buffer,
-			 size_t *data_len);
+efi_status_t variable_index_dump(const struct variable_index *context, size_t buffer_size,
+				 uint8_t *buffer, size_t *data_len, bool *any_dirty);
+
+/**
+ * @brief     Confirms the successful write of the variable index into the storage
+ *            by stepping the counter.
+ *
+ * @param[in] context variable_index
+ */
+void variable_index_confirm_write(struct variable_index *context);
 
 /**
  * @brief      Restore the serialized index contents
@@ -215,7 +229,7 @@ bool variable_index_dump(const struct variable_index *context, size_t buffer_siz
  *
  * @return     Number of bytes loaded
  */
-size_t variable_index_restore(const struct variable_index *context, size_t data_len,
+size_t variable_index_restore(struct variable_index *context, size_t data_len,
 			      const uint8_t *buffer);
 
 #ifdef __cplusplus

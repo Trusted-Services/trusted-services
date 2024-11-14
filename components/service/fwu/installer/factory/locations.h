@@ -26,7 +26,7 @@
 /* Location UUID for SCP firmware */
 #define LOCATION_UUID_SCP_FW "691d5ea3-27fe-4104-badd-7539c00a9095"
 
-/* Location UUID for RSS firmware */
-#define LOCATION_UUID_RSS_FW "c948a156-58cb-4c38-b406-e60bff2223d5"
+/* Location UUID for RSE firmware */
+#define LOCATION_UUID_RSE_FW "c948a156-58cb-4c38-b406-e60bff2223d5"
 
 #endif /* INSTALLER_FACTORY_LOCATIONS_H */

@@ -7,7 +7,7 @@
 #ifndef TS_RPC_CALLER_LINUX_H
 #define TS_RPC_CALLER_LINUX_H
 
-#include "components/rpc/common/caller/rpc_caller.h"
+#include "rpc_caller.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -240,6 +240,10 @@ public:
 					   uint64_t hash_len, const uint8_t *public_key_cert,
 					   uint64_t public_key_cert_len) = 0;
 
+	virtual int get_uefi_priv_auth_var_fingerprint(const uint8_t *signature_cert,
+						       uint64_t signature_cert_len,
+						       uint8_t *output) = 0;
+
 protected:
 	crypto_client();
 	crypto_client(struct rpc_caller_session *session);

@@ -19,7 +19,7 @@ static void sp_ts_service_context_relinquish(void *context);
 struct sp_ts_service_context *spffa_service_context_create(const struct rpc_uuid *service_uuid)
 {
 	struct sp_ts_service_context *new_context =
-		(struct sp_ts_service_context*)malloc(sizeof(struct sp_ts_service_context));
+		(struct sp_ts_service_context *)calloc(1, sizeof(struct sp_ts_service_context));
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 
 	if (!new_context)

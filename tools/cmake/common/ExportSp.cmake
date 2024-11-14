@@ -85,20 +85,6 @@ function (export_sp)
 	set(SP_UUID_LE " 0x${_uuid_le}" PARENT_SCOPE)
 	set(EXPORT_SP_UUID_DT " 0x${_uuid_le}")
 
-	# As the .dtsi is meant to be included in .dts file, it shouldn't contain a separate
-	# /dts-v1/ tag and its node should be unique, i.e. the SP name.
-	set(DTS_TAG "")
-	set(DTS_NODE "${EXPORT_SP_NAME}")
-	configure_file(${EXPORT_DTS_IN} ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_SP_BIN_UUID_CANON}_before_preprocessing.dtsi @ONLY NEWLINE_STYLE UNIX)
-
-	compiler_preprocess_file(
-		SRC ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_SP_BIN_UUID_CANON}_before_preprocessing.dtsi
-		DST ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_SP_BIN_UUID_CANON}.dtsi
-		TARGET ${EXPORT_SP_NAME}
-	)
-
-	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_SP_BIN_UUID_CANON}.dtsi DESTINATION ${TS_ENV}/manifest)
-
 	# The .dts file is a standalone structure, thus it should have the /dts-v1/ tag and it
 	# starts with the root node.
 	set(DTS_TAG "/dts-v1/;")

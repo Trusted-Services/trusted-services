@@ -126,6 +126,14 @@ struct crypto_provider_serializer {
 							       uint8_t *hash, uint64_t *hash_len,
 							       uint8_t *public_key_cert,
 							       uint64_t *public_key_cert_len);
+
+	/* Operation: get_uefi_priv_auth_var_fingerprintentifier */
+	rpc_status_t (*deserialize_get_uefi_priv_auth_var_fingerprint_req)(const struct rpc_buffer *req_buf,
+								uint8_t *signed_data,
+								uint64_t *signed_data_len);
+
+	rpc_status_t (*serialize_get_uefi_priv_auth_var_fingerprint_resp)(struct rpc_buffer *resp_buf,
+							       const uint8_t *output);
 };
 
 #endif /* CRYPTO_PROVIDER_SERIALIZER_H */

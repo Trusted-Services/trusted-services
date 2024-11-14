@@ -117,3 +117,8 @@ TEST(CryptoServicePackedcTests, verifyPkcs7Signature)
 {
 	m_scenarios->verifypkcs7signature();
 }
+
+TEST(CryptoServicePackedcTests, getUefiPrivAuthVarFingerprint)
+{
+	m_scenarios->getUefiPrivAuthVarFingerprint();
+}

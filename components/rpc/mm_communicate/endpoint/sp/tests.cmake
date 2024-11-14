@@ -22,4 +22,5 @@ unit_test_add_suite(
 		${UNIT_TEST_PROJECT_PATH}/components/rpc/common/interface
 	COMPILE_DEFINITIONS
 		-DARM64
+		-DCFG_FFA_VERSION=0x00010001
 )

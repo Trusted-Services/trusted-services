@@ -23,6 +23,38 @@ void ffa_interrupt_handler(uint32_t id)
 		.withUnsignedIntParameter("id", id);
 }
 
+void expect_ffa_vm_created_handler(uint16_t vm_id, uint64_t handle, ffa_result result)
+{
+	mock().expectOneCall("ffa_vm_created_handler")
+		.withUnsignedIntParameter("vm_id", vm_id)
+		.withUnsignedLongIntParameter("handle", handle)
+		.andReturnValue(result);
+}
+
+ffa_result ffa_vm_created_handler(uint16_t vm_id, uint64_t handle)
+{
+	return mock().actualCall("ffa_vm_created_handler")
+		.withUnsignedIntParameter("vm_id", vm_id)
+		.withUnsignedLongIntParameter("handle", handle)
+		.returnIntValue();
+}
+
+void expect_ffa_vm_destroyed_handler(uint16_t vm_id, uint64_t handle, ffa_result result)
+{
+	mock().expectOneCall("ffa_vm_destroyed_handler")
+		.withUnsignedIntParameter("vm_id", vm_id)
+		.withUnsignedLongIntParameter("handle", handle)
+		.andReturnValue(result);
+}
+
+ffa_result ffa_vm_destroyed_handler(uint16_t vm_id, uint64_t handle)
+{
+	return mock().actualCall("ffa_vm_destroyed_handler")
+		.withUnsignedIntParameter("vm_id", vm_id)
+		.withUnsignedLongIntParameter("handle", handle)
+		.returnIntValue();
+}
+
 TEST_GROUP(ffa_api)
 {
 	TEST_SETUP()
@@ -80,9 +112,14 @@ TEST(ffa_api, ffa_version)
 {
 	uint32_t version = 0;
 	const uint32_t test_version = 0x78901234;
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
+	const uint32_t cfg_ffa_version = 0x00010000;
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+	const uint32_t cfg_ffa_version = 0x00010001;
+#endif /* CFG_FFA_VERSION */
 
 	svc_result.a0 = test_version;
-	expect_ffa_svc(0x84000063, 0x10000U, 0, 0, 0, 0, 0, 0, &svc_result);
+	expect_ffa_svc(0x84000063, cfg_ffa_version, 0, 0, 0, 0, 0, 0, &svc_result);
 
 	ffa_result result = ffa_version(&version);
 	LONGS_EQUAL(FFA_OK, result);
@@ -92,9 +129,14 @@ TEST(ffa_api, ffa_version)
 TEST(ffa_api, ffa_version_error)
 {
 	uint32_t version = 0;
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
+	const uint32_t cfg_ffa_version = 0x00010000;
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+	const uint32_t cfg_ffa_version = 0x00010001;
+#endif /* CFG_FFA_VERSION */
 
 	svc_result.a0 = 0xffffffff;
-	expect_ffa_svc(0x84000063, 0x10000U, 0, 0, 0, 0, 0, 0, &svc_result);
+	expect_ffa_svc(0x84000063, cfg_ffa_version, 0, 0, 0, 0, 0, 0, &svc_result);
 
 	ffa_result result = ffa_version(&version);
 	LONGS_EQUAL(-1, result);
@@ -277,6 +319,7 @@ TEST(ffa_api, ffa_rxtx_unmap_unknown_response)
 	}
 }
 
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
 TEST(ffa_api, ffa_partition_info_get)
 {
 	const struct ffa_uuid uuid = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
@@ -329,6 +372,70 @@ TEST(ffa_api, ffa_partition_info_get_unknown_response)
 		ffa_partition_info_get(&uuid, &count);
 	}
 }
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+TEST(ffa_api, ffa_partition_info_get)
+{
+	const struct ffa_uuid uuid = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
+				       0xcd, 0xef, 0x12, 0x34, 0x56, 0x78,
+				       0x9a, 0xbc, 0xde, 0xf0 };
+	const uint32_t flags = 0x33445566;
+	uint32_t count = 0;
+	uint32_t size = 0;
+	const uint32_t count_result = 0xaabbccdd;
+	const uint32_t size_result = 0xeeff1122;
+
+	svc_result.a0 = 0x84000061;
+	svc_result.a2 = count_result;
+	svc_result.a3 = size_result;
+	expect_ffa_svc(0x84000068, 0x67452301, 0xefcdab89, 0x78563412,
+		       0xf0debc9a, flags, 0, 0, &svc_result);
+
+	ffa_result result = ffa_partition_info_get(&uuid, flags, &count, &size);
+	LONGS_EQUAL(FFA_OK, result);
+	UNSIGNED_LONGS_EQUAL(count_result, count);
+	UNSIGNED_LONGS_EQUAL(size_result, size);
+}
+
+TEST(ffa_api, ffa_partition_info_get_error)
+{
+	const struct ffa_uuid uuid = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
+				       0xcd, 0xef, 0x12, 0x34, 0x56, 0x78,
+				       0x9a, 0xbc, 0xde, 0xf0 };
+	const uint32_t flags = 0x33445566;
+	uint32_t count = 0x1234;
+	uint32_t size = 0x5678;
+
+	setup_error_response(-1);
+	expect_ffa_svc(0x84000068, 0x67452301, 0xefcdab89, 0x78563412,
+		       0xf0debc9a, flags, 0, 0, &svc_result);
+
+	ffa_result result = ffa_partition_info_get(&uuid, flags, &count, &size);
+	LONGS_EQUAL(-1, result);
+	UNSIGNED_LONGS_EQUAL(0, count);
+	UNSIGNED_LONGS_EQUAL(0, size);
+}
+
+TEST(ffa_api, ffa_partition_info_get_unknown_response)
+{
+	const struct ffa_uuid uuid = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
+				       0xcd, 0xef, 0x12, 0x34, 0x56, 0x78,
+				       0x9a, 0xbc, 0xde, 0xf0 };
+	const uint32_t flags = 0x33445566;
+	uint32_t count = 0;
+	uint32_t size = 0;
+	const uint32_t count_result = 0xaabbccdd;
+	assert_environment_t assert_env;
+
+	svc_result.a0 = 0x12345678;
+	svc_result.a2 = count_result;
+	expect_ffa_svc(0x84000068, 0x67452301, 0xefcdab89, 0x78563412,
+		       0xf0debc9a, flags, 0, 0, &svc_result);
+
+	if (SETUP_ASSERT_ENVIRONMENT(assert_env)) {
+		ffa_partition_info_get(&uuid, flags, &count, &size);
+	}
+}
+#endif /* CFG_FFA_VERSION */
 
 TEST(ffa_api, ffa_id_get)
 {
@@ -471,6 +578,157 @@ TEST(ffa_api, ffa_msg_wait_two_interrupt_success)
 
 	svc_result.a0 = 0x84000061;
 	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_msg_wait(&msg);
+	LONGS_EQUAL(0, result);
+	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
+}
+
+TEST(ffa_api, ffa_msg_wait_vm_created_success)
+{
+	const uint16_t source_id = 0;
+	const uint16_t dest_id = 0x8001;
+	const uint16_t vm_id = 0x1234;
+	const uint64_t handle = 0x0123456789abcdefULL;
+	const uint32_t handle_hi = 0x01234567;
+	const uint32_t handle_lo = 0x89abcdef;
+	struct ffa_params vm_created_msg;
+
+	vm_created_msg.a0 = 0x8400006F;
+	vm_created_msg.a1 = ((uint32_t)source_id << 16) | dest_id;
+	vm_created_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_CREATED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_created_msg.a3 = handle_lo;
+	vm_created_msg.a4 = handle_hi;
+	vm_created_msg.a5 = vm_id;
+	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &vm_created_msg);
+	expect_ffa_vm_created_handler(vm_id, handle, FFA_OK);
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000070, ((uint32_t)dest_id) << 16 | source_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_CREATED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &svc_result);
+
+	ffa_result result = ffa_msg_wait(&msg);
+	LONGS_EQUAL(0, result);
+	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
+}
+
+TEST(ffa_api, ffa_msg_wait_vm_destroyed_success)
+{
+	const uint16_t source_id = 0;
+	const uint16_t dest_id = 0x8001;
+	const uint16_t vm_id = 0x1234;
+	const uint64_t handle = 0x0123456789abcdefULL;
+	const uint32_t handle_hi = 0x01234567;
+	const uint32_t handle_lo = 0x89abcdef;
+	struct ffa_params vm_destroyed_msg;
+
+	vm_destroyed_msg.a0 = 0x8400006F;
+	vm_destroyed_msg.a1 = ((uint32_t)source_id << 16) | dest_id;
+	vm_destroyed_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_DESTROYED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_destroyed_msg.a3 = handle_lo;
+	vm_destroyed_msg.a4 = handle_hi;
+	vm_destroyed_msg.a5 = vm_id;
+	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &vm_destroyed_msg);
+	expect_ffa_vm_destroyed_handler(vm_id, handle, FFA_OK);
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000070, ((uint32_t)dest_id) << 16 | source_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_DESTROYED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &svc_result);
+
+	ffa_result result = ffa_msg_wait(&msg);
+	LONGS_EQUAL(0, result);
+	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
+}
+
+TEST(ffa_api, ffa_msg_wait_vm_created_destroyed_success)
+{
+	const uint16_t source_id = 0;
+	const uint16_t dest_id = 0x8001;
+	const uint16_t vm_id = 0x1234;
+	const uint64_t handle = 0x0123456789abcdefULL;
+	const uint32_t handle_hi = 0x01234567;
+	const uint32_t handle_lo = 0x89abcdef;
+	struct ffa_params vm_created_msg;
+	struct ffa_params vm_destroyed_msg;
+
+	vm_created_msg.a0 = 0x8400006F;
+	vm_created_msg.a1 = ((uint32_t)source_id << 16) | dest_id;
+	vm_created_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_CREATED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_created_msg.a3 = handle_lo;
+	vm_created_msg.a4 = handle_hi;
+	vm_created_msg.a5 = vm_id;
+	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &vm_created_msg);
+	expect_ffa_vm_created_handler(vm_id, handle, FFA_OK);
+
+	vm_destroyed_msg.a0 = 0x8400006F;
+	vm_destroyed_msg.a1 = ((uint32_t)source_id << 16) | dest_id;
+	vm_destroyed_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_DESTROYED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_destroyed_msg.a3 = handle_lo;
+	vm_destroyed_msg.a4 = handle_hi;
+	vm_destroyed_msg.a5 = vm_id;
+	expect_ffa_svc(0x84000070, ((uint32_t)dest_id) << 16 | source_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_CREATED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &vm_destroyed_msg);
+	expect_ffa_vm_destroyed_handler(vm_id, handle, FFA_OK);
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000070, ((uint32_t)dest_id) << 16 | source_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_DESTROYED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &svc_result);
+	ffa_result result = ffa_msg_wait(&msg);
+	LONGS_EQUAL(0, result);
+	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
+}
+
+TEST(ffa_api, ffa_msg_wait_vm_created_interrupt_destroyed_success)
+{
+	const uint16_t source_id = 0;
+	const uint16_t dest_id = 0x8001;
+	const uint16_t vm_id = 0x1234;
+	const uint64_t handle = 0x0123456789abcdefULL;
+	const uint32_t handle_hi = 0x01234567;
+	const uint32_t handle_lo = 0x89abcdef;
+	const uint32_t interrupt_id = 0x12345678;
+	struct ffa_params vm_created_msg;
+	struct ffa_params vm_destroyed_msg;
+	struct ffa_params interrupt_params;
+
+	vm_created_msg.a0 = 0x8400006F;
+	vm_created_msg.a1 = ((uint32_t)source_id << 16) | dest_id;
+	vm_created_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_CREATED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_created_msg.a3 = handle_lo;
+	vm_created_msg.a4 = handle_hi;
+	vm_created_msg.a5 = vm_id;
+	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &vm_created_msg);
+	expect_ffa_vm_created_handler(vm_id, handle, FFA_OK);
+
+	interrupt_params.a0 = 0x84000062;
+	interrupt_params.a2 = interrupt_id;
+	expect_ffa_svc(0x84000070, ((uint32_t)dest_id) << 16 | source_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_CREATED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &interrupt_params);
+	expect_ffa_interrupt_handler(interrupt_id);
+
+	vm_destroyed_msg.a0 = 0x8400006F;
+	vm_destroyed_msg.a1 = ((uint32_t)source_id << 16) | dest_id;
+	vm_destroyed_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_DESTROYED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_destroyed_msg.a3 = handle_lo;
+	vm_destroyed_msg.a4 = handle_hi;
+	vm_destroyed_msg.a5 = vm_id;
+	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &vm_destroyed_msg);
+	expect_ffa_vm_destroyed_handler(vm_id, handle, FFA_OK);
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000070, ((uint32_t)dest_id) << 16 | source_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_DESTROYED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &svc_result);
 	ffa_result result = ffa_msg_wait(&msg);
 	LONGS_EQUAL(0, result);
 	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
@@ -965,6 +1223,43 @@ TEST(ffa_api, ffa_msg_send_direct_resp_32_two_interrupt_success)
 
 	svc_result.a0 = 0x84000061;
 	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_msg_send_direct_resp_32(
+		source_id, dest_id, arg0, arg1, arg2, arg3, arg4, &msg);
+	LONGS_EQUAL(0, result);
+	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
+}
+
+TEST(ffa_api, ffa_msg_send_direct_resp_32_vm_created_success)
+{
+	const uint16_t source_id = 0x1122;
+	const uint16_t dest_id = 0x3344;
+	const uint16_t nwd_id = 0;
+	const uint32_t arg0 = 0x01234567ULL;
+	const uint32_t arg1 = 0x12345678ULL;
+	const uint32_t arg2 = 0x23456789ULL;
+	const uint32_t arg3 = 0x3456789aULL;
+	const uint32_t arg4 = 0x456789abULL;
+	const uint16_t vm_id = 0x1234;
+	const uint64_t handle = 0x0123456789abcdefULL;
+	const uint32_t handle_hi = 0x01234567;
+	const uint32_t handle_lo = 0x89abcdef;
+	struct ffa_params vm_created_msg;
+
+	vm_created_msg.a0 = 0x8400006F;
+	vm_created_msg.a1 = ((uint32_t)nwd_id << 16) | source_id;
+	vm_created_msg.a2 = FFA_MSG_FLAG_FRAMEWORK |
+			(FFA_FRAMEWORK_MSG_VM_CREATED << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	vm_created_msg.a3 = handle_lo;
+	vm_created_msg.a4 = handle_hi;
+	vm_created_msg.a5 = vm_id;
+	expect_ffa_svc(0x84000070, ((uint32_t)source_id << 16) | dest_id, 0,
+		       arg0, arg1, arg2, arg3, arg4, &vm_created_msg);
+	expect_ffa_vm_created_handler(vm_id, handle, FFA_OK);
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000070, ((uint32_t)source_id) << 16 | nwd_id, FFA_MSG_FLAG_FRAMEWORK |
+		       (FFA_FRAMEWORK_MSG_VM_CREATED_ACK << FFA_FRAMEWORK_MSG_TYPE_SHIFT), 0, 0,
+		       0, 0, 0, &svc_result);
 	ffa_result result = ffa_msg_send_direct_resp_32(
 		source_id, dest_id, arg0, arg1, arg2, arg3, arg4, &msg);
 	LONGS_EQUAL(0, result);

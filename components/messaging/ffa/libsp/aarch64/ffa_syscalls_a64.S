@@ -25,3 +25,5 @@
 	stp	x6, x7, [x8, #48]
 	ret
 	END_FUNC ffa_svc
+
+BTI(emit_aarch64_feature_1_and     GNU_PROPERTY_AARCH64_FEATURE_1_BTI)

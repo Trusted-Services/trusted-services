@@ -16,6 +16,10 @@
 #  libts will be imported for the environment in which service tests are
 #  deployed.
 #-------------------------------------------------------------------------------
+if (COVERAGE)
+	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
+endif()
+
 include(${TS_ROOT}/deployments/libts/libts-import.cmake)
 target_link_libraries(ts-service-test PRIVATE libts::ts)
 
@@ -73,6 +77,15 @@ add_components(
 		"components/service/fwu/test/image_directory_checker"
 		"components/service/fwu/test/metadata_checker"
 		"components/service/fwu/test/metadata_fetcher/client"
+)
+
+#-------------------------------------------------------------------------------
+#  Component configurations
+#
+#-------------------------------------------------------------------------------
+target_compile_definitions(ts-service-test PRIVATE
+	"TRACE_PREFIX=\"TEST\""
+	"TRACE_LEVEL=0"
 )
 
 #-------------------------------------------------------------------------------

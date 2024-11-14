@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  */
 
 #include <stddef.h>
 #include <stdint.h>
 #include "compiler.h"
-#include "libc_init.h"
 #include "sp_api.h"
 
 /*
@@ -23,8 +22,6 @@ void __noreturn __sp_entry(uintptr_t a0, uintptr_t a1,
 	(void)a1;
 	(void)a2;
 	(void)a3;
-
-	libc_init();
 
 	sp_main((union ffa_boot_info *)a0);
 }

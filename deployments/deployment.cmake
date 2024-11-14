@@ -62,8 +62,12 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type.")
 endif()
 
+if (COVERAGE)
+	set(CMAKE_BUILD_TYPE "DebugCoverage" CACHE STRING "Build type" FORCE)
+endif()
+
 # List of supported build types. Needs to be in alignment with the toolchain file
-set(TS_SUPPORTED_BUILD_TYPES DEBUG "MINSIZEREL" "MINSIZWITHDEBINFO" "RELEASE" "RELWITHDEBINFO" CACHE
+set(TS_SUPPORTED_BUILD_TYPES "DEBUG" "MINSIZEREL" "MINSIZWITHDEBINFO" "RELEASE" "RELWITHDEBINFO" "DEBUGCOVERAGE" CACHE
   STRING "List of supported build types.")
 
 # Convert the build type string to upper case to help case insensitive comparison.
@@ -74,6 +78,10 @@ mark_as_advanced(UC_CMAKE_BUILD_TYPE)
 if (NOT "${UC_CMAKE_BUILD_TYPE}" IN_LIST TS_SUPPORTED_BUILD_TYPES)
 	message(FATAL_ERROR "Unknown build type \"${CMAKE_BUILD_TYPE}\" specified in CMAKE_BUILD_TYPE.")
 endif()
+
+# Set postfix of libraries according the build type.
+set(CMAKE_DEBUGCOVERAGE_POSTFIX "c")
+set(CMAKE_DEBUG_POSTFIX "d")
 
 # Default protocol UUID used by TS SPs.
 set(TS_RPC_UUID_CANON "bdcd76d7-825e-4751-963b-86d4f84943ac" CACHE STRING "Trusted Services PRC (protocol) UUID.")

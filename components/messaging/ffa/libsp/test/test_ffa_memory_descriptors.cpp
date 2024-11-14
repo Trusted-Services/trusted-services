@@ -39,9 +39,31 @@ TEST_GROUP(ffa_memory_descriptors)
 		return *(Type *)&tx_buffer_area[offset];
 	}
 
-	template <typename Type> Type get_rx_value(uintptr_t offset)
+	void validate_mem_transaction_descriptor(uint16_t sender_id, uint16_t mem_region_attr, uint32_t flags, uint64_t handle, uint64_t tag, uint32_t mem_desc_count)
 	{
-		return *(Type *)&rx_buffer_area[offset];
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
+		UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
+		BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
+		BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
+		UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
+		UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
+		UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
+		UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
+		UNSIGNED_LONGS_EQUAL(mem_desc_count, get_tx_value<uint32_t>(28));
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+		uint8_t reserved[12] = { 0 };
+
+		UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
+		UNSIGNED_LONGS_EQUAL(mem_region_attr, get_tx_value<uint16_t>(2));
+		UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
+		UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
+		UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
+		UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_access_desc), get_tx_value<uint32_t>(24));
+		UNSIGNED_LONGS_EQUAL(mem_desc_count, get_tx_value<uint32_t>(28));
+		UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc),
+				     get_tx_value<uint32_t>(32));
+		MEMCMP_EQUAL(reserved, tx_buffer_area + 36, sizeof(reserved));
+#endif /* CFG_FFA_VERSION */
 	}
 
 	struct ffa_mem_transaction_buffer tx_buffer;
@@ -74,25 +96,15 @@ TEST(ffa_memory_descriptors, ffa_init_mem_transaction_desc)
 	ffa_init_mem_transaction_desc(&tx_buffer, sender_id, mem_region_attr,
 				      flags, handle, tag);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		0, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
-
-	UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc),
-			     tx_buffer.used);
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 0);
+	UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc), tx_buffer.used);
 }
 
 TEST(ffa_memory_descriptors, ffa_init_mem_transaction_desc_buffer_overflow)
 {
 	assert_environment_t assert_env;
 
-	tx_buffer.length = 1;
+	tx_buffer.length = sizeof(struct ffa_mem_transaction_desc) - 1;
 
 	if (SETUP_ASSERT_ENVIRONMENT(assert_env)) {
 		ffa_init_mem_transaction_desc(&tx_buffer, sender_id,
@@ -112,6 +124,7 @@ TEST(ffa_memory_descriptors, ffa_get_mem_transaction_desc)
 
 	transaction = ffa_get_mem_transaction_desc(&tx_buffer);
 
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
 	UNSIGNED_LONGS_EQUAL(sender_id, transaction->sender_id);
 	BYTES_EQUAL(mem_region_attr, transaction->mem_region_attr);
 	BYTES_EQUAL(0, transaction->reserved_mbz0);
@@ -120,6 +133,18 @@ TEST(ffa_memory_descriptors, ffa_get_mem_transaction_desc)
 	UNSIGNED_LONGLONGS_EQUAL(tag, transaction->tag);
 	UNSIGNED_LONGS_EQUAL(0, transaction->reserved_mbz1);
 	UNSIGNED_LONGS_EQUAL(0, transaction->mem_access_desc_count);
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+	uint8_t reserved[12] = { 0 };
+
+	UNSIGNED_LONGS_EQUAL(sender_id, transaction->sender_id);
+	UNSIGNED_LONGS_EQUAL(mem_region_attr, transaction->mem_region_attr);
+	UNSIGNED_LONGS_EQUAL(flags, transaction->flags);
+	UNSIGNED_LONGLONGS_EQUAL(handle, transaction->handle);
+	UNSIGNED_LONGLONGS_EQUAL(tag, transaction->tag);
+	UNSIGNED_LONGS_EQUAL(sizeof(ffa_mem_access_desc), transaction->mem_access_desc_size);
+	UNSIGNED_LONGS_EQUAL(0, transaction->mem_access_desc_count);
+	MEMCMP_EQUAL(reserved, transaction->reserved_mbz0, sizeof(reserved));
+#endif /* CFG_FFA_VERSION */
 }
 
 TEST(ffa_memory_descriptors, ffa_reserve_mem_access_desc)
@@ -129,19 +154,10 @@ TEST(ffa_memory_descriptors, ffa_reserve_mem_access_desc)
 
 	ffa_reserve_mem_access_desc(&tx_buffer, 3);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 0);
 	UNSIGNED_LONGS_EQUAL(
-		0, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
-
-	UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc) +
-				     sizeof(struct ffa_mem_access_desc) * 3,
-			     tx_buffer.used);
+		sizeof(struct ffa_mem_transaction_desc) + sizeof(struct ffa_mem_access_desc) * 3,
+		tx_buffer.used);
 }
 
 TEST(ffa_memory_descriptors, ffa_reserve_mem_access_desc_shrink)
@@ -152,20 +168,11 @@ TEST(ffa_memory_descriptors, ffa_reserve_mem_access_desc_shrink)
 	ffa_reserve_mem_access_desc(&tx_buffer, 3);
 	ffa_reserve_mem_access_desc(&tx_buffer, 1);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		0, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
-
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 0);
 	/* It should not shrink the size */
-	UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc) +
-				     sizeof(struct ffa_mem_access_desc) * 3,
-			     tx_buffer.used);
+	UNSIGNED_LONGS_EQUAL(
+		sizeof(struct ffa_mem_transaction_desc) + sizeof(struct ffa_mem_access_desc) * 3,
+		tx_buffer.used);
 }
 
 TEST(ffa_memory_descriptors, ffa_reserve_mem_access_desc_buffer_overflow)
@@ -193,29 +200,18 @@ TEST(ffa_memory_descriptors, ffa_add_mem_access_desc)
 
 	UNSIGNED_LONGS_EQUAL(0, desc_id);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		1, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 1);
 
 	uint32_t offset = sizeof(struct ffa_mem_transaction_desc);
-
 	UNSIGNED_LONGS_EQUAL(receiver_id, get_tx_value<uint16_t>(offset));
 	BYTES_EQUAL(mem_access_perm, get_tx_value<uint8_t>(offset + 2));
 	BYTES_EQUAL(flags2, get_tx_value<uint8_t>(offset + 3));
-	UNSIGNED_LONGS_EQUAL(
-		0, get_tx_value<uint16_t>(offset + 4)); // Composite offset
-	UNSIGNED_LONGLONGS_EQUAL(
-		0, get_tx_value<uint64_t>(offset + 8)); // Reserved
+	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint16_t>(offset + 4)); // Composite offset
+	UNSIGNED_LONGLONGS_EQUAL(0, get_tx_value<uint64_t>(offset + 8)); // Reserved
 
-	UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc) +
-				     sizeof(struct ffa_mem_access_desc),
-			     tx_buffer.used);
+	UNSIGNED_LONGS_EQUAL(
+		sizeof(struct ffa_mem_transaction_desc) + sizeof(struct ffa_mem_access_desc),
+		tx_buffer.used);
 }
 
 TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_two)
@@ -231,18 +227,9 @@ TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_two)
 	UNSIGNED_LONGS_EQUAL(0, desc_id);
 	UNSIGNED_LONGS_EQUAL(1, desc_id2);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		2, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 2);
 
 	uint32_t offset = sizeof(struct ffa_mem_transaction_desc);
-
 	UNSIGNED_LONGS_EQUAL(receiver_id, get_tx_value<uint16_t>(offset));
 	BYTES_EQUAL(mem_access_perm, get_tx_value<uint8_t>(offset + 2));
 	BYTES_EQUAL(flags2, get_tx_value<uint8_t>(offset + 3));
@@ -264,9 +251,9 @@ TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_two)
 	UNSIGNED_LONGLONGS_EQUAL(
 		0, get_tx_value<uint64_t>(offset + 8)); // Reserved
 
-	UNSIGNED_LONGS_EQUAL(sizeof(struct ffa_mem_transaction_desc) +
-				     sizeof(struct ffa_mem_access_desc) * 2,
-			     tx_buffer.used);
+	UNSIGNED_LONGS_EQUAL(
+		sizeof(struct ffa_mem_transaction_desc) + sizeof(struct ffa_mem_access_desc) * 2,
+		tx_buffer.used);
 }
 
 TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_buffer_overflow)
@@ -294,8 +281,7 @@ TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_count_overflow)
 	ffa_init_mem_transaction_desc(&tx_buffer, sender_id, mem_region_attr,
 				      flags, handle, tag);
 
-	((struct ffa_mem_transaction_desc *)tx_buffer_area)
-		->mem_access_desc_count = UINT32_MAX;
+	((struct ffa_mem_transaction_desc *)tx_buffer_area)->mem_access_desc_count = UINT32_MAX;
 
 	if (SETUP_ASSERT_ENVIRONMENT(assert_env)) {
 		ffa_add_mem_access_desc(&tx_buffer, receiver_id,
@@ -318,18 +304,9 @@ TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_two_then_shrink)
 	UNSIGNED_LONGS_EQUAL(0, desc_id);
 	UNSIGNED_LONGS_EQUAL(1, desc_id2);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		2, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 2);
 
 	uint32_t offset = sizeof(struct ffa_mem_transaction_desc);
-
 	UNSIGNED_LONGS_EQUAL(receiver_id, get_tx_value<uint16_t>(offset));
 	BYTES_EQUAL(mem_access_perm, get_tx_value<uint8_t>(offset + 2));
 	BYTES_EQUAL(flags2, get_tx_value<uint8_t>(offset + 3));
@@ -340,7 +317,6 @@ TEST(ffa_memory_descriptors, ffa_add_mem_access_desc_two_then_shrink)
 
 	offset = sizeof(struct ffa_mem_transaction_desc) +
 		 sizeof(struct ffa_mem_access_desc);
-
 	UNSIGNED_LONGS_EQUAL((uint16_t)~receiver_id,
 			     get_tx_value<uint16_t>(offset));
 	BYTES_EQUAL((uint8_t)~mem_access_perm,
@@ -413,15 +389,7 @@ TEST(ffa_memory_descriptors, ffa_add_memory_region)
 
 	ffa_add_memory_region(&tx_buffer, ptr, 3);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		1, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 1);
 
 	uint32_t offset = sizeof(struct ffa_mem_transaction_desc);
 	uint32_t composite_offset = offset + sizeof(struct ffa_mem_access_desc);
@@ -461,15 +429,7 @@ TEST(ffa_memory_descriptors, ffa_add_memory_region_two)
 	ffa_add_memory_region(&tx_buffer, ptr, 3);
 	ffa_add_memory_region(&tx_buffer, ptr + 1, 2);
 
-	UNSIGNED_LONGS_EQUAL(sender_id, get_tx_value<uint16_t>(0));
-	BYTES_EQUAL(mem_region_attr, get_tx_value<uint8_t>(2));
-	BYTES_EQUAL(0, get_tx_value<uint8_t>(3));
-	UNSIGNED_LONGS_EQUAL(flags, get_tx_value<uint32_t>(4));
-	UNSIGNED_LONGLONGS_EQUAL(handle, get_tx_value<uint64_t>(8));
-	UNSIGNED_LONGLONGS_EQUAL(tag, get_tx_value<uint64_t>(16));
-	UNSIGNED_LONGS_EQUAL(0, get_tx_value<uint32_t>(24));
-	UNSIGNED_LONGS_EQUAL(
-		1, get_tx_value<uint32_t>(28)); // Endpoint descriptor count
+	validate_mem_transaction_descriptor(sender_id, mem_region_attr, flags, handle, tag, 1);
 
 	uint32_t offset = sizeof(struct ffa_mem_transaction_desc);
 	uint32_t composite_offset = offset + sizeof(struct ffa_mem_access_desc);

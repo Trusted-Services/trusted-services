@@ -176,19 +176,6 @@ TEST(SmmVariableAttackTests, setAndGetWithSizeMaxNameSize)
 	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, efi_status);
 }
 
-TEST(SmmVariableAttackTests, enumerateWithOversizeName)
-{
-	efi_status_t efi_status = EFI_SUCCESS;
-	std::u16string var_name = null_name;
-	EFI_GUID guid;
-	memset(&guid, 0, sizeof(guid));
-
-	efi_status = m_client->get_next_variable_name(guid, var_name,
-						      (var_name.size() + 1) * sizeof(int16_t) + 1);
-
-	UNSIGNED_LONGLONGS_EQUAL(EFI_INVALID_PARAMETER, efi_status);
-}
-
 TEST(SmmVariableAttackTests, enumerateWithSizeMaxNameSize)
 {
 	efi_status_t efi_status = EFI_SUCCESS;
@@ -202,16 +189,22 @@ TEST(SmmVariableAttackTests, enumerateWithSizeMaxNameSize)
 
 	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, efi_status);
 
-	/* Initial iteration uses good name length */
-	efi_status = m_client->get_next_variable_name(guid, var_name);
+	/* Initial iteration uses good name length for next variable */
+	efi_status = m_client->get_next_variable_name(guid, var_name, std::numeric_limits<size_t>::max());
 
 	UNSIGNED_LONGLONGS_EQUAL(EFI_SUCCESS, efi_status);
 
-	/* Next iteration uses invalid name length */
-	efi_status = m_client->get_next_variable_name(guid, var_name,
-						      std::numeric_limits<size_t>::max());
+	/* Next iteration uses invalid name length, so a null terminator can not fit */
+	var_name = null_name;
+	efi_status = m_client->get_next_variable_name(guid, var_name, 1);
 
 	UNSIGNED_LONGLONGS_EQUAL(EFI_INVALID_PARAMETER, efi_status);
+
+	/* Next iteration uses invalid name length, so a null terminator can not fit */
+	var_name = null_name;
+	efi_status = m_client->get_next_variable_name(guid, var_name, 2);
+
+	UNSIGNED_LONGLONGS_EQUAL(EFI_BUFFER_TOO_SMALL, efi_status);
 
 	/* Expect to be able to remove the variable */
 	efi_status = m_client->remove_variable(m_common_guid, var_name_1);

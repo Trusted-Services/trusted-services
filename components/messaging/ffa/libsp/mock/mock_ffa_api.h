@@ -23,8 +23,14 @@ void expect_ffa_rxtx_map(const void *tx_buffer, const void *rx_buffer,
 
 void expect_ffa_rxtx_unmap(uint16_t id, ffa_result result);
 
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
 void expect_ffa_partition_info_get(const struct ffa_uuid *uuid,
 				   const uint32_t *count, ffa_result result);
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+void expect_ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t flags,
+				   const uint32_t *count, const uint32_t *size,
+				   ffa_result result);
+#endif /* CFG_FFA_VERSION */
 
 void expect_ffa_id_get(const uint16_t *id, ffa_result result);
 

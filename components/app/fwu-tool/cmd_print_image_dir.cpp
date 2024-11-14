@@ -13,7 +13,7 @@
 
 #include "common/uuid/uuid.h"
 #include "print_uuid.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 
 void cmd_print_image_dir(fwu_app &app)
 {
@@ -29,13 +29,13 @@ void cmd_print_image_dir(fwu_app &app)
 		return;
 	}
 
-	if (fetched_object.size() < offsetof(ts_fwu_image_directory, img_info_entry)) {
+	if (fetched_object.size() < offsetof(fwu_image_directory, img_info_entry)) {
 		printf("Error: invalid image directory size\n");
 		return;
 	}
 
-	const struct ts_fwu_image_directory *img_dir =
-		(const struct ts_fwu_image_directory *)fetched_object.data();
+	const struct fwu_image_directory *img_dir =
+		(const struct fwu_image_directory *)fetched_object.data();
 
 	printf("\nimage_directory (size %zu bytes) :\n", fetched_object.size());
 	printf("\tdirectory_version : %d\n", img_dir->directory_version);

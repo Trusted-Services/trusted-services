@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2020-2022, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -36,7 +36,12 @@ target_compile_definitions(${TGT} PRIVATE
 	SP_HEAP_SIZE=${SP_HEAP_SIZE}
 )
 
-include(${TS_ROOT}/external/newlib/newlib.cmake)
+add_subdirectory(${TS_ROOT}/components/common/libc ${CMAKE_BINARY_DIR}/libc_build)
+add_components(TARGET ${TGT}
+	BASE_DIR ${TS_ROOT}
+	COMPONENTS
+		"components/common/dlmalloc"
+)
 
 target_link_libraries(${TGT} PRIVATE
 	stdlib::c

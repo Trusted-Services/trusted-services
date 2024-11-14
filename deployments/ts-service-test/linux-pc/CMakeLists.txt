@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2020-2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -97,6 +97,7 @@ add_components(
 		"components/service/block_storage/test/service"
 		"components/service/common/provider"
 		"components/service/fwu/agent"
+		"components/service/fwu/common"
 		"components/service/fwu/fw_store/banked"
 		"components/service/fwu/fw_store/banked/metadata_serializer/v1"
 		"components/service/fwu/fw_store/banked/metadata_serializer/v2"
@@ -105,7 +106,7 @@ add_components(
 		"components/service/fwu/installer/copy"
 		"components/service/fwu/inspector/direct"
 		"components/service/fwu/provider"
-		"components/service/fwu/provider/serializer/packed-c"
+		"components/service/fwu/provider/serializer"
 		"components/service/fwu/test/fwu_client/direct"
 		"components/service/fwu/test/fwu_dut/sim"
 		"components/service/fwu/test/fwu_dut_factory/remote_sim"

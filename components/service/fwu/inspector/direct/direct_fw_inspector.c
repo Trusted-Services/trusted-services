@@ -8,7 +8,7 @@
 #include "direct_fw_inspector.h"
 
 #include "media/volume/index/volume_index.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/agent/fw_directory.h"
 #include "service/fwu/fw_store/banked/volume_id.h"
 #include "service/fwu/installer/installer.h"

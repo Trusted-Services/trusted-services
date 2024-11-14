@@ -80,7 +80,6 @@ endif()
 #TODO: api headers
 
 install(TARGETS attestation
-			PUBLIC_HEADER DESTINATION ${TS_ENV}/include
 			RUNTIME DESTINATION ${TS_ENV}/bin
 		)
 

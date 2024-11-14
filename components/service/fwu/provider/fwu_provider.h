@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,6 +10,7 @@
 #include "protocols/rpc/common/packed-c/encoding.h"
 #include "rpc/common/endpoint/rpc_service_interface.h"
 #include "service/common/provider/service_provider.h"
+#include "fwu_provider_shim.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +33,7 @@ struct update_agent;
  */
 struct fwu_provider {
 	struct service_provider base_provider;
-	const struct fwu_provider_serializer *serializers[TS_RPC_ENCODING_LIMIT];
+	struct fwu_provider_shim shim;
 	struct update_agent *update_agent;
 };
 
@@ -53,16 +54,6 @@ struct rpc_service_interface *fwu_provider_init(struct fwu_provider *context,
  * \param[in] context    The subject fwu_provider context
  */
 void fwu_provider_deinit(struct fwu_provider *context);
-
-/**
- * \brief Register a serializer
- *
- * \param[in] context    The subject fwu_provider context
- * \param[in] encoding   The encoding scheme
- * \param[in] serializer The serializer
- */
-void fwu_provider_register_serializer(struct fwu_provider *context, unsigned int encoding,
-				      const struct fwu_provider_serializer *serializer);
 
 #ifdef __cplusplus
 } /* extern "C" */

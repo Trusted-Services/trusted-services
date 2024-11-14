@@ -13,8 +13,8 @@
 
 #include "common/uuid/uuid.h"
 #include "print_uuid.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
-#include "protocols/service/fwu/packed-c/metadata_v1.h"
+#include "protocols/service/fwu/fwu_proto.h"
+#include "protocols/service/fwu/metadata_v1.h"
 
 void cmd_print_metadata_v1(fwu_app &app)
 {

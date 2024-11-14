@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -469,11 +469,21 @@ out:
 rpc_status_t ts_rpc_caller_sp_init(struct rpc_caller_interface *rpc_caller)
 {
 	struct ts_rpc_caller_sp_context *context = NULL;
-	uint16_t own_id;
+	sp_result result = SP_RESULT_INTERNAL_ERROR;
+	uint16_t own_id = 0;
+	uint16_t major = 0;
+	uint16_t minor = 0;
 	uint8_t i = 0;
 
 	if (!rpc_caller || rpc_caller->context)
 		return RPC_ERROR_INVALID_VALUE;
+
+	result = sp_discovery_ffa_version_get(&major, &minor);
+	if (result != SP_RESULT_OK)
+		return RPC_ERROR_TRANSPORT_LAYER;
+
+	if (major != FFA_VERSION_MAJOR || minor < FFA_VERSION_MINOR)
+		return RPC_ERROR_TRANSPORT_LAYER;
 
 	if (sp_discovery_own_id_get(&own_id) != SP_RESULT_OK)
 		return RPC_ERROR_INTERNAL;

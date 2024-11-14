@@ -90,6 +90,7 @@ ffa_result ffa_rxtx_unmap(uint16_t id)
 		.returnIntValue();
 }
 
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
 void expect_ffa_partition_info_get(const struct ffa_uuid *uuid,
 				   const uint32_t *count, ffa_result result)
 {
@@ -109,6 +110,31 @@ ffa_result ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t *count)
 		.withOutputParameter("count", count)
 		.returnIntValue();
 }
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+void expect_ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t flags,
+				   const uint32_t *count, const uint32_t *size,
+				   ffa_result result)
+{
+	mock().expectOneCall("ffa_partition_info_get")
+		.withMemoryBufferParameter("uuid", (const unsigned char *)uuid, sizeof(*uuid))
+		.withUnsignedIntParameter("flags", flags)
+		.withOutputParameterReturning("count", count, sizeof(*count))
+		.withOutputParameterReturning("size", size, sizeof(*size))
+		.andReturnValue(result);
+}
+
+ffa_result ffa_partition_info_get(const struct ffa_uuid *uuid, uint32_t flags, uint32_t *count,
+				  uint32_t *size)
+{
+	return mock()
+		.actualCall("ffa_partition_info_get")
+		.withMemoryBufferParameter("uuid", (const unsigned char *)uuid, sizeof(*uuid))
+		.withUnsignedIntParameter("flags", flags)
+		.withOutputParameter("count", count)
+		.withOutputParameter("size", size)
+		.returnIntValue();
+}
+#endif /* CFG_FFA_VERSION */
 
 void expect_ffa_id_get(const uint16_t *id, ffa_result result)
 {

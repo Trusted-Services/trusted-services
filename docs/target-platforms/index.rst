@@ -16,12 +16,11 @@ Platforms can be categorized by level of support as:
    - Obsolete
      Platforms which are not tested for the current release are put into this category.
 
-   - Deprecated Platforms not tested for more than one two are threated as obsolete, and will be
-     removed for the next release.
+   - Deprecated Platforms not tested for more than one two releases are threated as obsolete, and
+     will be removed for the next release.
 
 The quality of the platform, known issues, feature limitations, extra features, etc... are defined
 in the sub-chapters below.
-
 
 Reference platforms
 -------------------
@@ -31,6 +30,16 @@ Reference platforms
 
     ./aem-fvp
 
+Active Platforms
+----------------
+
+These platforms are not maintained by the Trusted Services project and are contributed externally. Instructions about
+building and running the software stacks of these platforms is out of scope for TS documentation.
+
+.. toctree::
+    :maxdepth: 1
+
+    ./Corstone1000
 
 --------------
 

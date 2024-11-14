@@ -33,6 +33,7 @@ public:
 	void copyKey();
 	void purgeKey();
 	void verifypkcs7signature(void);
+	void getUefiPrivAuthVarFingerprint(void);
 
 private:
 	crypto_client *m_crypto_client;

@@ -428,3 +428,12 @@ int packedc_crypto_client::verify_pkcs7_signature(const uint8_t *signature_cert,
 						    hash, hash_len, public_key_cert,
 						    public_key_cert_len);
 }
+
+int packedc_crypto_client::get_uefi_priv_auth_var_fingerprint(const uint8_t *signature_cert,
+						  uint64_t signature_cert_len,
+						  uint8_t *output)
+{
+	return crypto_caller_get_uefi_priv_auth_var_fingerprint(&m_client, signature_cert,
+								signature_cert_len,
+								output);
+}

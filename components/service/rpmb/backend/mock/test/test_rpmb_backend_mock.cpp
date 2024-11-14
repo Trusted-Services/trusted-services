@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <CppUTest/TestHarness.h>
+#include <CppUTestExt/MockSupport.h>
 #include "../rpmb_backend_mock.h"
 #include <string.h>
 
@@ -17,6 +18,8 @@ TEST_GROUP(rpmb_backend_mock) {
 	TEST_TEARDOWN()
 	{
 		rpmb_backend_mock_deinit(&mock_backend);
+		mock().checkExpectations();
+		mock().clear();
 	}
 
 	struct rpmb_backend *backend;

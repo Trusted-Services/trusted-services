@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2019-2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2019-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -386,14 +386,6 @@ function(compiler_set_freestanding)
 		message(FATAL_ERROR "Mandatory parameter TARGET is missing!")
 	endif()
 
-	# Set INTERFACE options for imported targets and PUBLIC otherwise.
-	get_property(_is_imported_target TARGET ${MY_TARGET} PROPERTY IMPORTED SET)
-	if (_is_imported_target)
-		set(_option_type INTERFACE)
-	else()
-		set(_option_type PUBLIC)
-	endif()
-
 	### Get the location of libgcc.a
 	# Copy values from environment if present. Note: if the value is already in the CACHE, this set will have no effect.
 	if(DEFINED ENV{LIBGCC_PATH})
@@ -463,8 +455,8 @@ function(compiler_set_freestanding)
 	endif()
 
 	# Configure the target for freestanding mode.
-	target_compile_options(${MY_TARGET} ${_option_type} "-nostdinc")
-	target_include_directories(${MY_TARGET} SYSTEM ${_option_type} ${LIBGCC_INCLUDE_DIRS})
-	target_link_options(${MY_TARGET} ${_option_type} "-nostdlib" "-nostartfiles")
-	target_link_libraries(${MY_TARGET} ${_option_type} "${LIBGCC_PATH}")
+	target_compile_options(${MY_TARGET} PUBLIC -nostdinc -ffreestanding -fno-builtin)
+	target_include_directories(${MY_TARGET} SYSTEM PUBLIC ${LIBGCC_INCLUDE_DIRS})
+	target_link_options(${MY_TARGET} PUBLIC "-nostdlib" "-nostartfiles")
+	target_link_libraries(${MY_TARGET} PUBLIC "${LIBGCC_PATH}")
 endfunction()

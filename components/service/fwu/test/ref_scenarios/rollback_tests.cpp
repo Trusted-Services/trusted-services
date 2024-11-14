@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,7 +7,7 @@
 #include <CppUTest/TestHarness.h>
 #include <vector>
 
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/test/fwu_dut/fwu_dut.h"
 #include "service/fwu/test/fwu_dut_factory/fwu_dut_factory.h"
 
@@ -67,12 +67,12 @@ TEST(FwuRollbackTests, selectPreviousPriorToActivation)
 	unsigned int pre_update_bank_index = boot_info.boot_index;
 
 	/* Install the update */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 	m_metadata_checker->check_ready_for_staging(boot_info.boot_index);
 
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	std::vector<uint8_t> image_data;
@@ -132,12 +132,12 @@ TEST(FwuRollbackTests, selectPreviousAfterActivation)
 	unsigned int pre_update_bank_index = boot_info.boot_index;
 
 	/* Install the update */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 	m_metadata_checker->check_ready_for_staging(boot_info.boot_index);
 
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	std::vector<uint8_t> image_data;
@@ -204,12 +204,12 @@ TEST(FwuRollbackTests, bootloaderFallback)
 	unsigned int pre_update_bank_index = boot_info.boot_index;
 
 	/* Install the update */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 	m_metadata_checker->check_ready_for_staging(boot_info.boot_index);
 
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	std::vector<uint8_t> image_data;

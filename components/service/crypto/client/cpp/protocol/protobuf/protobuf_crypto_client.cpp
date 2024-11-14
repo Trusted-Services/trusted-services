@@ -1174,3 +1174,14 @@ int protobuf_crypto_client::verify_pkcs7_signature(const uint8_t *signature_cert
 
 	return PSA_ERROR_NOT_SUPPORTED;
 }
+
+int protobuf_crypto_client::get_uefi_priv_auth_var_fingerprint(const uint8_t *signature_cert,
+							       uint64_t signature_cert_len,
+							       uint8_t *output)
+{
+	(void)signature_cert;
+	(void)signature_cert_len;
+	(void)output;
+
+	return PSA_ERROR_NOT_SUPPORTED;
+}

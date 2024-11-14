@@ -9,6 +9,7 @@ if (NOT DEFINED TGT)
 endif()
 
 set(FFA_DIRECT_MSG_ROUTING_EXTENSION ON CACHE BOOL "Enable FF-A direct message routing extension")
+set(CFG_FFA_VERSION 0x00010001 CACHE STRING "The supported FF-A protocol's version: (major << 16) | minor")
 
 target_sources(${TGT} PRIVATE
 	"${CMAKE_CURRENT_LIST_DIR}/aarch64/ffa_syscalls_a64.S"
@@ -45,6 +46,11 @@ if (FFA_DIRECT_MSG_ROUTING_EXTENSION)
 		-DFFA_DIRECT_MSG_ROUTING_EXTENSION=1
 		)
 endif()
+
+target_compile_definitions(${TGT}
+	PUBLIC
+		"CFG_FFA_VERSION=${CFG_FFA_VERSION}"
+	)
 
 target_include_directories(${TGT}
 	 PUBLIC

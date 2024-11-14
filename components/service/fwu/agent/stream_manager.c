@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/fw_store/fw_store.h"
 
 static uint32_t generate_handle(struct stream_manager *subject,

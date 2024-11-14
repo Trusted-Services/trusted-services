@@ -4,7 +4,7 @@ Change Log & Release Notes
 This document contains a summary of the new features, changes, fixes and known issues in each release of Trusted
 Services.
 
-Version <next>
+Version v1.1.0
 --------------
 
 - Trustedfirmware.org has deprecated Phabricator, the wiki and issue tracking provider. This functionality has been
@@ -16,16 +16,34 @@ Feature Highlights
 ^^^^^^^^^^^^^^^^^^
 
 - Add documentation covering the :ref:`OP-TEE SPMC tests`.
-- Extend the :ref:`UEFI SMM Services` to support Authenticated Variables.
+- :ref:`UEFI SMM Services`:
+
+    - Extend the implementation to support Authenticated Variables.
+    - Relax the UEFI variable name length limit imposed by the size of the RPC buffer.
+
 - Introduce a work in progress RPMB implementation and integrate it to the Block Storage service. The current
   configuration uses an SWd RAM buffer for data storage, and is not connected to the RPMB provider running in the NWd.
   This is the first baseline to implement a scenario where the RPMB owner is an S-EL0 SP.
 - Introduce the :ref:`Logging Service`.
 - Add crypto key store partitioning support to the Crypto Service. This feature allows isolating clients running in
   different SPs.
-- Add the "RSS Com" protocol. RSS Com is a new protocol used between secure partitions and security subsystems like the
-  Secure Enclave on Corstone-1000 or RSS on Kronos.
+- Add the "RSE Com" protocol. RSE Com is a new protocol used between secure partitions and security subsystems like the
+  Secure Enclave on Corstone-1000 or Runtime Security Engine on `RD-1 AE`_.
+- libsp learnt to support FF-A v1.1 and all SPs are updated to use this version.
+- tstee Linux driver was merged upstream and the LinuxFfaTEEDriver external component is removed.
+- All SP and arm-linux deployments are updated to support Armv8.5-A Branch Protection feature.
+  See: :ref:`branch_protection`
+- A new FWU agent implementation is introduced, which implements a `PSA Certified Firmware Update API 1.0`_ client. This
+  component can be used to implement an FWU proxy on A+M systems like Corstone1000 and RD-1 AE. For more details see:
+  :ref:`Firmware update on A+M systems`
+- A new shared library called ``libpsats`` is introduced to help integration of PSA clients to 3rd party linux
+  user-space projects. For details see: :ref:`libs-libpsats`
+- The following new tests and enhancements have been added to :ref:`OP-TEE SPMC tests`:
 
+    - FFA_MEM_PERM_GET/SET tests.
+    - Memory sharing test updated to cover invalid requests.
+    - VM availability message tests.
+    - Endpoint ID checking is fixed.
 
 Deprecations
 ^^^^^^^^^^^^
@@ -36,12 +54,14 @@ Deprecations
 Updated external components
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- MbedTLS version int the Crypto service is updated to v3.5.1.
+- MbedTLS version in the Crypto service is updated to v3.6.0.
 - NanoPB has been upgraded to v0.4.8.
+- Newlib is no longer required and the newlib external component is removed.
 
 Breaking changes
 ^^^^^^^^^^^^^^^^
 
+None.
 
 Resolved issues
 ^^^^^^^^^^^^^^^
@@ -53,10 +73,7 @@ Resolved issues
 Known limitations
 ^^^^^^^^^^^^^^^^^
 
-- UEFI private variable authentication is not implemented in an UEFI compliant way. Currently such variables are
-  authenticated by the certificates stored on the `DB` variable which is incorrect. Instead an implementation defined
-  variable should be used to store the needed certificates. The plan is to follow ``EDK2`` use ``certdb`` and
-  ``certdbv`` variables for this purpose.
+None.
 
 Version 1.0.0
 -------------
@@ -95,10 +112,12 @@ Feature Highlights
     - Remove the encoding type entity and use service UUIDs to represent the serialization type.
     - Service property discovery is to be implemented in the future.
 
-- Add support for the Corstone-1000 platform. For more information about this platform please see: `Corstone-1000 product homepage`_
+- Add support for the Corstone-1000 platform. For more information about this platform please see:
+  `Corstone-1000 product homepage`_
 
-- SPs now indicate support of :term:`Normal World` interrupt preemption capability in their SP manifest and allow the SPMC to enable
-  preemption if possible. This removes NWd interrupts being disabled for long periods due to long service calls.
+- SPs now indicate support of :term:`Normal World` interrupt preemption capability in their SP manifest and allow the
+  SPMC to enable preemption if possible. This removes NWd interrupts being disabled for long periods due to long service
+  calls.
 
 - Add support for the Armv8-A CRC32 feature for :term:`Secure World` and :term:`Normal World` components.
 
@@ -155,8 +174,9 @@ The project supports the following services:
   - Initial Attestation
   - Smm Variable
 
-Services may be accessed using client components that implement "`Psacertified v1.0 APIs`_". The project includes deployments
-that integrate `PSA API certification tests`_ with API clients to facilitate end-to-end PSA certification testing.
+Services may be accessed using client components that implement "`Psacertified v1.0 APIs`_". The project includes
+deployments that integrate `PSA API certification tests`_ with API clients to facilitate end-to-end PSA certification
+testing.
 
 Known limitations
 '''''''''''''''''
@@ -178,8 +198,8 @@ The reference integration uses the SPMC implemented in OP-TEE OS to manage TS SP
 Supported Integration Systems
 '''''''''''''''''''''''''''''
 
-The reference solution uses the OP-TEE integration methodology. This relies on the google repo tool for high-level dependency
-management and a set of makefiles to capture the build configuration information. For details please refer to
+The reference solution uses the OP-TEE integration methodology. This relies on the google repo tool for high-level
+dependency management and a set of makefiles to capture the build configuration information. For details please refer to
 `OP-TEE git repo documentation`_.
 
 The project is officially enabled in `Yocto meta-arm`_.
@@ -201,18 +221,19 @@ Please find the Test Report covering this release in the `project wiki`_.
 
 --------------
 
-.. _`FF-A Specification v1.0`: https://developer.arm.com/documentation/den0077/a
+.. _`FF-A Specification v1.1`: https://developer.arm.com/documentation/den0077/e
 .. _`Psacertified v1.0 APIs`: https://www.psacertified.org/development-resources/building-in-security/specifications-implementations/
 .. _`OP-TEE v3.19`: https://github.com/OP-TEE/optee_os/tree/3.19.0
 .. _`Yocto meta-arm` : https://gitlab.oss.arm.com/engineering/yocto/meta-arm/-/tree/master/meta-arm/recipes-security/trusted-services
 .. _`project wiki`: https://github.com/Trusted-Services/trusted-services/wiki/Trusted-Services-test-reports
-.. _`AEM FVP`: https://developer.arm.com/-/media/Files/downloads/ecosystem-models/FVP_Base_RevC-2xAEMvA_11.18_16_Linux64.tgz
+.. _`AEM FVP`: https://developer.arm.com/-/media/Files/downloads/ecosystem-models/FVP_Base_RevC-2xAEMvA_11.22_14_Linux64.tgz
 .. _`PSA API certification tests`: https://github.com/ARM-software/psa-arch-tests
 .. _`OP-TEE git repo documentation`: https://optee.readthedocs.io/en/latest/building/gits/build.html
 .. _`Corstone-1000 product homepage`: https://developer.arm.com/Processors/Corstone-1000
 .. _`Arm FWU-A specification`: https://developer.arm.com/documentation/den0118
 .. _`Trusted Services organization`: https://github.com/Trusted-Services
-
+.. _`RD-1 AE`: https://developer.arm.com/Tools%20and%20Software/Arm%20Reference%20Design-1%20AE
+.. _`PSA Certified Firmware Update API 1.0`: https://arm-software.github.io/psa-api/fwu/1.0/
 
 *Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.*
 

@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #include "media/volume/index/volume_index.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "util.h"
 
 #define COPY_CHUNK_SIZE (4096)

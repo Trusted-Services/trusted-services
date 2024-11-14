@@ -24,17 +24,37 @@ set(TS_MANDATORY_AARCH_FLAGS "-fpie -mstrict-align -march=armv8-a+crc" CACHE STR
 set(TS_WARNING_FLAGS "-Wall" CACHE STRING "Compiler flags affecting generating warning messages.")
 set(TS_MANDATORY_LINKER_FLAGS "-Wl,-pie -Wl,--no-dynamic-linker -Wl,--sort-section=alignment -zmax-page-size=4096" CACHE STRING "Linker flags needed for correct builds.")
 
+# branch-protection enables bti/pac while compile force-bti tells the linker to
+# warn if some object files lack the .note.gnu.property section with the BTI
+# flag, and to turn on the BTI flag in the output anyway.
+set(BRANCH_PROTECTION unset CACHE STRING "Enable branch protection")
+set_property(CACHE BRANCH_PROTECTION PROPERTY STRINGS unset 0 1 2 3 4)
+
+if(BRANCH_PROTECTION STREQUAL "0")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=none")
+elseif(BRANCH_PROTECTION STREQUAL "1")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=standard")
+	set(TS_MANDATORY_LINKER_FLAGS "${TS_MANDATORY_LINKER_FLAGS} -zforce-bti")
+	add_compile_definitions("BTI_ENABLED")
+elseif(BRANCH_PROTECTION STREQUAL "2")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=pac-ret")
+elseif(BRANCH_PROTECTION STREQUAL "3")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=pac-ret+leaf")
+elseif(BRANCH_PROTECTION STREQUAL "4")
+	set(TS_MANDATORY_AARCH_FLAGS "${TS_MANDATORY_AARCH_FLAGS} -mbranch-protection=bti")
+	set(TS_MANDATORY_LINKER_FLAGS "${TS_MANDATORY_LINKER_FLAGS} -zforce-bti")
+	add_compile_definitions("BTI_ENABLED")
+endif()
+
 # Set flags affecting all build types
-foreach(_b_type IN ITEMS DEBUG MINSIZEREL MINSIZWITHDEBINFO RELEASE RELWITHDEBINFO)
-	string(APPEND CMAKE_C_FLAGS_${_b_type}_INIT " ${TS_MANDATORY_AARCH_FLAGS}")
-	string(APPEND CMAKE_CXX_FLAGS_${_b_type}_INIT " ${TS_MANDATORY_AARCH_FLAGS}")
-	string(APPEND CMAKE_EXE_LINKER_FLAGS_${_b_type}_INIT " ${TS_MANDATORY_LINKER_FLAGS}")
-	if(DEFINED TS_ROOT)
-		# Flags not to be used with external components.
-		string(APPEND CMAKE_C_FLAGS_${_b_type}_INIT " ${TS_WARNING_FLAGS}")
-		string(APPEND CMAKE_CXX_FLAGS_${_b_type}_INIT " ${TS_WARNING_FLAGS}")
-	endif()
-endforeach()
+string(APPEND CMAKE_C_FLAGS_INIT " ${TS_MANDATORY_AARCH_FLAGS}")
+string(APPEND CMAKE_CXX_FLAGS_INIT " ${TS_MANDATORY_AARCH_FLAGS}")
+string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " ${TS_MANDATORY_LINKER_FLAGS}")
+if(DEFINED TS_ROOT)
+	# Flags not to be used with external components.
+	string(APPEND CMAKE_C_FLAGS_INIT " ${TS_WARNING_FLAGS}")
+	string(APPEND CMAKE_CXX_FLAGS_INIT " ${TS_WARNING_FLAGS}")
+endif()
 
 # Set flags affecting all build types supporting debugging.
 foreach(_b_type IN ITEMS DEBUG RELWITHDEBINFO MINSIZWITHDEBINFO)

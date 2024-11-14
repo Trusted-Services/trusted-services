@@ -75,7 +75,6 @@ endif()
 #TODO: api headers
 
 install(TARGETS env-test
-			PUBLIC_HEADER DESTINATION ${TS_ENV}/include
 			RUNTIME DESTINATION ${TS_ENV}/bin
 		)
 

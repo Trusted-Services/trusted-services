@@ -23,6 +23,16 @@
 extern "C" {
 #endif
 
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+/**
+ * @brief      Security state of the memory region
+ */
+enum sp_memory_security_state {
+	sp_memory_security_state_secure = 0x00,
+	sp_memory_security_state_non_secure = 0x01,
+};
+#endif /* CFG_FFA_VERSION */
+
 /**
  * @brief      Memory type of the region
  */
@@ -111,6 +121,11 @@ union sp_memory_attr {
 
 	/** Device memory attributes */
 	enum sp_device_memory_attributes device_memory;
+
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	/* Memory security state (secure/non-secure) */
+	enum sp_memory_security_state security_state;
+#endif /* CFG_FFA_VERSION */
 };
 
 /**

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2020-2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -37,26 +37,7 @@ add_components(TARGET sp
 		components/common/utils
 )
 
-# Include newlib into the build, but do no add SP executable specific files to libsp.
-# Use a dummy target which will never be built.
-function(get_newlib_compile_flags)
-	# Environment specific files require this variable to be set.
-	# Set it to a dummy value as we are not going to build these anyways.
-	# The namespace of the function will ensure globas setting is not affected.
-	set(SP_FFA_UUID_CANON "00000000-0000-0000-0000-000000000000")
-	set(SP_HEAP_SIZE 4096)
-	add_library(dummy EXCLUDE_FROM_ALL)
-	add_components(TARGET dummy
-		BASE_DIR ${TS_ROOT}
-		COMPONENTS
-			environments/opteesp
-	)
-endfunction()
-
-get_newlib_compile_flags()
-
-# Get libc specific settings from newlib.
-target_link_libraries(sp PUBLIC stdlib::c)
+add_subdirectory(${TS_ROOT}/components/common/libc ${CMAKE_BINARY_DIR}/libc_build)
 
 target_compile_definitions(sp PRIVATE
 	ARM64=1

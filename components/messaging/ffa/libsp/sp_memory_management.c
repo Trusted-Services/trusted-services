@@ -49,10 +49,10 @@ static bool is_valid_buffer(struct ffa_mem_transaction_buffer *buffer)
 	       !(((uintptr_t)buffer->length) & FFA_MEM_TRANSACTION_PAGE_MASK);
 }
 
-static uint8_t build_mem_region_attr(enum sp_memory_type type,
+static uint16_t build_mem_region_attr(enum sp_memory_type type,
 				     union sp_memory_attr *sp_mem_attr)
 {
-	uint8_t mem_attr = 0;
+	uint16_t mem_attr = 0;
 
 	assert(type != sp_memory_type_reserved);
 	mem_attr = SHIFT_U32(type, FFA_MEM_REGION_ATTR_MEMORY_TYPE_SHIFT);
@@ -80,10 +80,15 @@ static uint8_t build_mem_region_attr(enum sp_memory_type type,
 				      FFA_MEM_REGION_ATTR_SHAREABILITY_SHIFT);
 	}
 
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	if (sp_mem_attr->security_state == sp_memory_security_state_non_secure)
+		mem_attr |= FFA_MEM_REGION_ATTR_NS_BIT;
+#endif /* CFG_FFA_VERSION */
+
 	return mem_attr;
 }
 
-static void parse_mem_region_attr(uint8_t attr, enum sp_memory_type *type,
+static void parse_mem_region_attr(uint16_t attr, enum sp_memory_type *type,
 				  union sp_memory_attr *sp_mem_attr)
 {
 	uint8_t temp = 0;
@@ -113,6 +118,13 @@ static void parse_mem_region_attr(uint8_t attr, enum sp_memory_type *type,
 		       FFA_MEM_REGION_ATTR_SHAREABILITY_MASK;
 		norm_attr->shareability = (enum sp_shareablity_attribute)temp;
 	}
+
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	if (attr & FFA_MEM_REGION_ATTR_NS_BIT)
+		sp_mem_attr->security_state = sp_memory_security_state_non_secure;
+	else
+		sp_mem_attr->security_state = sp_memory_security_state_secure;
+#endif /* CFG_FFA_VERSION */
 }
 
 static uint8_t
@@ -205,7 +217,7 @@ static void setup_descriptors(struct ffa_mem_transaction_buffer *buffer,
 			      struct sp_memory_region regions[],
 			      uint32_t region_count, uint64_t handle)
 {
-	uint8_t mem_region_attr = 0;
+	uint16_t mem_region_attr = 0;
 	uint8_t acc_perm = 0;
 	uint32_t flags = 0;
 	uint32_t i = 0;
@@ -247,7 +259,7 @@ static void parse_descriptors(struct ffa_mem_transaction_buffer *buffer,
 	const struct ffa_mem_transaction_desc *transaction = NULL;
 	const struct ffa_mem_access_desc *acc = NULL;
 	const struct ffa_composite_mem_region_desc *region_desc = NULL;
-	uint8_t region_attr = 0;
+	uint16_t region_attr = 0;
 	uint8_t acc_perm = 0;
 
 	transaction = ffa_get_mem_transaction_desc(buffer);

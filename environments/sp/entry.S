@@ -83,3 +83,5 @@ error_invalid_relocation:
 	.asciz "Only R_AARCH64_RELATIVE type relocation is supported"
 	.align 8
 END_FUNC __sp_entry
+
+BTI(emit_aarch64_feature_1_and     GNU_PROPERTY_AARCH64_FEATURE_1_BTI)

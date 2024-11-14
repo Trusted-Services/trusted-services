@@ -12,7 +12,7 @@ Please see the following chapters of using the AEM FVP:
 --------------
 
 .. _`Fixed Virtual Platforms`: https://developer.arm.com/Tools%20and%20Software/Fixed%20Virtual%20Platforms
-.. _`Armv-A Base RevC AEM FVP`: https://developer.arm.com/-/media/Files/downloads/ecosystem-models/FVP_Base_RevC-2xAEMvA_11.18_16_Linux64.tgz
+.. _`Armv-A Base RevC AEM FVP`: https://developer.arm.com/-/media/Files/downloads/ecosystem-models/FVP_Base_RevC-2xAEMvA_11.22_14_Linux64.tgz
 
 *Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.*
 

@@ -22,6 +22,13 @@ add_library(ts SHARED)
 target_include_directories(ts PRIVATE "${TOP_LEVEL_INCLUDE_DIRS}")
 
 #-------------------------------------------------------------------------------
+#  For user-specific tracing set to TRACE_LEVEL_NONE and implement:
+#  void trace_puts(const char *str)
+#-------------------------------------------------------------------------------
+
+set(TRACE_PREFIX "LIBTS" CACHE STRING "Trace prefix")
+set(TRACE_LEVEL "TRACE_LEVEL_DEBUG" CACHE STRING "Trace level")
+#-------------------------------------------------------------------------------
 #  External project source-level dependencies
 #
 #-------------------------------------------------------------------------------
@@ -63,8 +70,8 @@ add_components(
 		"components/common/uuid"
 		"components/common/endian"
 		"components/common/utils"
-		"components/common/trace"
 		"components/common/crc32"
+		"components/common/mbedtls"
 		"components/config/ramstore"
 		"components/service/common/include"
 		"components/service/common/client"
@@ -160,14 +167,6 @@ add_components(
 )
 
 #-------------------------------------------------------------------------------
-#  Configure added components
-#
-#-------------------------------------------------------------------------------
-# Force trace level to TRACE_LEVEL_NONE to disable trace messages. This is
-# needed till proper trace enablement for the linux-pc environment is done.
-target_compile_definitions(ts PUBLIC TRACE_LEVEL=0)
-
-#-------------------------------------------------------------------------------
 #  Extend with components that are common across all deployments of
 #  libts
 #
@@ -185,7 +184,7 @@ target_link_libraries(ts PRIVATE nanopb::protobuf-nanopb-static)
 protobuf_generate_all(TGT "ts" NAMESPACE "protobuf" BASE_DIR "${TS_ROOT}/protocols")
 
 # MbedTLS
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/libmbedx509.h"
+set(MBEDTLS_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_provider_x509.h"
 	CACHE STRING "Configuration file for Mbed TLS" FORCE)
 include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
 target_link_libraries(ts PRIVATE MbedTLS::mbedcrypto)
@@ -193,7 +192,7 @@ target_link_libraries(ts PRIVATE MbedTLS::mbedx509)
 
 # Pass the location of the mbedtls config file to C preprocessor.
 target_compile_definitions(ts PRIVATE
-		MBEDTLS_USER_CONFIG_FILE="${MBEDTLS_USER_CONFIG_FILE}"
+		MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}"
 )
 
 # Qcbor

@@ -110,3 +110,19 @@ void sp_interrupt_handler(uint32_t interrupt_id)
 {
 	(void)interrupt_id;
 }
+
+ffa_result ffa_vm_created_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)vm_id;
+	(void)handle;
+
+	return FFA_OK;
+}
+
+ffa_result ffa_vm_destroyed_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)vm_id;
+	(void)handle;
+
+	return FFA_OK;
+}

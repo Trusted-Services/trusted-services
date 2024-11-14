@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -101,11 +101,22 @@ static int test_iterate(const struct test_spec *spec, bool list_only,
                     if (summary->num_tests < result_limit) {
 
                         struct test_result *new_result = &results[summary->num_results];
+			size_t len = 0;
 
                         new_result->run_state = run_state;
                         new_result->failure = failure;
-                        strcpy(new_result->group, test_group->group);
-                        strcpy(new_result->name, test_case->name);
+
+			len = strlen(test_group->group) + 1;
+			if (len > sizeof(new_result->group))
+				return -1;
+
+			memcpy(new_result->group, test_group->group, len);
+
+			len = strlen(test_case->name) + 1;
+			if (len > sizeof(new_result->name))
+				return -1;
+
+			memcpy(new_result->name, test_case->name, len);
 
                         ++summary->num_results;
                     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,8 +9,8 @@
 
 /**
  * Some tf-a files assume that <cdefs.h> is in the global include path. This
- * provides an alternative using common/utils/compiler.h.
+ * provides an alternative using components/common/libc/include/cdefs.h.
  */
-#include <compiler.h>
+#include <components/common/libc/include/cdefs.h>
 
 #endif /* TF_A_CDEFS_H */

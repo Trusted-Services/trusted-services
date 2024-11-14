@@ -13,6 +13,7 @@ set(SUITE "@TS_ARCH_TEST_SUITE@"  CACHE STRING "")
 set(ARCH_TEST_EXTERNAL_DEFS "@PSA_ARCH_TEST_EXTERNAL_DEFS@"  CACHE STRING "")
 set(CMAKE_VERBOSE_MAKEFILE OFF CACHE BOOL "")
 set(TARGET "tgt_dev_apis_linux"  CACHE STRING "")
+set(BRANCH_PROTECTION @BRANCH_PROTECTION@ CACHE STRING "")
 
 # Pass comand line paramter passed to the TS deployment configuration time over to psa-acs build.
 if(NOT "@PSA_TARGET_QCBOR@" STREQUAL "")

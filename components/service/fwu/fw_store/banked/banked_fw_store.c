@@ -13,8 +13,8 @@
 
 #include "bank_scheme.h"
 #include "common/uuid/uuid.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/fwu_proto.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/installer/installer.h"
 #include "service/fwu/installer/installer_index.h"
 #include "volume_id.h"

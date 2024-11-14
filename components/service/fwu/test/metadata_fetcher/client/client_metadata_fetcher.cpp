@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,7 +10,7 @@
 #include <cstring>
 
 #include "common/uuid/uuid.h"
-#include "protocols/service/fwu/packed-c/fwu_proto.h"
+#include "protocols/service/fwu/fwu_proto.h"
 
 client_metadata_fetcher::client_metadata_fetcher(fwu_client *fwu_client)
 	: metadata_fetcher()
@@ -40,7 +40,7 @@ void client_metadata_fetcher::fetch(uint8_t *buf, size_t buf_size)
 
 	uuid_guid_octets_from_canonical(&uuid, FWU_METADATA_CANONICAL_UUID);
 
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::READ, &stream_handle);
 	LONGS_EQUAL(0, status);
 
 	size_t read_len = 0;

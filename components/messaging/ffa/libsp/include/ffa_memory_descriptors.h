@@ -53,9 +53,8 @@ void ffa_init_mem_transaction_buffer(void *address, size_t length,
  * @param[in]  tag              Memory region tag
  */
 void ffa_init_mem_transaction_desc(struct ffa_mem_transaction_buffer *buffer,
-				   uint16_t sender_id, uint8_t mem_region_attr,
-				   uint32_t flags, uint64_t handle,
-				   uint64_t tag);
+				   uint16_t sender_id, uint16_t mem_region_attr,
+				   uint32_t flags, uint64_t handle, uint64_t tag);
 
 /**
  * @brief      Queries the memory transaction descriptor (see Table 5.19) from

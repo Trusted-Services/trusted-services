@@ -60,6 +60,47 @@ get_composite_desc(struct ffa_mem_transaction_buffer *buffer)
 	return get_composite_desc_by_offset(buffer, offset);
 }
 
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+static struct ffa_mem_access_desc *get_mem_access_desc_by_offset(
+	struct ffa_mem_transaction_buffer *buffer, uint32_t offset)
+{
+	void *ptr = NULL;
+
+	assert(offset <= buffer->length);
+	ptr = (((uint8_t *)buffer->buffer) + offset);
+
+	return (struct ffa_mem_access_desc *)ptr;
+}
+#endif /* CFG_FFA_VERSION */
+
+struct ffa_mem_access_desc *get_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
+						uint32_t descriptor_index)
+{
+	struct ffa_mem_transaction_desc *transaction = NULL;
+	struct ffa_mem_access_desc *access_desc = NULL;
+	size_t offset = 0;
+	size_t __maybe_unused mem_desc_offset = 0;
+
+	transaction = get_mem_transaction_desc(buffer);
+
+	assert(descriptor_index < transaction->mem_access_desc_count);
+
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
+	access_desc = &transaction->mem_access_desc[descriptor_index];
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+	mem_desc_offset = transaction->mem_access_desc_offset;
+	mem_desc_offset += transaction->mem_access_desc_size * descriptor_index;
+	access_desc = get_mem_access_desc_by_offset(buffer, mem_desc_offset);
+#endif /* CFG_FFA_VERSION */
+
+	/* Validating if the whole descriptor is within the buffer boundaries */
+	offset = get_offset_in_buffer(buffer, access_desc);
+	offset += sizeof(struct ffa_mem_access_desc);
+	assert(offset <= buffer->length);
+
+	return access_desc;
+}
+
 void ffa_init_mem_transaction_buffer(void *address, size_t length,
 				     struct ffa_mem_transaction_buffer *buffer)
 {
@@ -69,24 +110,29 @@ void ffa_init_mem_transaction_buffer(void *address, size_t length,
 }
 
 void ffa_init_mem_transaction_desc(struct ffa_mem_transaction_buffer *buffer,
-				   uint16_t sender_id, uint8_t mem_region_attr,
-				   uint32_t flags, uint64_t handle,
-				   uint64_t tag)
+				   uint16_t sender_id, uint16_t mem_region_attr,
+				   uint32_t flags, uint64_t handle, uint64_t tag)
 {
 	struct ffa_mem_transaction_desc *transaction = NULL;
 
 	transaction = get_mem_transaction_desc(buffer);
 
+	memset(transaction, 0x00, sizeof(*transaction));
+
 	transaction->sender_id = sender_id;
 	transaction->mem_region_attr = mem_region_attr;
-	transaction->reserved_mbz0 = 0;
 	transaction->flags = flags;
 	transaction->handle = handle;
 	transaction->tag = tag;
-	transaction->reserved_mbz1 = 0;
 	transaction->mem_access_desc_count = 0;
 
-	buffer->used = sizeof(struct ffa_mem_transaction_desc);
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	transaction->mem_access_desc_size = sizeof(struct ffa_mem_access_desc);
+	/* The memory access descriptors start right after the transaction descriptor */
+	transaction->mem_access_desc_offset = sizeof(*transaction);
+#endif /* CFG_FFA_VERSION */
+
+	buffer->used = sizeof(*transaction);
 }
 
 const struct ffa_mem_transaction_desc *
@@ -126,9 +172,8 @@ void ffa_reserve_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
 		buffer->used = required_size;
 }
 
-uint32_t ffa_add_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
-				 uint16_t endpoint_id, uint8_t mem_access_perm,
-				 uint8_t flags)
+uint32_t ffa_add_mem_access_desc(struct ffa_mem_transaction_buffer *buffer, uint16_t endpoint_id,
+				 uint8_t mem_access_perm, uint8_t flags)
 {
 	struct ffa_mem_transaction_desc *transaction = NULL;
 	struct ffa_mem_access_desc *access_desc = NULL;
@@ -136,6 +181,7 @@ uint32_t ffa_add_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
 	uint32_t index = 0;
 	uint32_t composite_offset = 0;
 	size_t required_size = 0;
+	size_t __maybe_unused mem_desc_offset = 0;
 
 	/* Get next access descriptor index */
 	transaction = get_mem_transaction_desc(buffer);
@@ -144,7 +190,7 @@ uint32_t ffa_add_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
 	assert(index != UINT32_MAX);
 
 	/* Allocating access descriptor */
-	required_size = sizeof(struct ffa_mem_transaction_desc);
+	required_size = sizeof(*transaction);
 	required_size += sizeof(struct ffa_mem_access_desc) * (index + 1);
 	assert(required_size <= buffer->length);
 
@@ -161,8 +207,13 @@ uint32_t ffa_add_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
 	transaction->mem_access_desc_count++;
 
 	/* Initializing access descriptor */
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
 	access_desc = &transaction->mem_access_desc[index];
-
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+	mem_desc_offset = transaction->mem_access_desc_offset;
+	mem_desc_offset += transaction->mem_access_desc_size * index;
+	access_desc = get_mem_access_desc_by_offset(buffer, mem_desc_offset);
+#endif
 	access_perm_desc = &access_desc->mem_access_perm_desc;
 	access_perm_desc->endpoint_id = endpoint_id;
 	access_perm_desc->mem_access_permissions = mem_access_perm;
@@ -190,33 +241,16 @@ ffa_get_mem_access_desc_count(struct ffa_mem_transaction_buffer *buffer)
 	return transaction->mem_access_desc_count;
 }
 
-const struct ffa_mem_access_desc *
-ffa_get_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
-			uint32_t descriptor_index)
+const struct ffa_mem_access_desc *ffa_get_mem_access_desc(struct ffa_mem_transaction_buffer *buffer,
+							  uint32_t descriptor_index)
 {
-	struct ffa_mem_transaction_desc *transaction = NULL;
-	struct ffa_mem_access_desc *access_desc = NULL;
-	size_t offset = 0;
-
-	transaction = get_mem_transaction_desc(buffer);
-
-	assert(descriptor_index < transaction->mem_access_desc_count);
-
-	access_desc = &transaction->mem_access_desc[descriptor_index];
-
-	/* Validating if the whole descriptor is within the buffer boundaries */
-	offset = get_offset_in_buffer(buffer, access_desc);
-	offset += sizeof(struct ffa_mem_access_desc);
-	assert(offset <= buffer->length);
-
-	return access_desc;
+	return get_mem_access_desc(buffer, descriptor_index);
 }
 
 void ffa_add_memory_region(struct ffa_mem_transaction_buffer *buffer,
 			   const void *address, uint32_t page_count)
 {
 	struct ffa_mem_transaction_desc *transaction = NULL;
-
 	struct ffa_composite_mem_region_desc *comp_desc = NULL;
 	struct ffa_constituent_mem_region_desc *region_desc = NULL;
 	size_t required_size = 0;
@@ -253,7 +287,7 @@ void ffa_add_memory_region(struct ffa_mem_transaction_buffer *buffer,
 		 * memory access descriptors
 		 */
 		for (i = 0; i < transaction->mem_access_desc_count; i++) {
-			access_desc = &transaction->mem_access_desc[i];
+			access_desc = get_mem_access_desc(buffer, i);
 			access_desc->composite_mem_region_desc_offset = offset;
 		}
 

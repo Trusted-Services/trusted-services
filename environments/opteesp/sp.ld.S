@@ -52,6 +52,7 @@ SECTIONS {
 	.dynstr : { *(.dynstr) }
 	.hash : { *(.hash) }
 	.note.gnu.build-id : { *(.note.gnu.build-id) }
+	.note.gnu.property : { *(.note.gnu.property) }
 
 	/* Page align to allow dropping execute bit for RW data */
 	. = ALIGN(4096);

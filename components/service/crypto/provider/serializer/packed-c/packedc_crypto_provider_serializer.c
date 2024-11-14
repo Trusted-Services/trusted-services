@@ -22,6 +22,7 @@
 #include <protocols/service/crypto/packed-c/sign_hash.h>
 #include <protocols/service/crypto/packed-c/verify_hash.h>
 #include <protocols/service/crypto/packed-c/verify_pkcs7_signature.h>
+#include <protocols/service/crypto/packed-c/get_uefi_priv_auth_var_fingerprint.h>
 #include <service/crypto/backend/crypto_backend.h>
 #include <stdlib.h>
 #include <string.h>
@@ -675,6 +676,57 @@ static rpc_status_t deserialize_verify_pkcs7_signature_req(
 	return rpc_status;
 }
 
+/* Operation: get_uefi_priv_auth_var_fingerprintentifier */
+static rpc_status_t deserialize_get_uefi_priv_auth_var_fingerprint_req(const struct rpc_buffer *req_buf,
+							uint8_t *signed_data,
+							uint64_t *signed_data_len)
+{
+	rpc_status_t rpc_status = RPC_ERROR_INVALID_REQUEST_BODY;
+
+	if (req_buf->data_length) {
+		struct tlv_const_iterator req_iter;
+		struct tlv_record decoded_record;
+
+		rpc_status = RPC_SUCCESS;
+
+		tlv_const_iterator_begin(&req_iter, (uint8_t *)req_buf->data, req_buf->data_length);
+
+		if (tlv_find_decode(&req_iter, TS_CRYPTO_GET_UEFI_PRIV_AUTH_VAR_FINGERPRINT_IN_TAG_SIGNATURE,
+				    &decoded_record)) {
+			*signed_data_len = decoded_record.length;
+
+			if (signed_data)
+				memcpy(signed_data, decoded_record.value, decoded_record.length);
+		} else {
+			/* Default to a zero length */
+			*signed_data_len = 0;
+		}
+	}
+
+	return rpc_status;
+}
+
+static rpc_status_t serialize_get_uefi_priv_auth_var_fingerprint_resp(struct rpc_buffer *resp_buf,
+							const uint8_t *output)
+{
+	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	struct tlv_iterator resp_iter;
+	struct tlv_record out_record;
+
+	out_record.tag = TS_CRYPTO_GET_UEFI_PRIV_AUTH_VAR_FINGERPRINT_OUT_TAG_IDENTIFIER;
+	out_record.length = PSA_HASH_MAX_SIZE;
+	out_record.value = output;
+
+	tlv_iterator_begin(&resp_iter, resp_buf->data, resp_buf->size);
+
+	if (tlv_encode(&resp_iter, &out_record)) {
+		resp_buf->data_length = tlv_required_space(PSA_HASH_MAX_SIZE);
+		rpc_status = RPC_SUCCESS;
+	}
+
+	return rpc_status;
+}
+
 /* Singleton method to provide access to the serializer instance */
 const struct crypto_provider_serializer *packedc_crypto_provider_serializer_instance(void)
 {
@@ -704,6 +756,8 @@ const struct crypto_provider_serializer *packedc_crypto_provider_serializer_inst
 		deserialize_generate_random_req,
 		serialize_generate_random_resp,
 		deserialize_verify_pkcs7_signature_req,
+		deserialize_get_uefi_priv_auth_var_fingerprint_req,
+		serialize_get_uefi_priv_auth_var_fingerprint_resp
 	};
 
 	return &instance;

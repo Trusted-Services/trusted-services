@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
  */
 
 #include <stddef.h>
@@ -20,7 +20,7 @@
 #include "service/fwu/fw_store/banked/metadata_serializer/v2/metadata_serializer_v2.h"
 #include "service/fwu/inspector/direct/direct_fw_inspector.h"
 #include "service/fwu/provider/fwu_provider.h"
-#include "service/fwu/provider/serializer/packed-c/packedc_fwu_provider_serializer.h"
+#include "service/log/factory/log_factory.h"
 #include "sp_api.h"
 #include "sp_discovery.h"
 #include "sp_messaging.h"
@@ -45,7 +45,7 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 	struct ts_rpc_endpoint_sp rpc_endpoint = { 0 };
 	struct fwu_provider service_provider = { 0 };
 	struct rpc_service_interface *service_iface = NULL;
-	struct update_agent update_agent = { 0 };
+	struct update_agent *update_agent = NULL;
 	struct fw_store fw_store = { 0 };
 	struct sp_msg req_msg = { 0 };
 	struct sp_msg resp_msg = { 0 };
@@ -89,22 +89,20 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		goto fatal_error;
 	}
 
-	if (update_agent_init(&update_agent, HARD_CODED_BOOT_INDEX, direct_fw_inspector_inspect,
-			      &fw_store)) {
+	update_agent = update_agent_init(HARD_CODED_BOOT_INDEX, direct_fw_inspector_inspect,
+					 &fw_store);
+	if (!update_agent) {
 		EMSG("Failed to init update agent");
 		goto fatal_error;
 	}
 
 	/* Initialise the FWU service provider */
-	service_iface = fwu_provider_init(&service_provider, &update_agent);
+	service_iface = fwu_provider_init(&service_provider, update_agent);
 
 	if (!service_iface) {
 		EMSG("Failed to init service provider");
 		goto fatal_error;
 	}
-
-	fwu_provider_register_serializer(&service_provider, TS_RPC_ENCODING_PACKED_C,
-					 packedc_fwu_provider_serializer_instance());
 
 	/* Associate service interface with FFA call endpoint */
 	rpc_status = ts_rpc_endpoint_sp_init(&rpc_endpoint, 1, 16);
@@ -152,6 +150,22 @@ void sp_interrupt_handler(uint32_t interrupt_id)
 	(void)interrupt_id;
 }
 
+ffa_result ffa_vm_created_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)vm_id;
+	(void)handle;
+
+	return FFA_OK;
+}
+
+ffa_result ffa_vm_destroyed_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)vm_id;
+	(void)handle;
+
+	return FFA_OK;
+}
+
 static bool sp_init(uint16_t *own_id)
 {
 	static uint8_t tx_buffer[4096] __aligned(4096);
@@ -161,6 +175,13 @@ static bool sp_init(uint16_t *own_id)
 	if (sp_res != SP_RESULT_OK) {
 		EMSG("Failed to map RXTX buffers: %d", sp_res);
 		return false;
+	}
+
+	IMSG("Start discovering logging service");
+	if (log_factory_create()) {
+		IMSG("Logging service discovery successful");
+	} else {
+		EMSG("Logging service discovery failed, falling back to console log");
 	}
 
 	sp_res = sp_discovery_own_id_get(own_id);

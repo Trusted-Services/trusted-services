@@ -26,6 +26,7 @@
 #include "crypto_caller_asymmetric_encrypt.h"
 #include "crypto_caller_export_key.h"
 #include "crypto_caller_get_key_attributes.h"
+#include "crypto_caller_get_uefi_priv_auth_var_fingerprint.h"
 #include "crypto_caller_sign_hash.h"
 #include "crypto_caller_cipher.h"
 #include "crypto_caller_export_public_key.h"

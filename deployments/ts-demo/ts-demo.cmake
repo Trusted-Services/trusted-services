@@ -12,19 +12,23 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-#  Use libts for locating and accessing services. An appropriate version of
-#  libts will be imported for the environment in which service tests are
-#  deployed.
+#  Use libpsats for locating PSA services. An appropriate version of
+#  libpsats will be imported for the environment.
 #-------------------------------------------------------------------------------
-include(${TS_ROOT}/deployments/libts/libts-import.cmake)
-target_link_libraries(ts-demo PRIVATE libts::ts)
+if (COVERAGE)
+	set(LIBPSATS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libpsats build type" FORCE)
+	set(LIBTS_BUILD_TYPE "DEBUGCOVERAGE" CACHE STRING "Libts build type" FORCE)
+endif()
+
+include(${TS_ROOT}/deployments/libpsats/libpsats-import.cmake)
+target_link_libraries(ts-demo PRIVATE libpsats::psats)
 
 #-------------------------------------------------------------------------------
 #  Common main for all deployments
 #
 #-------------------------------------------------------------------------------
 target_sources(ts-demo PRIVATE
-	"${CMAKE_CURRENT_LIST_DIR}/ts-demo.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/ts-demo.c"
 )
 
 #-------------------------------------------------------------------------------
@@ -36,24 +40,7 @@ add_components(
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
 		"components/app/ts-demo"
-		"components/common/tlv"
-		"components/service/common/include"
-		"components/service/common/client"
-		"components/service/crypto/client/cpp"
-		"components/service/crypto/client/cpp/protocol/packed-c"
-		"protocols/service/crypto/packed-c"
 )
-
-#-------------------------------------------------------------------------------
-#  Components used from external projects
-#
-#-------------------------------------------------------------------------------
-
-# MbedTLS provides libmbedcrypto
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
-	CACHE STRING "Configuration file for mbedcrypto")
-include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
-target_link_libraries(ts-demo PRIVATE MbedTLS::mbedcrypto)
 
 #-------------------------------------------------------------------------------
 #  Define install content.

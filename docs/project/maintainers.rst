@@ -16,8 +16,6 @@ Main maintainers
 ----------------
 :M: Dan Handley <dan.handley@arm.com>
 :G: `danh-arm`_
-:M: Miklós Bálint <miklos.balint@arm.com>
-:G: `wmnt`_
 :M: György Szing <gyorgy.szing@arm.com>
 :G: `gyuri-szing`_
 :L: |TS_MAIL_LIST|
@@ -25,8 +23,6 @@ Main maintainers
 Code owners
 --------------------
 
-:M: Julian Hall <julian.hall@arm.com>
-:G: `julianhall-arm`_
 :M: Bálint Dobszay <balint.dobszai@arm.com>
 :G: `balintdobszay`_
 :M: Imre Kis <imre.kis@arm.com>
@@ -36,14 +32,12 @@ Code owners
 --------------
 
 .. _danh-arm: https://github.com/danh-arm
-.. _wmnt: https://github.com/wmnt
 .. _gyuri-szing: https://github.com/gyuri-szing
 .. _balintdobszay: https://github.com/balintdobszay
-.. _julianhall-arm: https://github.com/julianhall-arm
 .. _imre-kis-arm: https://github.com/imre-kis-arm
 
 .. _`Linux Maintainers file`: https://github.com/torvalds/linux/blob/master/MAINTAINERS#L80
-.. _Project Maintenance Process: https://developer.trustedfirmware.org/w/collaboration/project-maintenance-process/
+.. _Project Maintenance Process: https://trusted-firmware-docs.readthedocs.io/en/latest/generic_processes/project_maintenance_process.html
 
 *Copyright (c) 2020-2021, Arm Limited and Contributors. All rights reserved.*
 

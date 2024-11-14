@@ -25,7 +25,10 @@
 # PK2  --> PK2 : delete
 # PK1 --> KEK : delete
 # KEK --> db1
-# db1 --> var
+# var --> var : append
+# var --> var : append_old
+# var --> var : delete
+# var --> var : delete_old
 # @enduml
 
 # Check environment
@@ -62,14 +65,16 @@ generate_key_cert "DB2"
 generate_key_cert "VAR"
 
 # Create data file for the custom variable
-cat <<EOF > var_data.txt
+cat <<EOF > var_data_part01.txt
 The term 'trusted service' is used as a general name for a class of application that runs in an isolated
 processing environment. Other applications rely on trusted services to perform security related operations in
 a way that avoids exposing secret data beyond the isolation boundary of the environment. The word 'trusted'
 does not imply anything inherently trustworthy about a service application but rather that other applications
 put trust in the service. Meeting those trust obligations relies on a range of hardware and firmware
 implemented security measures.
+EOF
 
+cat <<EOF > var_data_part02.txt
 The Arm Application-profile (A-profile) architecture, in combination with standard firmware, provides a range
 of isolated processing environments that offer hardware-backed protection against various classes of attack.
 Because of their strong security properties, these environments are suitable for running applications that have
@@ -90,6 +95,8 @@ that implement PSA root-of-trust services. Services may be accessed using client
 Functional APIs. UEFI SMM services are provided by the SMM Gateway.
 EOF
 
+cat var_data_part01.txt var_data_part02.txt > var_data.txt
+
 # Generate EFI signature list from the certificates for each keystore variable and an empty esl for delete requests
 cert-to-efi-sig-list PK1.crt PK1.esl
 cert-to-efi-sig-list PK2.crt PK2.esl
@@ -102,32 +109,39 @@ touch NULL.esl
 # Add another signature list before the correct KEK list to test if multiple lists are supported
 cat PK3.esl KEK.esl > KEK_concatenated.esl
 
-sign-efi-sig-list -c PK1.crt -k PK1.key PK  PK1.esl               PK1.auth
-sign-efi-sig-list -c PK1.crt -k PK1.key PK  PK2.esl               PK2.auth
-sign-efi-sig-list -c PK3.crt -k PK3.key PK  PK3.esl               PK3.auth
-sign-efi-sig-list -c PK1.crt -k PK1.key PK  NULL.esl              PK1_delete.auth
-sign-efi-sig-list -c PK2.crt -k PK2.key PK  NULL.esl              PK2_delete.auth
-sign-efi-sig-list -c PK1.crt -k PK1.key KEK KEK_concatenated.esl  KEK.auth
-sign-efi-sig-list -c PK1.crt -k PK1.key KEK NULL.esl              KEK_delete.auth
-sign-efi-sig-list -c KEK.crt -k KEK.key db  DB1.esl               DB1.auth
-sign-efi-sig-list -c PK1.crt -k PK1.key db  DB2.esl               DB2.auth
+sign-efi-sig-list -c PK1.crt -k PK1.key PK  PK1.esl               PK1.auth        ; sleep 1
+sign-efi-sig-list -c PK1.crt -k PK1.key PK  NULL.esl              PK1_delete.auth ; sleep 1
+sign-efi-sig-list -c PK1.crt -k PK1.key PK  PK2.esl               PK2.auth        ; sleep 1
+sign-efi-sig-list -c PK2.crt -k PK2.key PK  NULL.esl              PK2_delete.auth ; sleep 1
+sign-efi-sig-list -c PK3.crt -k PK3.key PK  PK3.esl               PK3.auth        ; sleep 1
+sign-efi-sig-list -c PK1.crt -k PK1.key KEK KEK_concatenated.esl  KEK.auth        ; sleep 1
+sign-efi-sig-list -c PK1.crt -k PK1.key KEK NULL.esl              KEK_delete.auth ; sleep 1
+sign-efi-sig-list -c PK1.crt -k PK1.key db  DB2.esl               DB2.auth        ; sleep 1
+sign-efi-sig-list -c KEK.crt -k KEK.key db  DB1.esl               DB1.auth        ; sleep 1
+
 # GUID: Must be syncronized with m_common_guid in the tests
-sign-efi-sig-list -c DB1.crt -k DB1.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' var var_data.txt VAR.auth
-sign-efi-sig-list -c DB1.crt -k DB1.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' var /dev/null VAR_delete.auth
+sign-efi-sig-list -c VAR.crt -k VAR.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' -t 0 -a var var_data_part02.txt var_append_old.auth
+sign-efi-sig-list -c VAR.crt -k VAR.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' -t 0 var /dev/null var_delete_old.auth          ; sleep 1
+sign-efi-sig-list -c VAR.crt -k VAR.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' var var_data_part01.txt var.auth                ; sleep 1
+sign-efi-sig-list -c VAR.crt -k VAR.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' -a var var_data_part02.txt var_append.auth      ; sleep 1
+sign-efi-sig-list -c VAR.crt -k VAR.key -g '01234567-89AB-CDEF-0123-456789ABCDEF' var /dev/null var_delete.auth                   ; sleep 1
 
 # Generate C headers from the authentication headers for the tests
-xxd -i PK1.auth        > ../${HEADER_FOLDER}/PK1.h
-xxd -i PK2.auth        > ../${HEADER_FOLDER}/PK2.h
-xxd -i PK3.auth        > ../${HEADER_FOLDER}/PK3.h
-xxd -i PK1_delete.auth > ../${HEADER_FOLDER}/PK1_delete.h
-xxd -i PK2_delete.auth > ../${HEADER_FOLDER}/PK2_delete.h
-xxd -i KEK.auth        > ../${HEADER_FOLDER}/KEK.h
-xxd -i KEK_delete.auth > ../${HEADER_FOLDER}/KEK_delete.h
-xxd -i DB1.auth        > ../${HEADER_FOLDER}/db1.h
-xxd -i DB2.auth        > ../${HEADER_FOLDER}/db2.h
-xxd -i VAR.auth        > ../${HEADER_FOLDER}/var.h
-xxd -i VAR_delete.auth > ../${HEADER_FOLDER}/var_delete.h
-xxd -i var_data.txt    > ../${HEADER_FOLDER}/var_data.h
+xxd -i PK1.auth            > ../${HEADER_FOLDER}/PK1.h
+xxd -i PK2.auth            > ../${HEADER_FOLDER}/PK2.h
+xxd -i PK3.auth            > ../${HEADER_FOLDER}/PK3.h
+xxd -i PK1_delete.auth     > ../${HEADER_FOLDER}/PK1_delete.h
+xxd -i PK2_delete.auth     > ../${HEADER_FOLDER}/PK2_delete.h
+xxd -i KEK.auth            > ../${HEADER_FOLDER}/KEK.h
+xxd -i KEK_delete.auth     > ../${HEADER_FOLDER}/KEK_delete.h
+xxd -i DB2.auth            > ../${HEADER_FOLDER}/db2.h
+xxd -i DB1.auth            > ../${HEADER_FOLDER}/db1.h
+xxd -i var_append_old.auth > ../${HEADER_FOLDER}/var_append_old.h
+xxd -i var_delete_old.auth > ../${HEADER_FOLDER}/var_delete_old.h
+xxd -i var.auth            > ../${HEADER_FOLDER}/var.h
+xxd -i var_append.auth     > ../${HEADER_FOLDER}/var_append.h
+xxd -i var_delete.auth     > ../${HEADER_FOLDER}/var_delete.h
+xxd -i var_data.txt        > ../${HEADER_FOLDER}/var_data.h
 
 popd
 

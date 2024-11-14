@@ -3,15 +3,22 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+#include <protocols/common/efi/efi_status.h>
 #include <protocols/rpc/common/packed-c/status.h>
 #include <protocols/service/crypto/packed-c/opcodes.h>
 #include <service/crypto/backend/crypto_backend.h>
 #include <service/crypto/provider/crypto_provider.h>
+#include <compiler.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "crypto_partition.h"
 #include "crypto_uuid.h"
+
+#if defined(MBEDTLS_PKCS7_C) && defined(MBEDTLS_X509_CRT_PARSE_C)
+#include "common/mbedtls/mbedtls_utils.h"
+#endif
 
 /* Service request handlers */
 static rpc_status_t generate_key_handler(void *context, struct rpc_request *req);
@@ -28,25 +35,27 @@ static rpc_status_t copy_key_handler(void *context, struct rpc_request *req);
 static rpc_status_t purge_key_handler(void *context, struct rpc_request *req);
 static rpc_status_t get_key_attributes_handler(void *context, struct rpc_request *req);
 static rpc_status_t verify_pkcs7_signature_handler(void *context, struct rpc_request *req);
+static rpc_status_t get_uefi_priv_auth_var_fingerprint_handler(void *context, struct rpc_request *req);
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
-	{ TS_CRYPTO_OPCODE_GENERATE_KEY,           generate_key_handler },
-	{ TS_CRYPTO_OPCODE_DESTROY_KEY,            destroy_key_handler },
-	{ TS_CRYPTO_OPCODE_EXPORT_KEY,             export_key_handler },
-	{ TS_CRYPTO_OPCODE_EXPORT_PUBLIC_KEY,      export_public_key_handler },
-	{ TS_CRYPTO_OPCODE_IMPORT_KEY,             import_key_handler },
-	{ TS_CRYPTO_OPCODE_SIGN_HASH,              asymmetric_sign_handler },
-	{ TS_CRYPTO_OPCODE_VERIFY_HASH,            asymmetric_verify_handler },
-	{ TS_CRYPTO_OPCODE_ASYMMETRIC_DECRYPT,     asymmetric_decrypt_handler },
-	{ TS_CRYPTO_OPCODE_ASYMMETRIC_ENCRYPT,     asymmetric_encrypt_handler },
-	{ TS_CRYPTO_OPCODE_GENERATE_RANDOM,        generate_random_handler },
-	{ TS_CRYPTO_OPCODE_COPY_KEY,               copy_key_handler },
-	{ TS_CRYPTO_OPCODE_PURGE_KEY,              purge_key_handler },
-	{ TS_CRYPTO_OPCODE_GET_KEY_ATTRIBUTES,     get_key_attributes_handler },
-	{ TS_CRYPTO_OPCODE_SIGN_MESSAGE,           asymmetric_sign_handler },
-	{ TS_CRYPTO_OPCODE_VERIFY_MESSAGE,         asymmetric_verify_handler },
-	{ TS_CRYPTO_OPCODE_VERIFY_PKCS7_SIGNATURE, verify_pkcs7_signature_handler },
+	{ TS_CRYPTO_OPCODE_GENERATE_KEY,            generate_key_handler },
+	{ TS_CRYPTO_OPCODE_DESTROY_KEY,             destroy_key_handler },
+	{ TS_CRYPTO_OPCODE_EXPORT_KEY,              export_key_handler },
+	{ TS_CRYPTO_OPCODE_EXPORT_PUBLIC_KEY,       export_public_key_handler },
+	{ TS_CRYPTO_OPCODE_IMPORT_KEY,              import_key_handler },
+	{ TS_CRYPTO_OPCODE_SIGN_HASH,               asymmetric_sign_handler },
+	{ TS_CRYPTO_OPCODE_VERIFY_HASH,             asymmetric_verify_handler },
+	{ TS_CRYPTO_OPCODE_ASYMMETRIC_DECRYPT,      asymmetric_decrypt_handler },
+	{ TS_CRYPTO_OPCODE_ASYMMETRIC_ENCRYPT,      asymmetric_encrypt_handler },
+	{ TS_CRYPTO_OPCODE_GENERATE_RANDOM,         generate_random_handler },
+	{ TS_CRYPTO_OPCODE_COPY_KEY,                copy_key_handler },
+	{ TS_CRYPTO_OPCODE_PURGE_KEY,               purge_key_handler },
+	{ TS_CRYPTO_OPCODE_GET_KEY_ATTRIBUTES,      get_key_attributes_handler },
+	{ TS_CRYPTO_OPCODE_SIGN_MESSAGE,            asymmetric_sign_handler },
+	{ TS_CRYPTO_OPCODE_VERIFY_MESSAGE,          asymmetric_verify_handler },
+	{ TS_CRYPTO_OPCODE_VERIFY_PKCS7_SIGNATURE,  verify_pkcs7_signature_handler },
+	{ TS_CRYPTO_OPCODE_GET_UEFI_PRIV_AUTH_VAR_FINGERPRINT, get_uefi_priv_auth_var_fingerprint_handler },
 };
 
 struct rpc_service_interface *
@@ -664,33 +673,44 @@ static rpc_status_t verify_pkcs7_signature_handler(void *context, struct rpc_req
 	}
 
 	if (rpc_status == RPC_SUCCESS) {
-		/* Parse the public key certificate */
-		mbedtls_x509_crt signer_certificate;
+		/* Parse the PKCS#7 DER encoded signature block */
+		mbedtls_pkcs7 pkcs7_structure;
 
-		mbedtls_x509_crt_init(&signer_certificate);
+		mbedtls_pkcs7_init(&pkcs7_structure);
 
-		mbedtls_status = mbedtls_x509_crt_parse_der(&signer_certificate, public_key_cert,
-							    public_key_cert_len);
+		mbedtls_status = mbedtls_pkcs7_parse_der(&pkcs7_structure, signature_cert,
+								signature_cert_len);
 
-		if (mbedtls_status == 0) {
-			/* Parse the PKCS#7 DER encoded signature block */
-			mbedtls_pkcs7 pkcs7_structure;
+		if (mbedtls_status == MBEDTLS_PKCS7_SIGNED_DATA) {
 
-			mbedtls_pkcs7_init(&pkcs7_structure);
+			/*
+			 * If a separate public key is provided, verify the signature with it,
+			 * else use the key from the pkcs7 signature structure, because it is
+			 * a self-signed certificate.
+			 */
+			if(public_key_cert_len) {
+				/* Parse the public key certificate */
+				mbedtls_x509_crt signer_certificate;
 
-			mbedtls_status = mbedtls_pkcs7_parse_der(&pkcs7_structure, signature_cert,
-								 signature_cert_len);
+				mbedtls_x509_crt_init(&signer_certificate);
 
-			if (mbedtls_status == MBEDTLS_PKCS7_SIGNED_DATA) {
-				/* Verify hash against signed hash */
+				mbedtls_status = mbedtls_x509_crt_parse_der(&signer_certificate, public_key_cert,
+									public_key_cert_len);
+
+				if (mbedtls_status == 0) {
+					/* Verify hash against signed hash */
+					mbedtls_status = mbedtls_pkcs7_signed_hash_verify(
+						&pkcs7_structure, &signer_certificate, hash, hash_len);
+				}
+
+				mbedtls_x509_crt_free(&signer_certificate);
+			} else {
 				mbedtls_status = mbedtls_pkcs7_signed_hash_verify(
-					&pkcs7_structure, &signer_certificate, hash, hash_len);
+					&pkcs7_structure, &pkcs7_structure.private_signed_data.private_certs, hash, hash_len);
 			}
-
-			mbedtls_pkcs7_free(&pkcs7_structure);
 		}
 
-		mbedtls_x509_crt_free(&signer_certificate);
+		mbedtls_pkcs7_free(&pkcs7_structure);
 	}
 
 	free(signature_cert);
@@ -702,8 +722,121 @@ static rpc_status_t verify_pkcs7_signature_handler(void *context, struct rpc_req
 
 	return rpc_status;
 }
+
+static rpc_status_t get_uefi_priv_auth_var_fingerprint_handler(void *context, struct rpc_request *req)
+{
+	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	struct rpc_buffer *req_buf = &req->request;
+	const struct crypto_provider_serializer *serializer = get_crypto_serializer(context, req);
+
+	int mbedtls_status = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
+
+	uint8_t *signature_cert = NULL;
+	uint64_t signature_cert_len = 0;
+
+	if (serializer) {
+		/* First collect the lengths of the field */
+		rpc_status = serializer->deserialize_get_uefi_priv_auth_var_fingerprint_req(
+			req_buf, NULL, &signature_cert_len);
+
+		if (rpc_status == RPC_SUCCESS) {
+			/* Allocate the needed space and get the data */
+			signature_cert = (uint8_t *)malloc(signature_cert_len);
+
+			if (signature_cert) {
+				rpc_status = serializer->deserialize_get_uefi_priv_auth_var_fingerprint_req(
+					req_buf, signature_cert, &signature_cert_len);
+			} else {
+				rpc_status = RPC_ERROR_RESOURCE_FAILURE;
+			}
+		}
+	}
+
+	if (rpc_status == RPC_SUCCESS) {
+		/* Parse the PKCS#7 DER encoded signature block */
+		mbedtls_pkcs7 pkcs7_structure;
+
+		mbedtls_pkcs7_init(&pkcs7_structure);
+
+		mbedtls_status = mbedtls_pkcs7_parse_der(&pkcs7_structure, signature_cert,
+								signature_cert_len);
+
+		if (mbedtls_status == MBEDTLS_PKCS7_SIGNED_DATA) {
+
+			uint8_t output_buffer[PSA_HASH_MAX_SIZE] =  { 0 };
+			size_t __maybe_unused output_size = 0;
+			const mbedtls_asn1_buf *signerCertCN = NULL;
+			const mbedtls_x509_crt *topLevelCert = &pkcs7_structure.private_signed_data.private_certs;
+			const mbedtls_x509_buf *toplevelCertTbs = NULL;
+			struct rpc_buffer *resp_buf = &req->response;;
+			psa_hash_operation_t op = PSA_HASH_OPERATION_INIT;
+
+			/* Find common name field of the signing certificate, which is the first in the chain */
+			signerCertCN = findCommonName(&topLevelCert->subject);
+			if (!signerCertCN) {
+				mbedtls_status = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
+				goto end;
+			}
+
+			/* Get the TopLevel certificate which is the last in the chain */
+			while(topLevelCert->next)
+				topLevelCert = topLevelCert->next;
+			toplevelCertTbs = &topLevelCert->tbs;
+
+			/* Hash the data to create the fingerprint */
+			op = psa_hash_operation_init();
+
+			if (psa_hash_setup(&op, PSA_ALG_SHA_256) != PSA_SUCCESS) {
+				mbedtls_status = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
+				goto end;
+			}
+
+			if (psa_hash_update(&op, signerCertCN->p, signerCertCN->len)) {
+				psa_hash_abort(&op);
+				mbedtls_status = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
+				goto end;
+			}
+
+			if (psa_hash_update(&op, toplevelCertTbs->p, toplevelCertTbs->len)) {
+				psa_hash_abort(&op);
+				mbedtls_status = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
+				goto end;
+			}
+
+			if (psa_hash_finish(&op, (uint8_t*)&output_buffer, PSA_HASH_MAX_SIZE, &output_size)) {
+				psa_hash_abort(&op);
+				mbedtls_status = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
+				goto end;
+			}
+
+			/* Clear the remaining part of the buffer for consistency */
+			memset(&output_buffer[output_size], 0, PSA_HASH_MAX_SIZE - output_size);
+
+			rpc_status = serializer->serialize_get_uefi_priv_auth_var_fingerprint_resp(
+				resp_buf, (uint8_t*)&output_buffer);
+		}
+
+end:
+		mbedtls_pkcs7_free(&pkcs7_structure);
+	}
+
+	free(signature_cert);
+
+	/* Provide the result of the verification */
+	req->service_status = (mbedtls_status == MBEDTLS_PKCS7_SIGNED_DATA) ? EFI_SUCCESS : EFI_COMPROMISED_DATA;
+
+	return rpc_status;
+}
 #else
 static rpc_status_t verify_pkcs7_signature_handler(void *context, struct rpc_request *req)
+{
+	(void)context;
+	(void)req;
+
+	return RPC_ERROR_INTERNAL;
+}
+
+static rpc_status_t get_uefi_priv_auth_var_fingerprint_handler(void *context, struct rpc_request *req)
 {
 	(void)context;
 	(void)req;

@@ -14,7 +14,7 @@
 
 void (*trace_puts_interface)(const char *str) = &trace_puts;
 
-void trace_printf(const char *func, int line, int level, const char *fmt, ...)
+void ts_trace_printf(const char *func, int line, int level, const char *fmt, ...)
 {
 	char buffer[256];
 	char level_char = 0;

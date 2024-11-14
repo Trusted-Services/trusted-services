@@ -51,6 +51,7 @@ SECTIONS {
 	.dynstr : { *(.dynstr) }
 	.hash : { *(.hash) }
 	.note.gnu.build-id : { *(.note.gnu.build-id) }
+	.note.gnu.property : { *(.note.gnu.property) }
 
 	. = ALIGN(8);
 	__rela_start = .;
@@ -97,10 +98,10 @@ SECTIONS {
 		__bss_end = .;
 	}
 	.stack : {
-		. = ALIGN(4);
+		. = ALIGN(16);
 		__stack_start = .;
 		. += SP_STACK_SIZE;
-		. = ALIGN(4);
+		. = ALIGN(16);
 		__stack_end = .;
 	}
 

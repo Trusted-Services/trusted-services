@@ -47,7 +47,6 @@ Once it boots to the login prompt, log in as root and from the FVP terminal, ent
 
   cd /mnt/host
   cp -vat /usr out/ts-install/arm-linux/lib out/ts-install/arm-linux/bin
-  out/linux-arm-ffa-tee/load_module.sh
   out/linux-arm-ffa-user/load_module.sh
   ts-service-test -v
 

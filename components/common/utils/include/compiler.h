@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /*
  * Copyright (c) 2014, STMicroelectronics International N.V.
- * Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  */
 
 #ifndef COMPILER_H
@@ -14,7 +14,7 @@
  * definitive owner and thus solves the problem.
  */
 #ifdef ENABLE_CDEFSH_FIX
-#include <sys/cdefs.h>
+#include <cdefs.h>
 #endif
 
 /*
@@ -56,7 +56,9 @@
 #ifndef __unused
 #define __unused	__attribute__((unused))
 #endif
+#ifndef __maybe_unused
 #define __maybe_unused	__attribute__((unused))
+#endif
 #ifndef __used
 #define __used		__attribute__((__used__))
 #endif

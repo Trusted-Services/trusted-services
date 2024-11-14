@@ -28,29 +28,17 @@ set(TS_ARCH_TEST_BUILD_SUBDIR initial_attestation CACHE STRING "Arch test build 
 #  Attestation specific components.
 #
 #-------------------------------------------------------------------------------
-add_components(
-	TARGET "${PROJECT_NAME}"
+target_sources(${PROJECT_NAME} PRIVATE
+	${TS_ROOT}/deployments/psa-api-test/initial_attestation/iat.c
+)
+
+add_components(TARGET ${PROJECT_NAME}
 	BASE_DIR ${TS_ROOT}
 	COMPONENTS
+		"components/service/common/include"
 		"components/service/attestation/include"
-		"components/service/attestation/client/psa"
-		"components/service/attestation/client/provision"
+		"components/service/crypto/include"
 )
-
-target_sources(${PROJECT_NAME} PRIVATE
-	${TS_ROOT}/deployments/psa-api-test/initial_attestation/iat_locator.c
-)
-
-#-------------------------------------------------------------------------------
-#  Add external components used specifically for attestation tests
-#
-#-------------------------------------------------------------------------------
-
-# MbedTLS used for token verification
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_posix.h"
-	CACHE STRING "Configuration file for mbedcrypto")
-include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
-target_link_libraries(${PROJECT_NAME} PRIVATE MbedTLS::mbedcrypto)
 
 # Use Mbed TLS to provide the psa crypto api interface files
 set(PSA_CRYPTO_API_INCLUDE ${MBEDTLS_PUBLIC_INCLUDE_PATH})

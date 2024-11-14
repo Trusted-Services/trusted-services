@@ -8,6 +8,7 @@
 
 set(FIRMWARE_TEST_BUILDER_URL "https://git.trustedfirmware.org/TS/trusted-services.git" CACHE STRING "firmware-test-builder repository URL")
 set(FIRMWARE_TEST_BUILDER_REFSPEC "topics/fwtb" CACHE STRING "firmware-test-builder git refspec")
+set(BRANCH_PROTECTION @BRANCH_PROTECTION@ CACHE STRING "")
 
 set(GIT_OPTIONS
 	GIT_REPOSITORY ${FIRMWARE_TEST_BUILDER_URL}

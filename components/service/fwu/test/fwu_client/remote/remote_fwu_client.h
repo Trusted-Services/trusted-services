@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -21,7 +21,12 @@ public:
 	remote_fwu_client();
 	~remote_fwu_client();
 
-	int begin_staging(void);
+	int discover(int16_t *service_status, uint8_t *version_major, uint8_t *version_minor,
+		     uint16_t *num_func, uint64_t *max_payload_size, uint32_t *flags,
+		     uint32_t *vendor_specific_flags, uint8_t *function_presence);
+
+	int begin_staging(uint32_t vendor_flags, uint32_t partial_update_count,
+			  struct uuid_octets update_guid[]);
 
 	int end_staging(void);
 
@@ -31,7 +36,7 @@ public:
 
 	int select_previous(void);
 
-	int open(const struct uuid_octets *uuid, uint32_t *handle);
+	int open(const struct uuid_octets *uuid, op_type op_type, uint32_t *handle);
 
 	int commit(uint32_t handle, bool accepted);
 
@@ -44,6 +49,22 @@ private:
 	int invoke_no_param(unsigned int opcode);
 	void open_session(void);
 	void close_session(void);
+
+	struct fwu_call_handle {
+		struct fwu_request_header *req_header;
+		rpc_call_handle handle;
+	};
+
+	rpc_call_handle fwu_caller_session_begin(struct rpc_caller_session *session,
+					 uint8_t **request_buffer, size_t request_length,
+					 size_t response_max_length);
+
+
+	rpc_status_t fwu_caller_session_invoke(rpc_call_handle handle, uint32_t opcode,
+				       uint8_t **response_buffer, size_t *response_length,
+				       service_status_t *service_status);
+
+	rpc_status_t fwu_caller_session_end(rpc_call_handle handle);
 
 	struct service_client m_client;
 	struct rpc_caller_session *m_rpc_session;

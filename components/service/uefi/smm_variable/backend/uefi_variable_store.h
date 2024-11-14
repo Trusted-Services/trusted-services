@@ -52,6 +52,7 @@ struct uefi_variable_store {
 	uint32_t owner_id;
 	uint8_t *index_sync_buffer;
 	size_t index_sync_buffer_size;
+	uint64_t active_variable_index_uid;
 	struct variable_index variable_index;
 	struct delegate_variable_store persistent_store;
 	struct delegate_variable_store volatile_store;
@@ -134,8 +135,7 @@ efi_status_t uefi_variable_store_get_variable(const struct uefi_variable_store *
  * Used for enumerating the store contents
  *
  * @param[in]  context uefi_variable_store instance
- * @param[out] cur Current variable name
- * @param[in]  max_name_len The maximum variable name length
+ * @param[inout] cur The size of the VariableName buffer
  * @param[out] total_len The total length of the output
  *
  * @return     EFI_SUCCESS if successful
@@ -143,7 +143,7 @@ efi_status_t uefi_variable_store_get_variable(const struct uefi_variable_store *
 efi_status_t
 uefi_variable_store_get_next_variable_name(const struct uefi_variable_store *context,
 					   SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *cur,
-					   size_t max_name_len, size_t *total_length);
+					   size_t *total_length);
 
 /**
  * @brief      Query for variable info

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,8 +14,8 @@
 #include "common/uuid/uuid.h"
 #include "media/volume/index/volume_index.h"
 #include "media/volume/volume.h"
-#include "protocols/service/fwu/packed-c/metadata_v2.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/metadata_v2.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/agent/fw_directory.h"
 #include "service/fwu/fw_store/banked/bank_tracker.h"
 #include "service/fwu/fw_store/banked/metadata_serializer/metadata_serializer.h"
@@ -104,7 +104,7 @@ static int serialize_fw_store_desc(const struct fw_directory *fw_dir,
 	fw_store_desc->num_banks = BANK_SCHEME_NUM_BANKS;
 	fw_store_desc->num_images = fw_directory_num_images(fw_dir);
 	fw_store_desc->img_entry_size = sizeof(struct fwu_image_entry);
-	fw_store_desc->bank_entry_size = sizeof(struct fwu_img_bank_info);
+	fw_store_desc->bank_info_entry_size = sizeof(struct fwu_img_bank_info);
 
 	return serialize_image_entries(fw_store_desc, fw_dir, bank_tracker);
 }
@@ -126,7 +126,7 @@ static int metadata_serializer_serialize(uint32_t active_index, uint32_t previou
 		metadata->crc_32 = 0;
 		metadata->version = 2;
 		metadata->metadata_size = (uint32_t)serialized_size;
-		metadata->header_size = (uint16_t)sizeof(struct fwu_metadata);
+		metadata->descriptor_offset = (uint16_t)sizeof(struct fwu_metadata);
 		metadata->active_index = active_index;
 		metadata->previous_active_index = previous_active_index;
 
@@ -150,9 +150,9 @@ static int metadata_serializer_serialize(uint32_t active_index, uint32_t previou
 		}
 
 		/* Serialize optional fw store descriptor if required */
-		if (serialized_size > metadata->header_size)
+		if (serialized_size > metadata->descriptor_offset)
 			status = serialize_fw_store_desc(fw_dir, bank_tracker,
-							 &buf[metadata->header_size]);
+							 &buf[metadata->descriptor_offset]);
 		else
 			status = FWU_STATUS_SUCCESS;
 
@@ -170,7 +170,8 @@ static void metadata_serializer_deserialize_bank_info(struct bank_tracker *bank_
 	const struct fwu_metadata *metadata = (const struct fwu_metadata *)serialized_metadata;
 
 	/* Sanity check size values in header */
-	if ((metadata->header_size > metadata_len) || (metadata->metadata_size > metadata_len))
+	if ((metadata->descriptor_offset > metadata_len) ||
+	    (metadata->metadata_size > metadata_len))
 		return;
 
 	/* Deserialize bank state in header and update bank_tracker to reflect the same state */
@@ -183,20 +184,20 @@ static void metadata_serializer_deserialize_bank_info(struct bank_tracker *bank_
 
 	/* If present, deserialize the fw_store_desc */
 	if (metadata->metadata_size >=
-	    metadata->header_size + offsetof(struct fwu_fw_store_desc, img_entry)) {
+	    metadata->descriptor_offset + offsetof(struct fwu_fw_store_desc, img_entry)) {
 		const struct fwu_fw_store_desc *fw_store_desc =
 			(const struct fwu_fw_store_desc *)(serialized_metadata +
-							   metadata->header_size);
+							   metadata->descriptor_offset);
 
-		size_t fw_store_desc_size = metadata->metadata_size - metadata->header_size;
+		size_t fw_store_desc_size = metadata->metadata_size - metadata->descriptor_offset;
 		size_t total_img_entries_size =
 			fw_store_desc_size - offsetof(struct fwu_fw_store_desc, img_entry);
 		size_t per_img_entry_bank_info_size =
-			fw_store_desc->num_banks * fw_store_desc->bank_entry_size;
+			fw_store_desc->num_banks * fw_store_desc->bank_info_entry_size;
 
 		/* Sanity check fw_store_desc values */
 		if ((fw_store_desc->img_entry_size < sizeof(struct fwu_image_entry)) ||
-		    (fw_store_desc->bank_entry_size < sizeof(struct fwu_img_bank_info)) ||
+		    (fw_store_desc->bank_info_entry_size < sizeof(struct fwu_img_bank_info)) ||
 		    (fw_store_desc->num_banks > BANK_SCHEME_NUM_BANKS) ||
 		    (fw_store_desc->img_entry_size <
 		     offsetof(struct fwu_image_entry, img_bank_info) +
@@ -217,9 +218,9 @@ static void metadata_serializer_deserialize_bank_info(struct bank_tracker *bank_
 			for (size_t bank_index = 0; bank_index < fw_store_desc->num_banks;
 			     bank_index++) {
 				const struct fwu_img_bank_info *bank_info =
-					(const struct fwu_img_bank_info
-						 *)((const uint8_t *)image_entry->img_bank_info +
-						    bank_index * fw_store_desc->bank_entry_size);
+					(const struct fwu_img_bank_info *)((const uint8_t *)
+					image_entry->img_bank_info + bank_index *
+					fw_store_desc->bank_info_entry_size);
 
 				if (bank_info->accepted)
 					bank_tracker_accept(bank_tracker, bank_index, image_index);

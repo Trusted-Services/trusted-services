@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2021-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  */
 
 #include "components/rpc/common/endpoint/rpc_service_interface.h"
@@ -39,7 +39,7 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		goto fatal_error;
 	}
 
-	rpc_status = ts_rpc_endpoint_sp_init(&rpc_endpoint, 4, 16);
+	rpc_status = ts_rpc_endpoint_sp_init(&rpc_endpoint, 5, 16);
 	if (rpc_status != RPC_SUCCESS) {
 		EMSG("Failed to initialize RPC endpoint: %d", rpc_status);
 		goto fatal_error;
@@ -94,6 +94,18 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		goto fatal_error;
 	}
 
+	rpc_iface = fwu_proxy_create();
+	if (!rpc_iface) {
+		EMSG("Failed to create FWU proxy");
+		goto fatal_error;
+	}
+
+	rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
+	if (rpc_status != RPC_SUCCESS) {
+		EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
+		goto fatal_error;
+	}
+
 	/* End of boot phase */
 	result = sp_msg_wait(&req_msg);
 	if (result != SP_RESULT_OK) {
@@ -124,6 +136,22 @@ fatal_error:
 void sp_interrupt_handler(uint32_t interrupt_id)
 {
 	(void)interrupt_id;
+}
+
+ffa_result ffa_vm_created_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)vm_id;
+	(void)handle;
+
+	return FFA_OK;
+}
+
+ffa_result ffa_vm_destroyed_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)vm_id;
+	(void)handle;
+
+	return FFA_OK;
 }
 
 static bool sp_init(uint16_t *own_id)

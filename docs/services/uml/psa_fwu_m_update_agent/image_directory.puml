@@ -1,0 +1,30 @@
+'-------------------------------------------------------------------------------
+' Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
+'
+' SPDX-License-Identifier: BSD-3-Clause
+'
+'-------------------------------------------------------------------------------
+
+@startuml
+participant "PSA FWU A Update Client" as client
+participant "PSA FWU A Update Agent" as agent
+participant "PSA FWU M Service" as service
+
+autoactivate on
+
+client -> agent: fwu_read_stream(image directory)
+
+agent -> agent: fill image_directory structure
+agent --> agent
+
+loop on all images
+	agent -> service: psa_fwu_query(image)
+	service --> agent: psa_fwu_component_info_t
+
+	agent -> agent: convert psa_fwu_component_info_t to img_info_entry
+	agent --> agent: img_info_entry
+end
+
+agent --> client
+
+@enduml

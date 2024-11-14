@@ -59,8 +59,7 @@ Once it boots to the login prompt, log in as root and from the FVP terminal, ent
   # Install the shared library and executables
   cp -vat /usr out/ts-install/arm-linux/lib out/ts-install/arm-linux/bin
 
-  # Load the kernel modules
-  out/linux-arm-ffa-tee/load_module.sh
+  # Load the kernel module
   out/linux-arm-ffa-user/load_module.sh
 
   # Run the test application

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,6 +12,12 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef EXPORT_PUBLIC_INTERFACE_PSA_ITS
+#define PSA_ITS_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define PSA_ITS_EXPORTED
 #endif
 
 /**
@@ -36,10 +42,9 @@ extern "C" {
  *
  * @return     A status indicating the success/failure of the operation
  */
-psa_status_t psa_its_set(psa_storage_uid_t uid,
-			 size_t data_length,
-			 const void *p_data,
-			 psa_storage_create_flags_t create_flags);
+PSA_ITS_EXPORTED psa_status_t psa_its_set(psa_storage_uid_t uid, size_t data_length,
+					  const void *p_data,
+					  psa_storage_create_flags_t create_flags);
 
 /**
  * @brief      Retrieve data associated with a provided UID.
@@ -54,11 +59,8 @@ psa_status_t psa_its_set(psa_storage_uid_t uid,
  *
  * @return     A status indicating the success/failure of the operation
  */
-psa_status_t psa_its_get(psa_storage_uid_t uid,
-			 size_t data_offset,
-			 size_t data_size,
-			 void *p_data,
-			 size_t *p_data_length);
+PSA_ITS_EXPORTED psa_status_t psa_its_get(psa_storage_uid_t uid, size_t data_offset,
+					  size_t data_size, void *p_data, size_t *p_data_length);
 
 /**
  * @brief      Retrieve the metadata about the provided uid.
@@ -69,8 +71,8 @@ psa_status_t psa_its_get(psa_storage_uid_t uid,
  *
  * @return     A status indicating the success/failure of the operation
  */
-psa_status_t psa_its_get_info(psa_storage_uid_t uid,
-			      struct psa_storage_info_t *p_info);
+PSA_ITS_EXPORTED psa_status_t psa_its_get_info(psa_storage_uid_t uid,
+					       struct psa_storage_info_t *p_info);
 
 /**
  * @brief      Remove the provided key and its associated data from the storage
@@ -79,7 +81,7 @@ psa_status_t psa_its_get_info(psa_storage_uid_t uid,
  *
  * @return     A status indicating the success/failure of the operation
  */
-psa_status_t psa_its_remove(psa_storage_uid_t uid);
+PSA_ITS_EXPORTED psa_status_t psa_its_remove(psa_storage_uid_t uid);
 
 #ifdef __cplusplus
 }

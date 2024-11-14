@@ -225,6 +225,24 @@ TEST(sp_discovery, sp_discovery_partition_info_ffa_fail)
 	MEMCMP_EQUAL(&expected_info, &info, sizeof(info));
 }
 
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+TEST(sp_discovery, sp_discovery_partition_info_invalid_desc_size)
+{
+	struct sp_uuid uuid = { 1 };
+	struct ffa_uuid ffa_uuid = { 1 };
+	uint32_t count = 1;
+	uint32_t size = 0;
+	struct sp_partition_info info = { 1 };
+	const struct sp_partition_info expected_info = { 0 };
+
+	expect_sp_rxtx_buffer_rx_get(&rx_buffer, &rx_buffer_size, SP_RESULT_OK);
+	expect_ffa_partition_info_get(&ffa_uuid, 0, &count, &size, FFA_OK);
+	LONGS_EQUAL(SP_RESULT_INTERNAL_ERROR,
+		    sp_discovery_partition_info_get(&uuid, &info, &count));
+	MEMCMP_EQUAL(&expected_info, &info, sizeof(info));
+}
+#endif
+
 TEST(sp_discovery, sp_discovery_partition_info_small_buffer)
 {
 	struct sp_uuid uuid = { 1 };
@@ -520,3 +538,65 @@ TEST(sp_discovery, sp_discovery_partition_info_get_all_two_small_buffer)
 	CHECK_FALSE(info[1].can_send_direct_requests);
 	CHECK_FALSE(info[1].supports_indirect_requests);
 }
+
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+TEST(sp_discovery, sp_discovery_partition_info_get_count_null)
+{
+	struct sp_uuid uuid = { 1 };
+
+	LONGS_EQUAL(SP_RESULT_INVALID_PARAMETERS,
+		    sp_discovery_partition_info_get_count(&uuid, NULL));
+}
+
+TEST(sp_discovery, sp_discovery_partition_info_get_count_uuid_null)
+{
+	uint32_t count = 1;
+
+	LONGS_EQUAL(SP_RESULT_INVALID_PARAMETERS,
+		    sp_discovery_partition_info_get_count(NULL, &count));
+	UNSIGNED_LONGS_EQUAL(0, count);
+}
+
+TEST(sp_discovery, sp_discovery_partition_info_get_count_ffa_error)
+{
+	struct ffa_uuid ffa_uuid = { 1 };
+	struct sp_uuid sp_uuid = { 1 };
+	const uint32_t expected_count = 1;
+	const uint32_t expected_size = 0;
+	uint32_t count = 0;
+
+	expect_ffa_partition_info_get(&ffa_uuid, 0x01, &expected_count, &expected_size,
+					   result);
+	LONGS_EQUAL(result,
+		    sp_discovery_partition_info_get_count(&sp_uuid, &count));
+}
+
+TEST(sp_discovery, sp_discovery_partition_info_get_count_invalid_size)
+{
+	struct ffa_uuid ffa_uuid = { 1 };
+	struct sp_uuid sp_uuid = { 1 };
+	const uint32_t expected_count = 1;
+	const uint32_t expected_size = 11;
+	uint32_t count = 0;
+
+	expect_ffa_partition_info_get(&ffa_uuid, 0x01, &expected_count, &expected_size,
+					   FFA_OK);
+	LONGS_EQUAL(SP_RESULT_INTERNAL_ERROR,
+		    sp_discovery_partition_info_get_count(&sp_uuid, &count));
+}
+
+TEST(sp_discovery, sp_discovery_partition_info_get_count)
+{
+	struct ffa_uuid ffa_uuid = { 1 };
+	struct sp_uuid sp_uuid = { 1 };
+	const uint32_t expected_count = 1;
+	const uint32_t expected_size = 0;
+	uint32_t count = 0;
+
+	expect_ffa_partition_info_get(&ffa_uuid, 0x01, &expected_count, &expected_size,
+					   FFA_OK);
+	LONGS_EQUAL(SP_RESULT_OK,
+		    sp_discovery_partition_info_get_count(&sp_uuid, &count));
+	UNSIGNED_LONGS_EQUAL(expected_count, count);
+}
+#endif /* CFG_FFA_VERSION */

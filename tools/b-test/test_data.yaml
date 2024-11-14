@@ -40,6 +40,12 @@ data:
       os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
+    - name: "component-test-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/component-test/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"
     - name: "crypto-default-opteesp"
       src: "$TS_ROOT/deployments/crypto/config/default-opteesp"
       params:
@@ -85,11 +91,33 @@ data:
       src: "$TS_ROOT/deployments/internal-trusted-storage/config/shared-flash-opteesp"
       params:
             - "-GUnix Makefiles"
+    - name: "libpsats-arm-linux"
+      src: "$TS_ROOT/deployments/libpsats/arm-linux"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+    - name: "libpsats-linux-pc"
+      src: "$TS_ROOT/deployments/libpsats/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+    - name: "libpsats-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/libpsats/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"
     - name: "libsp-linux-pc"
       src: "$TS_ROOT/deployments/libsp/linux-pc"
       os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
+    - name: "libsp-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/libsp/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"
     - name: "libsp-opteesp"
       src: "$TS_ROOT/deployments/libsp/opteesp"
       params:
@@ -104,10 +132,12 @@ data:
       os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
-    - name: "newlib-opteesp"
-      src: "$TS_ROOT/deployments/newlib/opteesp"
+    - name: "libts-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/libts/linux-pc"
+      os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"
     - name: "platform-inspect-arm-linux"
       src: "$TS_ROOT/deployments/platform-inspect/arm-linux"
       os_id : "GNU/Linux"
@@ -187,6 +217,12 @@ data:
       os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
+    - name: "smm-gateway-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/smm-gateway/config/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"
     - name: "spm-test1-opteesp"
       src: "$TS_ROOT/deployments/spm-test1/opteesp"
       params:
@@ -233,6 +269,12 @@ data:
       os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
+    - name: "ts-service-test-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/ts-service-test/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"
     - name: "uefi-test-arm-linux"
       src: "$TS_ROOT/deployments/uefi-test/arm-linux"
       os_id : "GNU/Linux"
@@ -243,3 +285,9 @@ data:
       os_id : "GNU/Linux"
       params:
             - "-GUnix Makefiles"
+    - name: "uefi-test-coverage-linux-pc"
+      src: "$TS_ROOT/deployments/uefi-test/linux-pc"
+      os_id : "GNU/Linux"
+      params:
+            - "-GUnix Makefiles"
+            - "-DCOVERAGE=1"

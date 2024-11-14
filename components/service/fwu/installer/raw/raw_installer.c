@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "media/volume/index/volume_index.h"
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/agent/fw_directory.h"
 
 static int raw_installer_begin(void *context, unsigned int current_volume_id,

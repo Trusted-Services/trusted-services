@@ -73,18 +73,37 @@ TEST(mock_ffa_api, ffa_rxtx_unmap)
 	LONGS_EQUAL(result, ffa_rxtx_unmap(id));
 }
 
-TEST(mock_ffa_api, ffa_partition_info_get)
+#if CFG_FFA_VERSION == FFA_VERSION_1_0
+TEST(mock_ffa_api, ffa_partition_info_get_v1_0)
 {
 	const struct ffa_uuid uuid = { 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54,
 				       0x32, 0x10, 0x01, 0x23, 0x45, 0x67,
 				       0x89, 0xab, 0xcd, 0xef };
-	const uint32_t expect_count = 0xff00ee11U;
+	const uint32_t expected_count = 0xff00ee11U;
 	uint32_t count = 0;
 
-	expect_ffa_partition_info_get(&uuid, &expect_count, result);
+	expect_ffa_partition_info_get(&uuid, &expected_count, result);
 	LONGS_EQUAL(result, ffa_partition_info_get(&uuid, &count));
-	UNSIGNED_LONGS_EQUAL(expect_count, count);
+	UNSIGNED_LONGS_EQUAL(expected_count, count);
 }
+#elif CFG_FFA_VERSION >= FFA_VERSION_1_1
+TEST(mock_ffa_api, ffa_partition_info_get_v1_1)
+{
+	const struct ffa_uuid uuid = { 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54,
+				       0x32, 0x10, 0x01, 0x23, 0x45, 0x67,
+				       0x89, 0xab, 0xcd, 0xef };
+	const uint32_t flags = 0xabcdef01;
+	const uint32_t expected_count = 0xff00ee11U;
+	const uint32_t expected_size = 0xff00ee11U;
+	uint32_t count = 0;
+	uint32_t size = 0;
+
+	expect_ffa_partition_info_get(&uuid, flags, &expected_count, &expected_size, result);
+	LONGS_EQUAL(result, ffa_partition_info_get(&uuid, flags, &count, &size));
+	UNSIGNED_LONGS_EQUAL(expected_count, count);
+	UNSIGNED_LONGS_EQUAL(expected_size, size);
+}
+#endif /* CFG_FFA_VERSION */
 
 TEST(mock_ffa_api, ffa_id_get)
 {

@@ -11,17 +11,30 @@
  * Mbed TLS configuration for using libmbedcrypto in
  * a Posix environment (normal world demo and test applications).
  */
+
+/*
+ * Enable using crypto_config.h, but do not define custom crypto header with
+ * MBEDTLS_PSA_CRYPTO_CONFIG_FILE to enable all the supported algorithms.
+ */
 #define MBEDTLS_PSA_CRYPTO_CONFIG
+
+#define MBEDTLS_BASE64_C
+#define MBEDTLS_BIGNUM_C
+#define MBEDTLS_ECP_NIST_OPTIM
+#define MBEDTLS_ENTROPY_C
+#define MBEDTLS_HAVE_ASM
+#define MBEDTLS_LMS_C
+#define MBEDTLS_NIST_KW_C
 #define MBEDTLS_NO_UDBL_DIVISION
-#undef MBEDTLS_HAVE_TIME
-#undef MBEDTLS_HAVE_TIME_DATE
-#undef MBEDTLS_FS_IO
-#undef MBEDTLS_SELF_TEST
-#undef MBEDTLS_AESNI_C
-#undef MBEDTLS_PADLOCK_C
-#undef MBEDTLS_PLATFORM_C
-#undef MBEDTLS_PSA_CRYPTO_STORAGE_C
-#undef MBEDTLS_PSA_ITS_FILE_C
-#undef MBEDTLS_TIMING_C
+#define MBEDTLS_OID_C
+#define MBEDTLS_PKCS12_C
+#define MBEDTLS_PKCS5_C
+#define MBEDTLS_PK_C
+#define MBEDTLS_PK_PARSE_C
+#define MBEDTLS_PK_WRITE_C
+#define MBEDTLS_PSA_CRYPTO_C
+#define MBEDTLS_X509_CRL_PARSE_C
+#define MBEDTLS_X509_CRT_PARSE_C
+#define MBEDTLS_X509_USE_C
 
 #endif /* CONFIG_CRYPTO_POSIX_H */

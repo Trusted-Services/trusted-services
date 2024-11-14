@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -314,7 +314,7 @@ static void test_communication(struct ffa_direct_msg *msg)
 	}
 
 	/* Non-null flags (W2) register */
-	ffa_svc(FFA_MSG_SEND_DIRECT_REQ_64, (uint32_t)(src << 16 | 0x1000), 1, 0, 0, 0, 0, 0,
+	ffa_svc(FFA_MSG_SEND_DIRECT_REQ_64, (uint32_t)(src << 16 | dst), 1, 0, 0, 0, 0, 0,
 		&raw_params);
 	if (raw_params.a0 != FFA_ERROR || (uint32_t)raw_params.a2 != FFA_INVALID_PARAMETERS) {
 		EMSG("Unexpected error code: %d != %ld", FFA_INVALID_PARAMETERS, raw_params.a2);
@@ -496,7 +496,13 @@ static void test_mem_retrieve(struct ffa_direct_msg *msg)
 				 &out_region_count, handle);
 
 	if (res) {
-		DMSG("Failed retrieving me share");
+		DMSG("Failed retrieving shared memory");
+		return_error((uint32_t)ERR_MEM_RETRIEVE, msg);
+		return;
+	}
+
+	if (descriptor.flags.transaction_type != sp_memory_transaction_type_share) {
+		EMSG("Invalid transaction type");
 		return_error((uint32_t)ERR_MEM_RETRIEVE, msg);
 		return;
 	}
@@ -564,9 +570,7 @@ static void test_mem_sharing(uint16_t service_ep_id, struct ffa_direct_msg *msg)
 
 	res = sp_memory_share(&desc, &acc_desc, 1, &region, 1, &handle);
 	if (res != FFA_OK) {
-		EMSG("test_mem_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to share memory: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -576,9 +580,7 @@ static void test_mem_sharing(uint16_t service_ep_id, struct ffa_direct_msg *msg)
 				      handle >> 32, own_id, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send retrieve command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -588,9 +590,7 @@ static void test_mem_sharing(uint16_t service_ep_id, struct ffa_direct_msg *msg)
 				0, 0, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send TRY_W_ACCESS command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -599,9 +599,7 @@ static void test_mem_sharing(uint16_t service_ep_id, struct ffa_direct_msg *msg)
 				EP_RELINQUISH, handle & 0xffffffff,
 				handle >> 32, 0, 0, msg);
 	if (res != FFA_OK) {
-		EMSG("test_mem_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send relinquish command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -609,9 +607,7 @@ static void test_mem_sharing(uint16_t service_ep_id, struct ffa_direct_msg *msg)
 	res = ffa_mem_reclaim(handle, 0);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to reclaim memory: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -629,7 +625,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 	uint64_t handle = 0;
 	struct ffa_mem_transaction_buffer t_buf = {0};
 	uint16_t own_id = 0;
-	uint16_t src_id = msg->source_id = 0;
+	uint16_t src_id = msg->source_id;
 	struct sp_memory_access_descriptor acc_desc[2] = { };
 	uint32_t err = 0;
 	uint16_t endpoint2 = msg->args.args64[1];
@@ -659,7 +655,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 
 	res = sp_memory_share(&desc, acc_desc, 2, &region, 1, &handle);
 	if (res != FFA_OK) {
-		EMSG("ffa_memory_share(): error %"PRId32, res);
+		EMSG("Failed to share memory: %"PRId32, res);
 		err = (uint32_t)ERR_SP_SHARE;
 		goto err;
 	}
@@ -669,9 +665,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 				      handle >> 32, own_id, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_multi_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send retrieve command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -681,9 +675,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 				0, 0, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_multi_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send TRY_W_ACCESS command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -699,9 +691,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 				      handle >> 32, 0, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_multi_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send relinquish command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -712,9 +702,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 				      handle >> 32, own_id, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_multi_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send retrieve command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -724,9 +712,7 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 				0, 0, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_multi_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send TRY_W_ACCESS command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
@@ -748,15 +734,13 @@ static void test_mem_multi_sharing(struct ffa_direct_msg *msg)
 				handle >> 32, 0, 0, msg);
 
 	if (res != FFA_OK) {
-		EMSG("test_mem_multi_sharing(): error % in %s:%d"PRId32, res,
-							          __FILE__,
-							          __LINE__);
+		EMSG("Failed to send relinquish command: %"PRId32, res);
 		return_error((uint32_t)ERR_SP_SHARE, msg);
 		return;
 	}
 
 	if (ffa_mem_reclaim(handle, 0) != FFA_OK) {
-		EMSG("All memory should have been relinquished!");
+		EMSG("Failed to reclaim memory: %"PRId32, res);
 		err = (uint32_t)ERR_SP_SHARE;
 		goto err;
 	}
@@ -771,6 +755,104 @@ err:
 	return_error(err, msg);
 }
 
+#define TEST_FFA_MEM_SHARE(len, handle, expected) \
+do { \
+	ffa_result res = FFA_OK; \
+	res = ffa_mem_share_rxtx(len, len, handle); \
+	if (res != expected) { \
+		EMSG("Invalid FFA_MEM_SHARE result: expected = %d, actual = %d", \
+		     expected, res); \
+		return -1; \
+	} \
+} while (0)
+
+static int test_mem_sharing_invalid(uint16_t service_ep_id)
+{
+	uint64_t handle = 0;
+	uint16_t own_id = 0;
+	size_t len = 0;
+	struct ffa_mem_transaction_desc *transaction = NULL;
+	struct ffa_mem_access_desc *acc_desc = NULL;
+	struct ffa_composite_mem_region_desc *comp_desc = NULL;
+	struct ffa_constituent_mem_region_desc *region = NULL;
+
+	memset((void *)tx_buffer, 0x00, sizeof(tx_buffer));
+
+	transaction = (struct ffa_mem_transaction_desc *)tx_buffer;
+
+	ffa_id_get(&own_id);
+
+	transaction->sender_id = own_id;
+	transaction->mem_region_attr = 0x24;
+	transaction->flags = 0;
+	transaction->handle = 0;
+	transaction->tag = 0;
+
+	len = sizeof(*transaction);
+
+	/* Zero offset, size and count */
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	/* Zero count */
+	transaction->mem_access_desc_size = sizeof(struct ffa_mem_access_desc);
+	transaction->mem_access_desc_offset = sizeof(*transaction);
+#endif /* CFG_FFA_VERSION */
+
+	/* Too many mem access desc */
+	transaction->mem_access_desc_count = sizeof(tx_buffer);
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	transaction->mem_access_desc_count = 1;
+
+#if CFG_FFA_VERSION >= FFA_VERSION_1_1
+	/* Invalid offset */
+	transaction->mem_access_desc_offset = sizeof(tx_buffer);
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	transaction->mem_access_desc_offset = sizeof(*transaction);
+#endif /* CFG_FFA_VERSION */
+
+	acc_desc = (struct ffa_mem_access_desc *)(tx_buffer + len);
+	len +=  sizeof(*acc_desc);
+
+	acc_desc->mem_access_perm_desc.endpoint_id = service_ep_id;
+	acc_desc->mem_access_perm_desc.mem_access_permissions = 0x06; /* RWnX */
+
+	/* Too large memory region descriptor offset */
+	acc_desc->composite_mem_region_desc_offset = sizeof(tx_buffer);
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	acc_desc->composite_mem_region_desc_offset = len;
+	comp_desc = (struct ffa_composite_mem_region_desc *)(tx_buffer + len);
+	len += sizeof(*comp_desc);
+
+	/* Zero pages and address ranges */
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	region = (struct ffa_constituent_mem_region_desc *)(tx_buffer + len);
+	len += sizeof(*region);
+
+	/* One region with zero pages */
+	region->address = (uint64_t)shared_buffer;
+	comp_desc->address_range_count = 1;
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	/* One region with not matching sum pages */
+	region->address = (uint64_t)shared_buffer;
+	comp_desc->address_range_count = 1;
+	comp_desc->total_page_count = 2;
+	region->page_count = 1;
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	/* Too many regions */
+	comp_desc->total_page_count = sizeof(tx_buffer);
+	comp_desc->address_range_count = sizeof(tx_buffer);
+	TEST_FFA_MEM_SHARE(len, &handle, FFA_INVALID_PARAMETERS);
+
+	return 0;
+}
+
 static void test_mem_sharing_inccorrect_access(uint16_t service_ep_id,
 					struct ffa_direct_msg *msg)
 {
@@ -780,7 +862,7 @@ static void test_mem_sharing_inccorrect_access(uint16_t service_ep_id,
 	uint64_t handle = 0;
 	struct ffa_mem_transaction_buffer t_buf = {0};
 	uint16_t own_id = 0;
-	uint16_t src_id = msg->source_id = 0;
+	uint16_t src_id = msg->source_id;
 	struct sp_memory_access_descriptor acc_desc = { };
 
 	set_rxtx_buf(&t_buf, NULL);
@@ -807,6 +889,11 @@ static void test_mem_sharing_inccorrect_access(uint16_t service_ep_id,
 		return;
 	}
 
+	if (test_mem_sharing_invalid(service_ep_id)) {
+		return_error((uint32_t)ERR_SP_SHARE, msg);
+		return;
+	}
+
 	msg->destination_id = own_id;
 	msg->source_id = src_id;
 	return_ok(msg);
@@ -822,7 +909,7 @@ static void test_mem_sharing_exc(uint16_t service_ep_id,
 	uint64_t handle2 = 0;
 	struct ffa_mem_transaction_buffer t_buf = {0};
 	uint16_t own_id = 0;
-	uint16_t src_id = msg->source_id = 0;
+	uint16_t src_id = msg->source_id;
 	struct sp_memory_access_descriptor acc_desc = { };
 	uint32_t err = 0;
 
@@ -1028,4 +1115,20 @@ void sp_interrupt_handler(uint32_t interrupt_id)
 {
 	(void)interrupt_id;
 	DMSG("Got interrupt %x", interrupt_id);
+}
+
+ffa_result ffa_vm_created_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)handle;
+	DMSG("VM with ID %d created", vm_id);
+
+	return FFA_OK;
+}
+
+ffa_result ffa_vm_destroyed_handler(uint16_t vm_id, uint64_t handle)
+{
+	(void)handle;
+	DMSG("VM with ID %d destroyed", vm_id);
+
+	return FFA_OK;
 }

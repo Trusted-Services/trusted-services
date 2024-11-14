@@ -237,6 +237,10 @@ public:
 				   const uint8_t *hash, uint64_t hash_len,
 				   const uint8_t *public_key_cert, uint64_t public_key_cert_len);
 
+	int get_uefi_priv_auth_var_fingerprint(const uint8_t *signature_cert,
+					       uint64_t signature_cert_len,
+					       uint8_t *output);
+
 private:
 
 	psa_status_t asym_sign(uint32_t opcode,

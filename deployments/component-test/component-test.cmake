@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2020-2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2020-2024, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -38,6 +38,7 @@ add_components(
 		"components/common/endian/test"
 		"components/common/crc32"
 		"components/common/crc32/test"
+		"components/common/mbedtls"
 		"components/config/ramstore"
 		"components/config/ramstore/test"
 		"components/messaging/ffa/libsp/mock"
@@ -105,6 +106,7 @@ add_components(
 		"components/service/block_storage/factory/client"
 		"components/service/block_storage/factory/rpmb"
 		"components/service/fwu/agent"
+		"components/service/fwu/common"
 		"components/service/fwu/fw_store/banked"
 		"components/service/fwu/fw_store/banked/metadata_serializer/v1"
 		"components/service/fwu/fw_store/banked/metadata_serializer/v2"
@@ -119,7 +121,11 @@ add_components(
 		"components/service/fwu/inspector/mock"
 		"components/service/fwu/inspector/direct"
 		"components/service/fwu/provider"
-		"components/service/fwu/provider/serializer/packed-c"
+		"components/service/fwu/provider/serializer"
+		"components/service/fwu/psa_fwu_m/agent"
+		"components/service/fwu/psa_fwu_m/agent/test"
+		"components/service/fwu/psa_fwu_m/interface/mock"
+		"components/service/fwu/psa_fwu_m/interface/mock/test"
 		"components/service/fwu/test/fwu_client/direct"
 		"components/service/fwu/test/fwu_dut"
 		"components/service/fwu/test/fwu_dut/sim"
@@ -234,7 +240,7 @@ target_link_libraries(component-test PRIVATE nanopb::protobuf-nanopb-static)
 protobuf_generate_all(TGT "component-test" NAMESPACE "protobuf" BASE_DIR "${TS_ROOT}/protocols")
 
 # MbedTLS
-set(MBEDTLS_USER_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/libmbedx509.h"
+set(MBEDTLS_CONFIG_FILE "${TS_ROOT}/external/MbedTLS/config/crypto_provider_x509.h"
 	CACHE STRING "Configuration file for Mbed TLS" FORCE)
 include(${TS_ROOT}/external/MbedTLS/MbedTLS.cmake)
 target_link_libraries(component-test PRIVATE MbedTLS::mbedcrypto)
@@ -242,7 +248,7 @@ target_link_libraries(component-test PRIVATE MbedTLS::mbedx509)
 
 # Pass the location of the mbedtls config file to C preprocessor.
 target_compile_definitions(component-test PRIVATE
-		MBEDTLS_USER_CONFIG_FILE="${MBEDTLS_USER_CONFIG_FILE}"
+		MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}"
 )
 
 # Qcbor

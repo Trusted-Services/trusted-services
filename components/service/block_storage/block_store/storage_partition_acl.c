@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -33,15 +33,13 @@ bool storage_partition_acl_set_owner_id(
 	struct storage_partition_acl *acl,
 	const char *owner_id)
 {
-	size_t len = strlen(owner_id);
+	size_t len = strlen(owner_id) + 1;
 
-	if (len < STORAGE_PARTITION_ACL_MAX_OWNER_ID_LEN) {
+	if (len > sizeof(acl->owner_id))
+		return false;
 
-		strcpy(acl->owner_id, owner_id);
-		return true;
-	}
-
-	return false;
+	memcpy(acl->owner_id, owner_id, len);
+	return true;
 }
 
 bool storage_partition_acl_check(

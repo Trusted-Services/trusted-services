@@ -12,7 +12,8 @@ endif()
 
 target_include_directories(${TGT}
 	PUBLIC
-		"${CMAKE_CURRENT_LIST_DIR}/include"
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+		$<INSTALL_INTERFACE:${TS_ENV}/include>
 	)
 
 target_sources(${TGT} PRIVATE

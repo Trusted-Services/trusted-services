@@ -166,7 +166,6 @@ efi_status_t smm_variable_client::get_variable(const EFI_GUID &guid, const std::
 
 	if (call_handle) {
 		uint8_t *resp_buf;
-		size_t resp_len;
 		service_status_t service_status;
 
 		SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *access_var =

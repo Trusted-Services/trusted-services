@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -430,7 +430,10 @@ static inline psa_status_t crypto_caller_aead_finish(struct service_client *cont
 
 					if (decoded_record.length <= aeadtext_size) {
 
-						memcpy(aeadtext, decoded_record.value, decoded_record.length);
+						if (decoded_record.length && aeadtext)
+							memcpy(aeadtext, decoded_record.value,
+							       decoded_record.length);
+
 						*aeadtext_length = decoded_record.length;
 					}
 					else {
@@ -528,7 +531,10 @@ static inline psa_status_t crypto_caller_aead_verify(struct service_client *cont
 
 					if (decoded_record.length <= plaintext_size) {
 
-						memcpy(plaintext, decoded_record.value, decoded_record.length);
+						if (decoded_record.length && plaintext)
+							memcpy(plaintext, decoded_record.value,
+							       decoded_record.length);
+
 						*plaintext_length = decoded_record.length;
 					}
 					else {

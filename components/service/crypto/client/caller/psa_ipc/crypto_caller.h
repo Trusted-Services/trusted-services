@@ -23,6 +23,7 @@
 #include "crypto_caller_generate_key.h"
 #include "crypto_caller_generate_random.h"
 #include "crypto_caller_get_key_attributes.h"
+#include "crypto_caller_get_uefi_priv_auth_var_fingerprint.h"
 #include "crypto_caller_hash.h"
 #include "crypto_caller_import_key.h"
 #include "crypto_caller_key_derivation.h"

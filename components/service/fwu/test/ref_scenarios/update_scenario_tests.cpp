@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,7 +7,7 @@
 #include <CppUTest/TestHarness.h>
 #include <vector>
 
-#include "protocols/service/fwu/packed-c/status.h"
+#include "protocols/service/fwu/status.h"
 #include "service/fwu/test/fwu_dut/fwu_dut.h"
 #include "service/fwu/test/fwu_dut_factory/fwu_dut_factory.h"
 
@@ -40,6 +40,39 @@ TEST_GROUP(FwuUpdateScenarioTests)
 	fwu_client *m_fwu_client;
 };
 
+TEST(FwuUpdateScenarioTests, discover)
+{
+	int16_t service_status = 0;
+	uint8_t version_major = 0;
+	uint8_t version_minor = 0;
+	uint16_t num_func = 0;
+	uint64_t max_payload_size = 0;
+	uint32_t flags = 0;
+	uint32_t vendor_specific_flags = 0;
+	uint8_t function_presence[10] = { 0 };
+	uint8_t expected_functions[10] = { 0, 16, 17, 18, 19, 20, 21, 22, 23, 24 };
+
+	m_dut = fwu_dut_factory::create(1, false);
+	m_fwu_client = m_dut->create_fwu_client();
+	m_metadata_checker = m_dut->create_metadata_checker();
+
+	m_dut->boot();
+
+	int res = m_fwu_client->discover(&service_status, &version_major, &version_minor, &num_func,
+					 &max_payload_size, &flags, &vendor_specific_flags,
+					 function_presence);
+	LONGS_EQUAL(0, res);
+
+	UNSIGNED_LONGS_EQUAL(0, service_status);
+	UNSIGNED_LONGS_EQUAL(1, version_major);
+	UNSIGNED_LONGS_EQUAL(0, version_minor);
+	UNSIGNED_LONGS_EQUAL(10, sizeof(expected_functions));
+	UNSIGNED_LONGS_EQUAL(0, max_payload_size);
+	UNSIGNED_LONGS_EQUAL(0, flags);
+	UNSIGNED_LONGS_EQUAL(0, vendor_specific_flags);
+	MEMCMP_EQUAL(expected_functions, function_presence, sizeof(expected_functions));
+}
+
 TEST(FwuUpdateScenarioTests, wholeFirmwareUpdateFlow)
 {
 	int status = 0;
@@ -67,12 +100,12 @@ TEST(FwuUpdateScenarioTests, wholeFirmwareUpdateFlow)
 	unsigned int pre_update_bank_index = boot_info.boot_index;
 
 	/* Perform staging steps where a single image is installed */
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 	m_metadata_checker->check_ready_for_staging(boot_info.boot_index);
 
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	std::vector<uint8_t> image_data;
@@ -152,13 +185,13 @@ TEST(FwuUpdateScenarioTests, partialFirmwareUpdateFlow)
 
 	/* Perform staging steps where multiple images are installed */
 	std::vector<uint8_t> image_data;
-	status = m_fwu_client->begin_staging();
+	status = m_fwu_client->begin_staging(0, 0, NULL);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 	m_metadata_checker->check_ready_for_staging(boot_info.boot_index);
 
 	/* Install whole image for location 0 */
 	m_dut->whole_volume_image_type_uuid(0, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	m_dut->generate_image_data(&image_data);
@@ -174,7 +207,7 @@ TEST(FwuUpdateScenarioTests, partialFirmwareUpdateFlow)
 
 	/* Install whole image for location 1 */
 	m_dut->whole_volume_image_type_uuid(1, &uuid);
-	status = m_fwu_client->open(&uuid, &stream_handle);
+	status = m_fwu_client->open(&uuid, fwu_client::op_type::WRITE, &stream_handle);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, status);
 
 	m_dut->generate_image_data(&image_data);

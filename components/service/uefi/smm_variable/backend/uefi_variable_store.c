@@ -19,6 +19,7 @@
 
 #include "trace.h"
 #include "util.h"
+#include <service/locator/sp/ffa/spffa_service_context.h>
 #include "variable_checker.h"
 #include "variable_index_iterator.h"
 
@@ -27,9 +28,12 @@
 #include "service/crypto/client/psa/crypto_client.h"
 #endif
 
-static void load_variable_index(struct uefi_variable_store *context);
+static psa_status_t get_active_variable_uid(struct uefi_variable_store *context,
+					    uint64_t *active_index_uid, uint32_t *counter);
 
-static efi_status_t sync_variable_index(const struct uefi_variable_store *context);
+static efi_status_t load_variable_index(struct uefi_variable_store *context);
+
+static efi_status_t sync_variable_index(struct uefi_variable_store *context);
 
 static efi_status_t check_capabilities(const SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var);
 
@@ -42,7 +46,6 @@ check_access_permitted_on_set(const struct uefi_variable_store *context,
 			      const SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var);
 
 #if defined(UEFI_AUTH_VAR)
-static bool compare_guid(const EFI_GUID *guid1, const EFI_GUID *guid2);
 
 /* Creating a map of the EFI SMM variable for easier access */
 typedef struct {
@@ -75,8 +78,27 @@ static efi_status_t verify_var_by_key_var(const efi_data_map *new_var,
 					  const efi_data_map *key_store_var,
 					  const uint8_t *hash_buffer, size_t hash_len);
 
+static bool is_private_auth_var(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var);
+
 static efi_status_t authenticate_variable(const struct uefi_variable_store *context,
+					  EFI_TIME *stored_timestamp,
+					  uint8_t (*fingerprint)[FINGERPRINT_SIZE],
+					  bool new_variable,
 					  SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var);
+
+static efi_status_t authenticate_secure_boot_variable(const struct uefi_variable_store *context,
+						      efi_data_map* var_map,
+						      uint8_t* hash_buffer,
+						      size_t hash_len,
+						      uint64_t max_variable_size);
+
+static efi_status_t authenticate_private_variable(const struct uefi_variable_store *context,
+						  efi_data_map* var_map,
+						  uint8_t* hash_buffer,
+						  size_t hash_len,
+						  uint64_t max_variable_size,
+						  bool new_variable,
+						  uint8_t (*fingerprint)[FINGERPRINT_SIZE]);
 #endif
 
 static efi_status_t store_variable_data(const struct uefi_variable_store *context,
@@ -116,10 +138,13 @@ static bool compare_name_to_key_store_name(const int16_t *name1, size_t size1,
 					   const uint16_t *name2, size_t size2);
 #endif
 
-/* Private UID for storing the variable index - may be overridden at build-time */
-#ifndef SMM_VARIABLE_INDEX_STORAGE_UID
-#define SMM_VARIABLE_INDEX_STORAGE_UID (1)
-#endif
+/* Private UID for storing the variable index */
+#define SMM_VARIABLE_INDEX_STORAGE_A_UID UINT64_C(0x8000000000000001)
+#define SMM_VARIABLE_INDEX_STORAGE_B_UID UINT64_C(0x8000000000000002)
+
+_Static_assert(SMM_VARIABLE_INDEX_STORAGE_A_UID != SMM_VARIABLE_INDEX_STORAGE_B_UID,
+	       "SMM_VARIABLE_INDEX_STORAGE_A_UID must not be the same value as "
+	       "SMM_VARIABLE_INDEX_STORAGE_B_UID");
 
 /* Default maximum variable size -
  * may be overridden using uefi_variable_store_set_storage_limits()
@@ -127,6 +152,10 @@ static bool compare_name_to_key_store_name(const int16_t *name1, size_t size1,
 #ifndef DEFAULT_MAX_VARIABLE_SIZE
 #define DEFAULT_MAX_VARIABLE_SIZE (4096)
 #endif
+
+_Static_assert(DEFAULT_MAX_VARIABLE_SIZE <= RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
+	       "Maximum UEFI variable size must not exceed RPC buffer size. please increase " \
+	       "RPC_CALLER_SESSION_SHARED_MEMORY_SIZE or decrease DEFAULT_MAX_VARIABLE_SIZE");
 
 efi_status_t uefi_variable_store_init(struct uefi_variable_store *context, uint32_t owner_id,
 				      size_t max_variables,
@@ -161,12 +190,17 @@ efi_status_t uefi_variable_store_init(struct uefi_variable_store *context, uint3
 		if (context->index_sync_buffer_size) {
 			context->index_sync_buffer = malloc(context->index_sync_buffer_size);
 			status = (context->index_sync_buffer) ? EFI_SUCCESS : EFI_OUT_OF_RESOURCES;
+		} else {
+			EMSG("Variable store must be capable of storing at least one variable");
+			return EFI_INVALID_PARAMETER;
 		}
 
 		/* Load the variable index with NV variable info from the persistent store */
 		if (context->index_sync_buffer) {
-			load_variable_index(context);
-			purge_orphan_index_entries(context);
+			status = load_variable_index(context);
+
+			if (status == EFI_SUCCESS)
+				purge_orphan_index_entries(context);
 		}
 	}
 
@@ -195,6 +229,8 @@ efi_status_t uefi_variable_store_set_variable(const struct uefi_variable_store *
 					      const SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var)
 {
 	bool should_sync_index = false;
+	EFI_TIME stored_timestamp = { 0 };
+	uint8_t fingerprint[FINGERPRINT_SIZE] = { 0 };
 
 	/* Validate incoming request */
 	efi_status_t status = check_name_terminator(var->Name, var->NameSize);
@@ -223,6 +259,10 @@ efi_status_t uefi_variable_store_set_variable(const struct uefi_variable_store *
 			return EFI_OUT_OF_RESOURCES;
 	}
 
+	/* Save the timestamp and fingerprints into a buffer, which can be overwritten later */
+	memcpy(&stored_timestamp, &info->metadata.timestamp, sizeof(EFI_TIME));
+	memcpy(&fingerprint, &info->metadata.fingerprint, FINGERPRINT_SIZE);
+
 	/* Control access */
 	status = check_access_permitted_on_set(context, info, var);
 
@@ -238,7 +278,9 @@ efi_status_t uefi_variable_store_set_variable(const struct uefi_variable_store *
 			if (info->metadata.attributes &
 			    EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS) {
 				status = authenticate_variable(
-					context, (SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *)var);
+					context, &stored_timestamp,
+					&fingerprint, false,
+					(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *)var);
 
 				if (status != EFI_SUCCESS)
 					return status;
@@ -324,7 +366,9 @@ efi_status_t uefi_variable_store_set_variable(const struct uefi_variable_store *
 			 */
 			if (var->Attributes & EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS) {
 				status = authenticate_variable(
-					context, (SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *)var);
+					context, &stored_timestamp,
+					&fingerprint, true,
+					(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *)var);
 
 				if (status != EFI_SUCCESS)
 					return status;
@@ -354,11 +398,14 @@ efi_status_t uefi_variable_store_set_variable(const struct uefi_variable_store *
 		 * index entry.
 		 */
 		if (should_sync_index)
-			status = sync_variable_index(context);
+			status = sync_variable_index((struct uefi_variable_store *)context);
 
-		/* Store any variable data to the storage backend */
-		if (info->is_variable_set && (status == EFI_SUCCESS))
+		/* Store any variable data to the storage backend with the updated metadata */
+		if (info->is_variable_set && (status == EFI_SUCCESS)) {
+			memcpy(&info->metadata.timestamp, &stored_timestamp, sizeof(EFI_TIME));
+			memcpy(&info->metadata.fingerprint, &fingerprint, FINGERPRINT_SIZE);
 			status = store_variable_data(context, info, var);
+		}
 	}
 
 	variable_index_remove_unused_entry(&context->variable_index, info);
@@ -404,9 +451,27 @@ efi_status_t uefi_variable_store_get_variable(const struct uefi_variable_store *
 efi_status_t
 uefi_variable_store_get_next_variable_name(const struct uefi_variable_store *context,
 					   SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *cur,
-					   size_t max_name_len, size_t *total_length)
+					   size_t *total_length)
 {
-	efi_status_t status = check_name_terminator(cur->Name, cur->NameSize);
+	efi_status_t status = EFI_SUCCESS;
+	size_t buffer_size = 0;
+
+	if (!cur)
+		return EFI_INVALID_PARAMETER;
+	/*
+	 * NameSize is set to the buffer size to store the names,
+	 * let's calculate the size actually being used.
+	 */
+	buffer_size = cur->NameSize;
+	for (int i = 0; i < buffer_size / sizeof(int16_t); i++) {
+		if (cur->Name[i] == 0) {
+			/* With null terminator */
+			cur->NameSize = 2*(i+1);
+			break;
+		}
+	}
+
+	status = check_name_terminator(cur->Name, cur->NameSize);
 
 	if (status != EFI_SUCCESS)
 		return status;
@@ -418,20 +483,10 @@ uefi_variable_store_get_next_variable_name(const struct uefi_variable_store *con
 			&context->variable_index, &cur->Guid, cur->NameSize, cur->Name, &status);
 
 		if (info && (status == EFI_SUCCESS)) {
-			/* The NameSize has to be set in every case according to the UEFI specs.
-			 * In case of EFI_BUFFER_TOO_SMALL it has to reflect the size of buffer
-			 * needed.
-			 */
-			cur->NameSize = info->metadata.name_size;
-			*total_length = sizeof(SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME);
-
-			if (info->metadata.name_size <= max_name_len) {
+			if (info->metadata.name_size <= buffer_size) {
 				cur->Guid = info->metadata.guid;
+				cur->NameSize = info->metadata.name_size;
 				memcpy(cur->Name, info->metadata.name, info->metadata.name_size);
-
-				*total_length =
-					SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_TOTAL_SIZE(
-						cur);
 
 				/*
 				 * Check if variable is accessible (e.g boot variable is not
@@ -442,6 +497,10 @@ uefi_variable_store_get_next_variable_name(const struct uefi_variable_store *con
 				if (status == EFI_SUCCESS)
 					break;
 			} else {
+				/* The VariableNameSize is updated to reflect the size of buffer needed */
+				cur->NameSize = info->metadata.name_size;
+				memset(cur->Name, 0, buffer_size);
+				memset(&cur->Guid, 0, sizeof(EFI_GUID));
 				status = EFI_BUFFER_TOO_SMALL;
 				break;
 			}
@@ -450,18 +509,24 @@ uefi_variable_store_get_next_variable_name(const struct uefi_variable_store *con
 			/* Do not hide original error if there is any */
 			if (status == EFI_SUCCESS)
 				status = EFI_NOT_FOUND;
+
+			memset(cur->Name, 0, buffer_size);
+			memset(&cur->Guid, 0, sizeof(EFI_GUID));
+			cur->NameSize = 0;
 			break;
 		}
 	}
 
-	/* If we found no accessible variable clear the fields for security */
-	if (status != EFI_SUCCESS) {
-		memset(cur->Name, 0, max_name_len);
-		memset(&cur->Guid, 0, sizeof(EFI_GUID));
-		if (status != EFI_BUFFER_TOO_SMALL)
-			cur->NameSize = 0;
+	if (status == EFI_SUCCESS) {
+		/* Store everything including the name */
+		*total_length =
+			SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_TOTAL_SIZE(
+				cur);
+	} else {
+		/* Do not store the name, only the size */
+		*total_length =
+			SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME_NAME_OFFSET;
 	}
-
 	return status;
 }
 
@@ -521,8 +586,10 @@ efi_status_t uefi_variable_store_set_var_check_property(
 	status = variable_checker_set_constraints(&constraints, info->is_constraints_set,
 						  &property->VariableProperty);
 
-	if (status == EFI_SUCCESS)
+	if (status == EFI_SUCCESS) {
 		variable_index_set_constraints(info, &constraints);
+		status = sync_variable_index(context);
+	}
 
 	variable_index_remove_unused_entry(&context->variable_index, info);
 
@@ -553,51 +620,229 @@ efi_status_t uefi_variable_store_get_var_check_property(
 	return status;
 }
 
-static void load_variable_index(struct uefi_variable_store *context)
+/* Checks which index contains the latest data, which shall be loaded */
+static psa_status_t get_active_variable_uid(struct uefi_variable_store *context,
+					    uint64_t *active_index_uid, uint32_t *counter)
+{
+	uint32_t counter_A = 0;
+	uint32_t counter_B = 0;
+	size_t data_len = 0;
+	psa_status_t psa_status_A = PSA_SUCCESS;
+	psa_status_t psa_status_B = PSA_SUCCESS;
+	struct storage_backend *persistent_store = context->persistent_store.storage_backend;
+
+	/* Set default value for the case when the index does not exist yet */
+	*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_A_UID;
+	*counter = 0;
+
+	if (persistent_store) {
+		psa_status_A = persistent_store->interface->get(persistent_store->context,
+								context->owner_id,
+								SMM_VARIABLE_INDEX_STORAGE_A_UID, 0,
+								sizeof(counter_A), &counter_A,
+								&data_len);
+
+		if (psa_status_A == PSA_SUCCESS && data_len == 0) {
+			psa_status_A = persistent_store->interface->remove(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_A_UID);
+
+			if (psa_status_A == PSA_SUCCESS)
+				psa_status_A = PSA_ERROR_DOES_NOT_EXIST;
+			else {
+				EMSG("Erronous state of variable index");
+				return PSA_ERROR_STORAGE_FAILURE;
+			}
+		}
+
+		psa_status_B = persistent_store->interface->get(persistent_store->context,
+								context->owner_id,
+								SMM_VARIABLE_INDEX_STORAGE_B_UID, 0,
+								sizeof(counter_B), &counter_B,
+								&data_len);
+
+		if (psa_status_B == PSA_SUCCESS && data_len == 0) {
+			psa_status_B = persistent_store->interface->remove(
+				persistent_store->context, context->owner_id,
+				SMM_VARIABLE_INDEX_STORAGE_B_UID);
+
+			if (psa_status_B == PSA_SUCCESS)
+				psa_status_B = PSA_ERROR_DOES_NOT_EXIST;
+			else {
+				EMSG("Erronous state of variable index");
+				return PSA_ERROR_STORAGE_FAILURE;
+			}
+		}
+
+		if ((psa_status_A != PSA_SUCCESS && psa_status_A != PSA_ERROR_DOES_NOT_EXIST) ||
+		    (psa_status_B != PSA_SUCCESS && psa_status_B != PSA_ERROR_DOES_NOT_EXIST))
+			return PSA_ERROR_STORAGE_FAILURE;
+
+		if (psa_status_A == PSA_ERROR_DOES_NOT_EXIST) {
+			if (psa_status_B == PSA_ERROR_DOES_NOT_EXIST)
+				return PSA_ERROR_DOES_NOT_EXIST;
+
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_B_UID;
+			*counter = counter_B;
+
+			return PSA_SUCCESS;
+		} else if (psa_status_B == PSA_ERROR_DOES_NOT_EXIST) {
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_A_UID;
+			*counter = counter_A;
+
+			return PSA_SUCCESS;
+		}
+
+		if (counter_A + 1 == counter_B) {
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_B_UID;
+			*counter = counter_B;
+			return PSA_SUCCESS;
+		} else if (counter_B + 1 == counter_A) {
+			*active_index_uid = SMM_VARIABLE_INDEX_STORAGE_A_UID;
+			*counter = counter_A;
+			return PSA_SUCCESS;
+		} else {
+			EMSG("UEFI metadata variable index is invalid.");
+			return PSA_ERROR_STORAGE_FAILURE;
+		}
+	} else {
+		EMSG("Store backend is not accessible");
+		return PSA_ERROR_STORAGE_FAILURE;
+	}
+
+	return PSA_ERROR_STORAGE_FAILURE;
+}
+
+static efi_status_t load_variable_index(struct uefi_variable_store *context)
 {
 	struct storage_backend *persistent_store = context->persistent_store.storage_backend;
+	psa_status_t psa_status = PSA_SUCCESS;
 
 	if (persistent_store) {
 		size_t data_len = 0;
+		size_t data_offset = 0;
+		struct psa_storage_info_t variable_index_info = { 0 };
 
-		psa_status_t psa_status = persistent_store->interface->get(
-			persistent_store->context, context->owner_id,
-			SMM_VARIABLE_INDEX_STORAGE_UID, 0, context->index_sync_buffer_size,
-			context->index_sync_buffer, &data_len);
+		psa_status = get_active_variable_uid(context, &context->active_variable_index_uid,
+						     &context->variable_index.counter);
+		switch (psa_status) {
+		case PSA_SUCCESS:
+			break;
 
-		if (psa_status == PSA_SUCCESS) {
-			variable_index_restore(&context->variable_index, data_len,
-					       context->index_sync_buffer);
+		case PSA_ERROR_DOES_NOT_EXIST:
+			IMSG("Variable index does not exist in NV store, continuing with empty index");
+			return EFI_SUCCESS;
+
+		default:
+			EMSG("Loading variable index failed: %d", psa_status);
+			return EFI_LOAD_ERROR;
 		}
+
+		/* Make sure the variable index fits the buffer */
+		persistent_store->interface->get_info(persistent_store->context, context->owner_id,
+						      context->active_variable_index_uid,
+						      &variable_index_info);
+
+		if (variable_index_info.size > context->index_sync_buffer_size) {
+			EMSG("Variable index cannot fit the sync buffer");
+			return EFI_LOAD_ERROR;
+		}
+
+		do {
+			psa_status = persistent_store->interface->get(
+				persistent_store->context, context->owner_id,
+				context->active_variable_index_uid, data_offset,
+				RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
+				context->index_sync_buffer + data_offset, &data_len);
+
+			if (psa_status != PSA_SUCCESS) {
+				EMSG("Loading variable index failed: %d", psa_status);
+				return EFI_LOAD_ERROR;
+			}
+
+			data_offset += data_len;
+
+		} while (data_len == RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
+
+		variable_index_restore(&context->variable_index, data_offset,
+				       context->index_sync_buffer);
+	} else {
+		EMSG("Loading variable index failed, store backend is not accessible");
+		return EFI_LOAD_ERROR;
 	}
+
+	return EFI_SUCCESS;
 }
 
-static efi_status_t sync_variable_index(const struct uefi_variable_store *context)
+static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 {
 	efi_status_t status = EFI_SUCCESS;
+	psa_status_t psa_status = PSA_SUCCESS;
+	bool is_dirty = false;
 
 	/* Sync the variable index to storage if anything is dirty */
-	size_t data_len = 0;
+	size_t remaining_data_len = 0;
 
-	bool is_dirty = variable_index_dump(&context->variable_index,
-					    context->index_sync_buffer_size,
-					    context->index_sync_buffer, &data_len);
+	status = variable_index_dump(&context->variable_index, context->index_sync_buffer_size,
+				     context->index_sync_buffer, &remaining_data_len, &is_dirty);
+	if (status != EFI_SUCCESS)
+		return status;
 
 	if (is_dirty) {
 		struct storage_backend *persistent_store =
 			context->persistent_store.storage_backend;
 
 		if (persistent_store) {
-			psa_status_t psa_status = persistent_store->interface->set(
-				persistent_store->context, context->owner_id,
-				SMM_VARIABLE_INDEX_STORAGE_UID, data_len,
-				context->index_sync_buffer, PSA_STORAGE_FLAG_NONE);
+			size_t data_offset = 0;
+			uint64_t next_index_uid = 0;
 
-			status = psa_to_efi_storage_status(psa_status);
+			/* Write the older one */
+			next_index_uid = (context->active_variable_index_uid ==
+							  SMM_VARIABLE_INDEX_STORAGE_A_UID ?
+						  SMM_VARIABLE_INDEX_STORAGE_B_UID :
+						  SMM_VARIABLE_INDEX_STORAGE_A_UID);
+
+			psa_status = persistent_store->interface->remove(
+				persistent_store->context, context->owner_id, next_index_uid);
+
+			if (psa_status != PSA_SUCCESS && psa_status != PSA_ERROR_DOES_NOT_EXIST)
+				goto end;
+
+			/* Check if the index exists and create if not yet */
+			psa_status = persistent_store->interface->create(
+				persistent_store->context, context->owner_id, next_index_uid,
+				remaining_data_len, PSA_STORAGE_FLAG_NONE);
+
+			if (psa_status != PSA_SUCCESS)
+				goto end;
+
+			do {
+				size_t data_of_this_iteration = MIN(
+					remaining_data_len, RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
+
+				psa_status = persistent_store->interface->set_extended(
+					persistent_store->context, context->owner_id,
+					next_index_uid, data_offset, data_of_this_iteration,
+					context->index_sync_buffer + data_offset);
+
+				if (psa_status != PSA_SUCCESS)
+					goto end;
+
+				data_offset += RPC_CALLER_SESSION_SHARED_MEMORY_SIZE;
+				remaining_data_len -= data_of_this_iteration;
+
+			} while (remaining_data_len);
+
+			variable_index_confirm_write(&context->variable_index);
+			context->active_variable_index_uid = next_index_uid;
+		} else {
+			EMSG("Syncing variable index failed, store backend is not accessible");
+			return EFI_LOAD_ERROR;
 		}
 	}
 
-	return status;
+	end:
+	return psa_to_efi_storage_status(psa_status);
 }
 
 /* Check attribute usage rules */
@@ -693,16 +938,6 @@ check_access_permitted_on_set(const struct uefi_variable_store *context,
 }
 
 #if defined(UEFI_AUTH_VAR)
-/*
- * Returns whether the two guid-s equal. To avoid structure padding related error
- * the fields are checked separately instead of memcmp.
- */
-static bool compare_guid(const EFI_GUID *guid1, const EFI_GUID *guid2)
-{
-	return guid1->Data1 == guid2->Data1 && guid1->Data2 == guid2->Data2 &&
-	       guid1->Data3 == guid2->Data3 &&
-	       !memcmp(&guid1->Data4, &guid2->Data4, sizeof(guid1->Data4));
-}
 
 /*
  * Creates a "map" that contains pointers to some of the fields of the SMM variable and the
@@ -985,15 +1220,6 @@ select_verification_keys(const efi_data_map new_var, EFI_GUID global_variable_gu
 		create_smm_variable(&(allowed_key_store_variables[1]),
 				    sizeof(EFI_KEY_EXCHANGE_KEY_NAME), maximum_variable_size,
 				    (uint8_t *)EFI_KEY_EXCHANGE_KEY_NAME, &global_variable_guid);
-	} else {
-		/*
-		 * Any other variable is considered Private Authenticated Variable.
-		 * These are verified by db
-		 */
-		create_smm_variable(&(allowed_key_store_variables[0]),
-				    sizeof(EFI_IMAGE_SECURITY_DATABASE), maximum_variable_size,
-				    (uint8_t *)EFI_IMAGE_SECURITY_DATABASE,
-				    &security_database_guid);
 	}
 
 	return EFI_SUCCESS;
@@ -1069,38 +1295,152 @@ static efi_status_t verify_var_by_key_var(const efi_data_map *new_var,
 	return EFI_SECURITY_VIOLATION;
 }
 
-/* Basic verification of the authentication header of the new variable.
+static bool is_private_auth_var(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var)
+{
+	if (compare_name_to_key_store_name(var->Name,
+					   var->NameSize, EFI_PLATFORM_KEY_NAME,
+					   sizeof(EFI_PLATFORM_KEY_NAME)) ||
+		 compare_name_to_key_store_name(
+			   var->Name, var->NameSize,
+			   EFI_KEY_EXCHANGE_KEY_NAME, sizeof(EFI_KEY_EXCHANGE_KEY_NAME)) ||
+		 compare_name_to_key_store_name(
+			 var->Name, var->NameSize,
+			 EFI_IMAGE_SECURITY_DATABASE, sizeof(EFI_IMAGE_SECURITY_DATABASE)) ||
+		 compare_name_to_key_store_name(
+			 var->Name, var->NameSize,
+			 EFI_IMAGE_SECURITY_DATABASE1, sizeof(EFI_IMAGE_SECURITY_DATABASE1)) ||
+		 compare_name_to_key_store_name(
+			 var->Name, var->NameSize,
+			 EFI_IMAGE_SECURITY_DATABASE2, sizeof(EFI_IMAGE_SECURITY_DATABASE2)) ||
+		 compare_name_to_key_store_name(
+			 var->Name, var->NameSize,
+			 EFI_IMAGE_SECURITY_DATABASE3, sizeof(EFI_IMAGE_SECURITY_DATABASE3)))
+		return false;
+
+	return true;
+}
+
+/*
+ * Basic verification of the authentication header of the new variable.
  * First finds the key variable responsible for the authentication of the new variable,
  * then verifies it.
  */
 static efi_status_t authenticate_variable(const struct uefi_variable_store *context,
+					  EFI_TIME *stored_timestamp,
+					  uint8_t (*fingerprint)[FINGERPRINT_SIZE],
+					  bool new_variable,
 					  SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *var)
 {
 	efi_status_t status = EFI_SUCCESS;
 	EFI_GUID pkcs7_guid = EFI_CERT_TYPE_PKCS7_GUID;
-	EFI_GUID global_variable_guid = EFI_GLOBAL_VARIABLE;
-	EFI_GUID security_database_guid = EFI_IMAGE_SECURITY_DATABASE_GUID;
 	SMM_VARIABLE_COMMUNICATE_QUERY_VARIABLE_INFO variable_info = { 0, 0, 0, 0 };
-	SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *pk_variable = NULL;
-	size_t pk_payload_size = 0;
 	efi_data_map var_map = { NULL, NULL, NULL, 0, 0, NULL, 0, NULL };
 	uint8_t hash_buffer[PSA_HASH_MAX_SIZE];
 	size_t hash_len = 0;
-	bool hash_result = false;
 
 	/* Create a map of the fields of the new variable including the auth header */
 	if (!init_efi_data_map(var, true, &var_map))
 		return EFI_SECURITY_VIOLATION;
 
-	/* database variables can be verified by either PK or KEK while images
-	 * should be checked by db and dbx so the length of two will be enough.
-	 */
-	SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *allowed_key_store_variables[] = { NULL, NULL };
-
 	/* Find the maximal size of variables for the GetVariable operation */
 	status = uefi_variable_store_query_variable_info(context, &variable_info);
 	if (status != EFI_SUCCESS)
 		return EFI_SECURITY_VIOLATION;
+
+	/**
+	 * UEFI: Page 246
+	 * If the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set in a
+	 * SetVariable() call, and firmware does not support signature type of the certificate
+	 * included in the EFI_VARIABLE_AUTHENTICATION_2 descriptor, then the SetVariable() call
+	 * shall return EFI_INVALID_PARAMETER. The list of signature types supported by the
+	 * firmware is defined by the SignatureSupport variable. Signature type of the certificate
+	 * is defined by its digest and encryption algorithms.
+	 */
+	/* TODO: Should support WIN_CERT_TYPE_PKCS_SIGNED_DATA and WIN_CERT_TYPE_EFI_PKCS115 */
+	if (var_map.efi_auth_descriptor->AuthInfo.Hdr.wCertificateType != WIN_CERT_TYPE_EFI_GUID)
+		return EFI_INVALID_PARAMETER;
+
+	/* Only a CertType of EFI_CERT_TYPE_PKCS7_GUID is accepted */
+	if (!compare_guid(&var_map.efi_auth_descriptor->AuthInfo.CertType, &pkcs7_guid))
+		return EFI_SECURITY_VIOLATION;
+
+	/**
+	 * Time associated with the authentication descriptor. For the TimeStamp value,
+	 * components Pad1, Nanosecond, TimeZone, Daylight and Pad2 shall be set to 0.
+	 * This means that the time shall always be expressed in GMT.
+	 *
+	 * UEFI: Page 253
+	 * 2. Verify that Pad1, Nanosecond, TimeZone, Daylight and Pad2 components
+	 * of the TimeStamp value are set to zero.
+	 */
+	if ((var_map.efi_auth_descriptor->TimeStamp.Pad1 != 0) ||
+	    (var_map.efi_auth_descriptor->TimeStamp.Pad2 != 0) ||
+	    (var_map.efi_auth_descriptor->TimeStamp.Nanosecond != 0) ||
+	    (var_map.efi_auth_descriptor->TimeStamp.TimeZone != 0) ||
+	    (var_map.efi_auth_descriptor->TimeStamp.Daylight != 0)) {
+		return EFI_SECURITY_VIOLATION;
+	}
+
+	/**
+	 * UEFI: Page 253
+	 * Unless the EFI_VARIABLE_APPEND_WRITE attribute is set, verify
+	 * that the TimeStamp value is later than the current
+	 * timestamp value associated with the variable
+	 */
+	if (memcmp(&var_map.efi_auth_descriptor->TimeStamp, stored_timestamp, sizeof(EFI_TIME)) > 0) {
+		/* Save new timestamp */
+		memcpy(stored_timestamp, &var_map.efi_auth_descriptor->TimeStamp, sizeof(EFI_TIME));
+	} else if (!(var->Attributes & EFI_VARIABLE_APPEND_WRITE)) {
+		EMSG("Timestamp violation");
+		return EFI_SECURITY_VIOLATION;
+	}
+
+	/* Calculate hash for the variable only once */
+	if (!calc_variable_hash(&var_map, (uint8_t *)&hash_buffer, sizeof(hash_buffer), &hash_len))
+		return EFI_SECURITY_VIOLATION;
+
+	if (is_private_auth_var(var)) {
+		/* Run Private Authenticated Variable related authentication steps */
+		status = authenticate_private_variable(context, &var_map, hash_buffer,
+						       hash_len, variable_info.MaximumVariableSize,
+						       new_variable, fingerprint);
+	} else {
+		/* Run Secure Boot related authentication steps */
+		status = authenticate_secure_boot_variable(context, &var_map, hash_buffer,
+						   hash_len, variable_info.MaximumVariableSize);
+	}
+
+	/* Remove the authentication header from the variable if the authentication is successful */
+	if (status == EFI_SUCCESS) {
+		uint8_t *smm_payload =
+			(uint8_t *)var + SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE_DATA_OFFSET(var);
+
+		memmove(smm_payload, var_map.payload, var_map.payload_len);
+		memset((uint8_t *)smm_payload + var_map.payload_len, 0,
+		       var_map.efi_auth_descriptor_len);
+
+		var->DataSize -= var_map.efi_auth_descriptor_len;
+	}
+
+	return status;
+}
+
+static efi_status_t authenticate_secure_boot_variable(const struct uefi_variable_store *context,
+						      efi_data_map* var_map,
+						      uint8_t* hash_buffer,
+						      size_t hash_len,
+						      uint64_t max_variable_size)
+{
+	efi_status_t status = EFI_SUCCESS;
+	EFI_GUID global_variable_guid = EFI_GLOBAL_VARIABLE;
+	EFI_GUID security_database_guid = EFI_IMAGE_SECURITY_DATABASE_GUID;
+	SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *pk_variable = NULL;
+	size_t pk_payload_size = 0;
+
+	/* database variables can be verified by either PK or KEK while images
+	 * should be checked by db and dbx so the length of two will be enough.
+	 */
+	SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *allowed_key_store_variables[] = { NULL, NULL };
 
 	/**
 	 * UEFI: Page 253
@@ -1126,20 +1466,29 @@ static efi_status_t authenticate_variable(const struct uefi_variable_store *cont
 	 * Platform Key is checked to enable or disable authentication.
 	 */
 	create_smm_variable(&pk_variable, sizeof(EFI_PLATFORM_KEY_NAME),
-			    variable_info.MaximumVariableSize, (uint8_t *)EFI_PLATFORM_KEY_NAME,
+			    max_variable_size, (uint8_t *)EFI_PLATFORM_KEY_NAME,
 			    &global_variable_guid);
 
 	if (!pk_variable)
 		return EFI_OUT_OF_RESOURCES;
 
 	status = uefi_variable_store_get_variable(
-		context, pk_variable, variable_info.MaximumVariableSize, &pk_payload_size);
+		context, pk_variable, max_variable_size, &pk_payload_size);
 
 	/* If PK does not exist authentication is disabled */
-	if (status != EFI_SUCCESS) {
-		free(pk_variable);
-		status = EFI_SUCCESS;
-		goto end;
+	switch (status)	{
+		case EFI_SUCCESS:
+			break;
+		case EFI_NOT_FOUND:
+			/* If PK does not exist authentication is disabled */
+			free(pk_variable);
+			status = EFI_SUCCESS;
+			goto end;
+		default:
+			EMSG("Failed to read PK");
+			free(pk_variable);
+			status = EFI_SECURITY_VIOLATION;
+			goto end;
 	}
 
 	/*
@@ -1167,53 +1516,8 @@ static efi_status_t authenticate_variable(const struct uefi_variable_store *cont
 		goto end;
 	}
 
-	/**
-	 * UEFI: Page 246
-	 * If the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set in a
-	 * SetVariable() call, and firmware does not support signature type of the certificate
-	 * included in the EFI_VARIABLE_AUTHENTICATION_2 descriptor, then the SetVariable() call
-	 * shall return EFI_INVALID_PARAMETER. The list of signature types supported by the
-	 * firmware is defined by the SignatureSupport variable. Signature type of the certificate
-	 * is defined by its digest and encryption algorithms.
-	 */
-	/* TODO: Should support WIN_CERT_TYPE_PKCS_SIGNED_DATA and WIN_CERT_TYPE_EFI_PKCS115 */
-	if (var_map.efi_auth_descriptor->AuthInfo.Hdr.wCertificateType != WIN_CERT_TYPE_EFI_GUID)
-		return EFI_INVALID_PARAMETER;
-
-	/* Only a CertType of EFI_CERT_TYPE_PKCS7_GUID is accepted */
-	if (!compare_guid(&var_map.efi_auth_descriptor->AuthInfo.CertType, &pkcs7_guid))
-		return EFI_SECURITY_VIOLATION;
-
-	/**
-	 * Time associated with the authentication descriptor. For the TimeStamp value,
-	 * components Pad1, Nanosecond, TimeZone, Daylight and Pad2 shall be set to 0.
-	 * This means that the time shall always be expressed in GMT.
-	 *
-	 * UEFI: Page 253
-	 * 2. Verify that Pad1, Nanosecond, TimeZone, Daylight and Pad2 components
-	 * of the TimeStamp value are set to zero. Unless the EFI_VARIABLE_APPEND_WRITE
-	 * attribute is set, verify that the TimeStamp value is later than the current
-	 * timestamp value associated with the variable
-	 */
-	if ((var_map.efi_auth_descriptor->TimeStamp.Pad1 != 0) ||
-	    (var_map.efi_auth_descriptor->TimeStamp.Pad2 != 0) ||
-	    (var_map.efi_auth_descriptor->TimeStamp.Nanosecond != 0) ||
-	    (var_map.efi_auth_descriptor->TimeStamp.TimeZone != 0) ||
-	    (var_map.efi_auth_descriptor->TimeStamp.Daylight != 0)) {
-		return EFI_SECURITY_VIOLATION;
-	}
-
-	/* Calculate hash for the variable only once */
-	hash_result = calc_variable_hash(&var_map, (uint8_t *)&hash_buffer, sizeof(hash_buffer),
-					 &hash_len);
-
-	if (!hash_result) {
-		status = EFI_SECURITY_VIOLATION;
-		goto end;
-	}
-
-	status = select_verification_keys(var_map, global_variable_guid, security_database_guid,
-					  variable_info.MaximumVariableSize,
+	status = select_verification_keys(*var_map, global_variable_guid, security_database_guid,
+					  max_variable_size,
 					  &allowed_key_store_variables[0]);
 
 	if (status != EFI_SUCCESS)
@@ -1221,14 +1525,14 @@ static efi_status_t authenticate_variable(const struct uefi_variable_store *cont
 
 	for (int i = 0; i < ARRAY_SIZE(allowed_key_store_variables); i++) {
 		size_t actual_variable_length = 0; /* Unused */
-		efi_data_map allowed_key_store_var_map;
+		efi_data_map allowed_key_store_var_map = { 0 };
 
 		if (!allowed_key_store_variables[i])
 			continue;
 
 		status = uefi_variable_store_get_variable(context, allowed_key_store_variables[i],
-							  variable_info.MaximumVariableSize,
-							  &actual_variable_length);
+							max_variable_size,
+							&actual_variable_length);
 
 		if (status) {
 			/* When the parent does not exist it is considered verification failure */
@@ -1244,8 +1548,8 @@ static efi_status_t authenticate_variable(const struct uefi_variable_store *cont
 			goto end;
 		}
 
-		status = verify_var_by_key_var(&var_map, &allowed_key_store_var_map,
-					       (uint8_t *)&hash_buffer, hash_len);
+		status = verify_var_by_key_var(var_map, &allowed_key_store_var_map,
+					hash_buffer, hash_len);
 
 		if (status == EFI_SUCCESS)
 			goto end;
@@ -1258,19 +1562,56 @@ end:
 			free(allowed_key_store_variables[i]);
 	}
 
-	/* Remove the authentication header from the variable if the authentication is successful */
-	if (status == EFI_SUCCESS) {
-		uint8_t *smm_payload =
-			(uint8_t *)var + SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE_DATA_OFFSET(var);
+	return status;
+}
 
-		memmove(smm_payload, var_map.payload, var_map.payload_len);
-		memset((uint8_t *)smm_payload + var_map.payload_len, 0,
-		       var_map.efi_auth_descriptor_len);
+static efi_status_t authenticate_private_variable(const struct uefi_variable_store *context,
+						  efi_data_map* var_map,
+						  uint8_t* hash_buffer,
+						  size_t hash_len,
+						  uint64_t max_variable_size,
+						  bool new_variable,
+						  uint8_t (*fingerprint)[FINGERPRINT_SIZE])
+{
+	uint8_t new_fingerprint[PSA_HASH_MAX_SIZE] = { 0 };
 
-		var->DataSize -= var_map.efi_auth_descriptor_len;
+	/* Verify the signature of the variable */
+	if (verify_pkcs7_signature(
+		var_map->efi_auth_descriptor->AuthInfo.CertData,
+		var_map->efi_auth_descriptor_certdata_len, hash_buffer,
+		hash_len, NULL, 0) != 0)
+		return EFI_SECURITY_VIOLATION;
+
+	/**
+	 * UEFI: Page 254
+	 * CN of the signing certificate’s Subject and the hash of the tbsCertificate of the
+	 * top-level issuer certificate (or the signing certificate itself if no other certificates
+	 * are present or the certificate chain is of length 1) in SignedData.certificates is
+	 * registered for use in subsequent verifications of this variable. Implementations
+	 * may store just a single hash of these two elements to reduce storage requirements.
+	 */
+	if (get_uefi_priv_auth_var_fingerprint_handler(var_map->efi_auth_descriptor->AuthInfo.CertData,
+						       var_map->efi_auth_descriptor_certdata_len,
+						       new_fingerprint)) {
+		EMSG("Failed to query variable fingerprint input");
+		return EFI_SECURITY_VIOLATION;
 	}
 
-	return status;
+	/*
+	 * The hash is SHA256 so only 32 bytes contain non zero values.
+	 * Use only that part to decrease metadata size.
+	 */
+	if (!new_variable) {
+		if (memcmp(&new_fingerprint, fingerprint, FINGERPRINT_SIZE)) {
+			EMSG("Fingerprint verification failed");
+			return EFI_SECURITY_VIOLATION;
+		}
+	} else {
+		/* Save fingerprint */
+		memcpy(fingerprint, &new_fingerprint, FINGERPRINT_SIZE);
+	}
+
+	return EFI_SUCCESS;
 }
 #endif
 
@@ -1486,7 +1827,7 @@ static void purge_orphan_index_entries(const struct uefi_variable_store *context
 	}
 
 	if (any_orphans)
-		sync_variable_index(context);
+		sync_variable_index((struct uefi_variable_store *)context);
 }
 
 static struct delegate_variable_store *

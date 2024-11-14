@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -27,19 +27,23 @@ static struct config_container *config_container_create(enum config_classifier c
 	const char *name, unsigned int instance,
 	const void *data, size_t size)
 {
-	struct config_container *container = malloc(sizeof(struct config_container) + size);
+	struct config_container *container = NULL;
+	size_t name_length = strlen(name) + 1;
 
-	if (container) {
+	if (name_length > sizeof(container->name))
+		return NULL;
 
-		container->classifier = classifier;
-		strncpy(container->name, name, sizeof(container->name));
-		container->name[sizeof(container->name) - 1] = '\0';
-		container->instance = instance;
-		container->size = size;
-		container->next = NULL;
+	container = malloc(sizeof(struct config_container) + size);
+	if (!container)
+		return NULL;
 
-		memcpy((uint8_t*)container + sizeof(struct config_container), data, size);
-	}
+	container->classifier = classifier;
+	memcpy(container->name, name, name_length);
+	container->instance = instance;
+	container->size = size;
+	container->next = NULL;
+
+	memcpy((uint8_t *)container + sizeof(struct config_container), data, size);
 
 	return container;
 }

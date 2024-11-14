@@ -20,6 +20,13 @@ project(psa-its-api-test LANGUAGES CXX C)
 add_executable(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE "${TOP_LEVEL_INCLUDE_DIRS}")
 
+set(TRACE_PREFIX "PSAITS" CACHE STRING "Trace prefix")
+include(${TS_ROOT}/environments/linux-pc/env.cmake)
+add_components(TARGET ${PROJECT_NAME}
+	BASE_DIR ${TS_ROOT}
+	COMPONENTS "environments/linux-pc"
+)
+
 #-------------------------------------------------------------------------------
 #  Extend with components that are common across all deployments of
 #  psa-api-test/internal_trusted_storage

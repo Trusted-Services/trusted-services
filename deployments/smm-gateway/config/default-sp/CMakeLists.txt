@@ -47,7 +47,7 @@ set(SP_BOOT_ORDER "8" CACHE STRING "Boot order of the SP")
 add_platform(TARGET "smm-gateway")
 
 # SMM variable and RPC caller settings
-set(SMM_GATEWAY_MAX_UEFI_VARIABLES 40 CACHE STRING "Maximum UEFI variable count")
+set(SMM_GATEWAY_MAX_UEFI_VARIABLES 35 CACHE STRING "Maximum UEFI variable count")
 set(SMM_RPC_CALLER_SESSION_SHARED_MEMORY_SIZE 2*4096 CACHE STRING "RPC caller buffer size in SMMGW")
 if (UEFI_AUTH_VAR)
 set(SMM_SP_HEAP_SIZE 64*1024 CACHE STRING "SMM gateway SP heap size")
@@ -107,7 +107,6 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "location to install build output to." FORCE)
 endif()
 install(TARGETS smm-gateway
-			PUBLIC_HEADER DESTINATION ${TS_ENV}/include
 			RUNTIME DESTINATION ${TS_ENV}/bin
 		)
 

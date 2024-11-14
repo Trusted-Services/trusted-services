@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -44,7 +44,7 @@ struct psa_ipc_crypto_pack_iovec {
                               *   See tfm_crypto_func_sid for detail
                               */
     uint16_t step;           /*!< Key derivation step */
-}__packed;
+} __attribute__((__packed__));
 
 #define iov_size sizeof(struct psa_ipc_crypto_pack_iovec)
 

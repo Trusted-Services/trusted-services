@@ -27,7 +27,7 @@ add_components(TARGET "fwu"
 		"components/rpc/ts_rpc/endpoint/sp"
 		"components/service/common/provider"
 		"components/service/fwu/provider"
-		"components/service/fwu/provider/serializer/packed-c"
+		"components/service/fwu/provider/serializer"
 )
 
 target_sources(fwu PRIVATE

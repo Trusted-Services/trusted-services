@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -20,13 +20,19 @@
 extern "C" {
 #endif
 
+#ifdef EXPORT_PUBLIC_INTERFACE_PSA_PS
+#define PSA_PS_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define PSA_PS_EXPORTED
+#endif
+
 /**
  * \brief PSA_PS_API_VERSION version
  *
  * Major and minor PSA_PS_API_VERSION numbers
  */
-#define PSA_PS_API_VERSION_MAJOR  1
-#define PSA_PS_API_VERSION_MINOR  0
+#define PSA_PS_API_VERSION_MAJOR 1
+#define PSA_PS_API_VERSION_MINOR 0
 
 // This version of the header file is associated with 1.0 final release
 
@@ -65,10 +71,9 @@ extern "C" {
  * \retval PSA_ERROR_GENERIC_ERROR         The operation failed because of an
  *                                         unspecified internal failure
  */
-psa_status_t psa_ps_set(psa_storage_uid_t uid,
-						size_t data_length,
-						const void *p_data,
-						psa_storage_create_flags_t create_flags);
+PSA_PS_EXPORTED psa_status_t psa_ps_set(psa_storage_uid_t uid, size_t data_length,
+					const void *p_data,
+					psa_storage_create_flags_t create_flags);
 
 /**
  * \brief Retrieve data associated with a provided uid
@@ -113,11 +118,8 @@ psa_status_t psa_ps_set(psa_storage_uid_t uid,
  *                                     associated with the UID failed
  *                                     authentication
  */
-psa_status_t psa_ps_get(psa_storage_uid_t uid,
-						size_t data_offset,
-						size_t data_size,
-						void *p_data,
-						size_t *p_data_length);
+PSA_PS_EXPORTED psa_status_t psa_ps_get(psa_storage_uid_t uid, size_t data_offset, size_t data_size,
+					void *p_data, size_t *p_data_length);
 
 /**
  * \brief Retrieve the metadata about the provided uid
@@ -145,8 +147,8 @@ psa_status_t psa_ps_get(psa_storage_uid_t uid,
  * \retval PSA_ERROR_DATA_CORRUPT      The operation failed because the data
  *                                     associated with the UID was corrupt
  */
-psa_status_t psa_ps_get_info(psa_storage_uid_t uid,
-							 struct psa_storage_info_t *p_info);
+PSA_PS_EXPORTED psa_status_t psa_ps_get_info(psa_storage_uid_t uid,
+					     struct psa_storage_info_t *p_info);
 
 /**
  * \brief Remove the provided uid and its associated data from the storage
@@ -172,7 +174,7 @@ psa_status_t psa_ps_get_info(psa_storage_uid_t uid,
  * \retval PSA_ERROR_GENERIC_ERROR     The operation failed because of an
  *                                     unspecified internal failure
  */
-psa_status_t psa_ps_remove(psa_storage_uid_t uid);
+PSA_PS_EXPORTED psa_status_t psa_ps_remove(psa_storage_uid_t uid);
 
 /**
  * \brief Reserves storage for the specified uid
@@ -207,9 +209,8 @@ psa_status_t psa_ps_remove(psa_storage_uid_t uid);
  * \retval PSA_ERROR_ALREADY_EXISTS        Storage for the specified uid
  *                                         already exists
  */
-psa_status_t psa_ps_create(psa_storage_uid_t uid,
-						   size_t capacity,
-						   psa_storage_create_flags_t create_flags);
+PSA_PS_EXPORTED psa_status_t psa_ps_create(psa_storage_uid_t uid, size_t capacity,
+					   psa_storage_create_flags_t create_flags);
 
 /**
  * \brief Sets partial data into an asset
@@ -259,10 +260,8 @@ psa_status_t psa_ps_create(psa_storage_uid_t uid,
  *                                      with the flag
  *                                      PSA_STORAGE_FLAG_WRITE_ONCE
  */
-psa_status_t psa_ps_set_extended(psa_storage_uid_t uid,
-								 size_t data_offset,
-								 size_t data_length,
-								 const void *p_data);
+PSA_PS_EXPORTED psa_status_t psa_ps_set_extended(psa_storage_uid_t uid, size_t data_offset,
+						 size_t data_length, const void *p_data);
 
 /**
  * \brief Lists optional features.
@@ -273,7 +272,7 @@ psa_status_t psa_ps_set_extended(psa_storage_uid_t uid,
  *                                      are limited to
  *                                      PSA_STORAGE_SUPPORT_SET_EXTENDED
  */
-uint32_t psa_ps_get_support(void);
+PSA_PS_EXPORTED uint32_t psa_ps_get_support(void);
 
 #ifdef __cplusplus
 }

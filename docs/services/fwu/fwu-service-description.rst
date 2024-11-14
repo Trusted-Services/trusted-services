@@ -358,7 +358,7 @@ policy for the way the firmware can be update. Configuration steps result in the
 
 Each installer is assigned a location ID to bind the installer to a particular firmware location.
 Location IDs are integer values defined by the configuration code. For example, where firmware
-consists of AP firmware, SCP firmware and RSS firmware, location IDs could be assigned as follows:
+consists of AP firmware, SCP firmware and RSE firmware, location IDs could be assigned as follows:
 
 .. list-table::
   :header-rows: 1
@@ -369,7 +369,7 @@ consists of AP firmware, SCP firmware and RSS firmware, location IDs could be as
     - 0
   * - SCP firmware
     - 1
-  * - RSS firmware
+  * - RSE firmware
     - 2
 
 When volume objects are added to the volume index, each one is assigned a volume ID which is
@@ -415,7 +415,7 @@ constructing installers for:
 
   - **AP Firmware** - where application firmware is contained within a FIP
   - **SCP Firmware** - binary boot image for SCP
-  - **RSS Firmware** - binary boot image for RSS
+  - **RSE Firmware** - binary boot image for RSE
 
 The GPT based configurator relies on access to the GPT partition table. During initialization
 of the Update Agent, the configurator iterates over each partition entry. If no installers are
