@@ -4,7 +4,7 @@ Change Log & Release Notes
 This document contains a summary of the new features, changes, fixes and known issues in each release of Trusted
 Services.
 
-Version <next>
+Version v1.1.0
 --------------
 
 - Trustedfirmware.org has deprecated Phabricator, the wiki and issue tracking provider. This functionality has been
@@ -61,6 +61,7 @@ Updated external components
 Breaking changes
 ^^^^^^^^^^^^^^^^
 
+None.
 
 Resolved issues
 ^^^^^^^^^^^^^^^
@@ -220,7 +221,7 @@ Please find the Test Report covering this release in the `project wiki`_.
 
 --------------
 
-.. _`FF-A Specification v1.0`: https://developer.arm.com/documentation/den0077/a
+.. _`FF-A Specification v1.1`: https://developer.arm.com/documentation/den0077/e
 .. _`Psacertified v1.0 APIs`: https://www.psacertified.org/development-resources/building-in-security/specifications-implementations/
 .. _`OP-TEE v3.19`: https://github.com/OP-TEE/optee_os/tree/3.19.0
 .. _`Yocto meta-arm` : https://gitlab.oss.arm.com/engineering/yocto/meta-arm/-/tree/master/meta-arm/recipes-security/trusted-services
