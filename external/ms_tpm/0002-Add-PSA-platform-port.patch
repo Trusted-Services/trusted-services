@@ -1,0 +1,460 @@
+From 0e4b2fe3e03d0c5e7e64592d853fb7aa2df74759 Mon Sep 17 00:00:00 2001
+From: Balint Dobszay <balint.dobszay@arm.com>
+Date: Wed, 13 Nov 2024 17:17:00 +0100
+Subject: [PATCH 2/3] Add PSA platform port
+
+Modify the default platform port to use PSA Storage API for non-volatile
+storage operations and PSA Crypto API for random number generation.
+
+Signed-off-by: Balint Dobszay <balint.dobszay@arm.com>
+Change-Id: I219f5ec47825f863a50c7f806cc3ab6aa1ca3e85
+---
+ TPMCmd/Platform/src/Clock.c      |  28 ++---
+ TPMCmd/Platform/src/Entropy.c    |  55 ++--------
+ TPMCmd/Platform/src/NVMem.c      | 178 +++++--------------------------
+ TPMCmd/Platform/src/RunCommand.c |  13 ++-
+ 4 files changed, 57 insertions(+), 217 deletions(-)
+
+diff --git a/TPMCmd/Platform/src/Clock.c b/TPMCmd/Platform/src/Clock.c
+index 89260f1..142f4a3 100644
+--- a/TPMCmd/Platform/src/Clock.c
++++ b/TPMCmd/Platform/src/Clock.c
+@@ -6,6 +6,7 @@
+  *  under this license.
+  *
+  *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
+  *
+  *  All rights reserved.
+  *
+@@ -79,30 +80,18 @@ LIB_EXPORT void _plat__TimerRestart(void)
+ // appropriated hardware functions.
+ 
+ #include <time.h>
+-clock_t debugTime;
++// TODO
++// clock_t debugTime;
++
++// TODO: add timer implementation
++static uint64_t fake_timer = 1;
+ 
+ //*** _plat__RealTime()
+ // This is another, probably futile, attempt to define a portable function
+ // that will return a 64-bit clock value that has mSec resolution.
+ LIB_EXPORT uint64_t _plat__RealTime(void)
+ {
+-    clock64_t time;
+-#ifdef _MSC_VER
+-    struct _timeb sysTime;
+-    //
+-    _ftime_s(&sysTime);
+-    time = (clock64_t)(sysTime.time) * 1000 + sysTime.millitm;
+-    // set the time back by one hour if daylight savings
+-    if(sysTime.dstflag)
+-        time -= 1000 * 60 * 60;  // mSec/sec * sec/min * min/hour = ms/hour
+-#else
+-    // hopefully, this will work with most UNIX systems
+-    struct timespec systime;
+-    //
+-    clock_gettime(CLOCK_MONOTONIC, &systime);
+-    time = (clock64_t)systime.tv_sec * 1000 + (systime.tv_nsec / 1000000);
+-#endif
+-    return time;
++    return fake_timer++;
+ }
+ 
+ //***_plat__TimerRead()
+@@ -136,7 +125,8 @@ LIB_EXPORT uint64_t _plat__TimerRead(void)
+     if(s_lastSystemTime == 0)
+     {
+         s_lastSystemTime   = timeNow;
+-        debugTime          = clock();
++        // TODO
++        // debugTime          = clock();
+         s_lastReportedTime = 0;
+         s_realTimePrevious = 0;
+     }
+diff --git a/TPMCmd/Platform/src/Entropy.c b/TPMCmd/Platform/src/Entropy.c
+index af7a0c4..98e9a46 100644
+--- a/TPMCmd/Platform/src/Entropy.c
++++ b/TPMCmd/Platform/src/Entropy.c
+@@ -6,6 +6,7 @@
+  *  under this license.
+  *
+  *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
+  *
+  *  All rights reserved.
+  *
+@@ -35,17 +36,9 @@
+ //** Includes and Local Values
+ 
+ #define _CRT_RAND_S
+-#include <stdlib.h>
+-#include <memory.h>
+-#include <time.h>
++#include <string.h>
+ #include "Platform.h"
+-
+-#ifdef _MSC_VER
+-#  include <process.h>
+-#else
+-#  include <unistd.h>
+-#endif
+-
++#include "psa/crypto.h"
+ // This is the last 32-bits of hardware entropy produced. We have to check to
+ // see that two consecutive 32-bit values are not the same because
+ // according to FIPS 140-2, annex C:
+@@ -64,21 +57,14 @@ extern uint32_t lastEntropy;
+ // Local function to get a 32-bit random number
+ static uint32_t rand32(void)
+ {
+-    uint32_t rndNum = rand();
+-#if RAND_MAX < UINT16_MAX
+-    // If the maximum value of the random number is a 15-bit number, then shift it up
+-    // 15 bits, get 15 more bits, shift that up 2 and then XOR in another value to get
+-    // a full 32 bits.
+-    rndNum = (rndNum << 15) ^ rand();
+-    rndNum = (rndNum << 2) ^ rand();
+-#elif RAND_MAX == UINT16_MAX
+-    // If the maximum size is 16-bits, shift it and add another 16 bits
+-    rndNum = (rndNum << 16) ^ rand();
+-#elif RAND_MAX < UINT32_MAX
+-    // If 31 bits, then shift 1 and include another random value to get the extra bit
+-    rndNum = (rndNum << 1) ^ rand();
+-#endif
+-    return rndNum;
++    uint32_t num = 0;
++    psa_status_t status = PSA_ERROR_GENERIC_ERROR;
++
++    status = psa_generate_random((uint8_t *)&num, sizeof(num));
++    if (status != PSA_SUCCESS)
++        return 0;
++
++    return num;
+ }
+ 
+ //*** _plat__GetEntropy()
+@@ -98,25 +84,6 @@ LIB_EXPORT int32_t _plat__GetEntropy(unsigned char* entropy,  // output buffer
+     //
+     if(amount == 0)
+     {
+-        // Seed the platform entropy source if the entropy source is software. There
+-        // is no reason to put a guard macro (#if or #ifdef) around this code because
+-        // this code would not be here if someone was changing it for a system with
+-        // actual hardware.
+-        //
+-        // NOTE 1: The following command does not provide proper cryptographic
+-        // entropy. Its primary purpose to make sure that different instances of the
+-        // simulator, possibly started by a script on the same machine, are seeded
+-        // differently. Vendors of the actual TPMs need to ensure availability of
+-        // proper entropy using their platform-specific means.
+-        //
+-        // NOTE 2: In debug builds by default the reference implementation will seed
+-        // its RNG deterministically (without using any platform provided randomness).
+-        // See the USE_DEBUG_RNG macro and DRBG_GetEntropy() function.
+-#ifdef _MSC_VER
+-        srand((unsigned)_plat__RealTime() ^ _getpid());
+-#else
+-        srand((unsigned)_plat__RealTime() ^ getpid());
+-#endif
+         lastEntropy = rand32();
+         ret         = 0;
+     }
+diff --git a/TPMCmd/Platform/src/NVMem.c b/TPMCmd/Platform/src/NVMem.c
+index 29d9213..b4f2dc0 100644
+--- a/TPMCmd/Platform/src/NVMem.c
++++ b/TPMCmd/Platform/src/NVMem.c
+@@ -6,6 +6,7 @@
+  *  under this license.
+  *
+  *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
+  *
+  *  All rights reserved.
+  *
+@@ -40,99 +41,18 @@
+ //
+ 
+ //** Includes and Local
+-#include <memory.h>
+ #include <string.h>
+ #include <assert.h>
+ #include "Platform.h"
+-#if FILE_BACKED_NV
+-#  include <stdio.h>
+-static FILE* s_NvFile           = NULL;
+-static int   s_NeedsManufacture = FALSE;
++#include "psa/protected_storage.h"
++
++#ifndef TPM_NV_UID
++#define TPM_NV_UID 0x123
+ #endif
+ 
++static const psa_storage_uid_t tpm_nv_uid = TPM_NV_UID;
+ //**Functions
+ 
+-#if FILE_BACKED_NV
+-
+-//*** NvFileOpen()
+-// This function opens the file used to hold the NV image.
+-//  Return Type: int
+-//  >= 0        success
+-//  -1          error
+-static int NvFileOpen(const char* mode)
+-{
+-#  if defined(NV_FILE_PATH)
+-#    define TO_STRING(s)      TO_STRING_IMPL(s)
+-#    define TO_STRING_IMPL(s) #s
+-    const char* s_NvFilePath = TO_STRING(NV_FILE_PATH);
+-#    undef TO_STRING
+-#    undef TO_STRING_IMPL
+-#  else
+-    const char* s_NvFilePath = "NVChip";
+-#  endif
+-
+-    // Try to open an exist NVChip file for read/write
+-#  if defined _MSC_VER && 1
+-    if(fopen_s(&s_NvFile, s_NvFilePath, mode) != 0)
+-        s_NvFile = NULL;
+-#  else
+-    s_NvFile                 = fopen(s_NvFilePath, mode);
+-#  endif
+-    return (s_NvFile == NULL) ? -1 : 0;
+-}
+-
+-//*** NvFileCommit()
+-// Write all of the contents of the NV image to a file.
+-//  Return Type: int
+-//      TRUE(1)         success
+-//      FALSE(0)        failure
+-static int NvFileCommit(void)
+-{
+-    int OK;
+-    // If NV file is not available, return failure
+-    if(s_NvFile == NULL)
+-        return 1;
+-    // Write RAM data to NV
+-    fseek(s_NvFile, 0, SEEK_SET);
+-    OK = (NV_MEMORY_SIZE == fwrite(s_NV, 1, NV_MEMORY_SIZE, s_NvFile));
+-    OK = OK && (0 == fflush(s_NvFile));
+-    assert(OK);
+-    return OK;
+-}
+-
+-//*** NvFileSize()
+-// This function gets the size of the NV file and puts the file pointer where desired
+-// using the seek method values. SEEK_SET => beginning; SEEK_CUR => current position
+-// and SEEK_END => to the end of the file.
+-static long NvFileSize(int leaveAt)
+-{
+-    long fileSize;
+-    long filePos = ftell(s_NvFile);
+-    //
+-    assert(NULL != s_NvFile);
+-
+-    int fseek_result = fseek(s_NvFile, 0, SEEK_END);
+-    NOT_REFERENCED(fseek_result);  // Fix compiler warning for NDEBUG
+-    assert(fseek_result == 0);
+-    fileSize = ftell(s_NvFile);
+-    assert(fileSize >= 0);
+-    switch(leaveAt)
+-    {
+-        case SEEK_SET:
+-            filePos = 0;
+-        case SEEK_CUR:
+-            fseek(s_NvFile, filePos, SEEK_SET);
+-            break;
+-        case SEEK_END:
+-            break;
+-        default:
+-            assert(FALSE);
+-            break;
+-    }
+-    return fileSize;
+-}
+-#endif
+-
+ //*** _plat__NvErrors()
+ // This function is used by the simulator to set the error flags in the NV
+ // subsystem to simulate an error in the NV loading process
+@@ -161,48 +81,33 @@ LIB_EXPORT int _plat__NVEnable(
+     void* platParameter  // IN: platform specific parameters
+ )
+ {
++    psa_status_t status = PSA_ERROR_GENERIC_ERROR;
++    size_t data_length = 0;
++
+     NOT_REFERENCED(platParameter);  // to keep compiler quiet
+-                                    //
+     // Start assuming everything is OK
+     s_NV_unrecoverable = FALSE;
+     s_NV_recoverable   = FALSE;
+-#if FILE_BACKED_NV
+-    if(s_NvFile != NULL)
+-        return 0;
++
+     // Initialize all the bytes in the ram copy of the NV
+     _plat__NvMemoryClear(0, NV_MEMORY_SIZE);
+ 
+-    // If the file exists
+-    if(NvFileOpen("r+b") >= 0)
+-    {
+-        long fileSize = NvFileSize(SEEK_SET);  // get the file size and leave the
+-                                               // file pointer at the start
+-                                               //
+-        // If the size is right, read the data
+-        if(NV_MEMORY_SIZE == fileSize)
+-        {
+-            s_NeedsManufacture = fread(s_NV, 1, NV_MEMORY_SIZE, s_NvFile)
+-                                 != NV_MEMORY_SIZE;
+-        }
+-        else
+-        {
+-            NvFileCommit();  // for any other size, initialize it
+-            s_NeedsManufacture = TRUE;
+-        }
+-    }
+-    // If NVChip file does not exist, try to create it for read/write.
+-    else if(NvFileOpen("w+b") >= 0)
+-    {
+-        NvFileCommit();  // Initialize the file
+-        s_NeedsManufacture = TRUE;
++    status = psa_ps_get(tpm_nv_uid, 0, NV_MEMORY_SIZE, s_NV, &data_length);
++    if (status == PSA_ERROR_DOES_NOT_EXIST) {
++        /* Add entry if it doesn't exist */
++        status = psa_ps_create(tpm_nv_uid, NV_MEMORY_SIZE, 0);
++        if (status != PSA_SUCCESS)
++            s_NV_unrecoverable = TRUE;
++    } else if (status != PSA_SUCCESS || data_length != NV_MEMORY_SIZE) {
++        s_NV_unrecoverable = TRUE;
+     }
+-    assert(NULL != s_NvFile);  // Just in case we are broken for some reason.
+-#endif
++
+     // NV contents have been initialized and the error checks have been performed. For
+     // simulation purposes, use the signaling interface to indicate if an error is
+     // to be simulated and the type of the error.
+     if(s_NV_unrecoverable)
+         return -1;
++
+     return s_NV_recoverable;
+ }
+ 
+@@ -211,24 +116,9 @@ LIB_EXPORT int _plat__NVEnable(
+ LIB_EXPORT void _plat__NVDisable(int delete  // IN: If TRUE, delete the NV contents.
+ )
+ {
+-#if FILE_BACKED_NV
+-    if(NULL != s_NvFile)
+-    {
+-        fclose(s_NvFile);  // Close NV file
+-        // Alternative to deleting the file is to set its size to 0. This will not
+-        // match the NV size so the TPM will need to be remanufactured.
+-        if(delete)
+-        {
+-            // Open for writing at the start. Sets the size to zero.
+-            if(NvFileOpen("w") >= 0)
+-            {
+-                fflush(s_NvFile);
+-                fclose(s_NvFile);
+-            }
+-        }
+-    }
+-    s_NvFile = NULL;  // Set file handle to NULL
+-#endif
++    if (delete)
++        psa_ps_remove(tpm_nv_uid);
++
+     return;
+ }
+ 
+@@ -240,15 +130,7 @@ LIB_EXPORT void _plat__NVDisable(int delete  // IN: If TRUE, delete the NV conte
+ //      2               NV is not available due to rate limit
+ LIB_EXPORT int _plat__IsNvAvailable(void)
+ {
+-    int retVal = 0;
+-    // NV is not available if the TPM is in failure mode
+-    if(!s_NvIsAvailable)
+-        retVal = 1;
+-#if FILE_BACKED_NV
+-    else
+-        retVal = (s_NvFile == NULL);
+-#endif
+-    return retVal;
++    return !s_NvIsAvailable;
+ }
+ 
+ //***_plat__NvMemoryRead()
+@@ -334,11 +216,7 @@ LIB_EXPORT void _plat__NvMemoryMove(
+ //  non-0   NV write fail
+ LIB_EXPORT int _plat__NvCommit(void)
+ {
+-#if FILE_BACKED_NV
+-    return (NvFileCommit() ? 0 : 1);
+-#else
+-    return 0;
+-#endif
++    return (psa_ps_set(tpm_nv_uid, NV_MEMORY_SIZE, s_NV, 0) != PSA_SUCCESS);
+ }
+ 
+ //***_plat__SetNvAvail()
+@@ -364,9 +242,5 @@ LIB_EXPORT void _plat__ClearNvAvail(void)
+ // needs to be manufactured.
+ LIB_EXPORT int _plat__NVNeedsManufacture(void)
+ {
+-#if FILE_BACKED_NV
+-    return s_NeedsManufacture;
+-#else
+-    return FALSE;
+-#endif
++    return 0;
+ }
+diff --git a/TPMCmd/Platform/src/RunCommand.c b/TPMCmd/Platform/src/RunCommand.c
+index 114421e..749a9f0 100644
+--- a/TPMCmd/Platform/src/RunCommand.c
++++ b/TPMCmd/Platform/src/RunCommand.c
+@@ -6,6 +6,7 @@
+  *  under this license.
+  *
+  *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
+  *
+  *  All rights reserved.
+  *
+@@ -50,6 +51,7 @@
+ #include "Platform.h"
+ #include <setjmp.h>
+ #include "ExecCommand_fp.h"
++#include "trace.h"
+ 
+ jmp_buf s_jumpBuffer;
+ 
+@@ -69,13 +71,20 @@ LIB_EXPORT void _plat__RunCommand(
+     unsigned char** response       // IN/OUT: response buffer
+ )
+ {
+-    setjmp(s_jumpBuffer);
++    // TODO: add setjmp to libc
++    // setjmp(s_jumpBuffer);
+     ExecuteCommand(requestSize, request, responseSize, response);
+ }
+ 
++EXTERN UINT32 s_failFunction;
++EXTERN UINT32 s_failLine;
++
+ //***_plat__Fail()
+ // This is the platform depended failure exit for the TPM.
+ LIB_EXPORT NORETURN void _plat__Fail(void)
+ {
+-    longjmp(&s_jumpBuffer[0], 1);
++    // TODO: add longjmp to libc
++    // longjmp(&s_jumpBuffer[0], 1);
++    EMSG("TPM fail: %s:%d", (const char *)(uintptr_t)s_failFunction, s_failLine);
++    for (;;) {}
+ }
+\ No newline at end of file
+-- 
+2.34.1
+
