@@ -61,3 +61,19 @@ psa_status_t rse_protocol_pointer_access_deserialize_reply(struct psa_outvec *ou
 
 	return PSA_SUCCESS;
 }
+
+psa_status_t rse_protocol_pointer_access_calculate_msg_len(psa_handle_t handle,
+							   const struct psa_invec *in_vec,
+							   uint8_t in_len,
+							   size_t *msg_len)
+{
+	(void)handle;
+	(void)in_vec;
+	(void)in_len;
+
+	assert(msg_len != NULL);
+
+	*msg_len = sizeof(struct rse_pointer_access_msg_t);
+
+	return PSA_SUCCESS;
+}

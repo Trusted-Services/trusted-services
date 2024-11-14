@@ -39,4 +39,9 @@ psa_status_t rse_protocol_pointer_access_deserialize_reply(struct psa_outvec *ou
 							   const struct rse_pointer_access_reply_t *reply,
 							   size_t reply_size);
 
+psa_status_t rse_protocol_pointer_access_calculate_msg_len(psa_handle_t handle,
+							   const struct psa_invec *in_vec,
+							   uint8_t in_len,
+							   size_t *msg_len);
+
 #endif /* __RSE_COMMS_PROTOCOL_POINTER_ACCESS_H__ */

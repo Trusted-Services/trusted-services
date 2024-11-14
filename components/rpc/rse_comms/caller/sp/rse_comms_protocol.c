@@ -92,6 +92,10 @@ psa_status_t rse_protocol_calculate_msg_len(psa_handle_t handle,
 
 		break;
 	case RSE_COMMS_PROTOCOL_POINTER_ACCESS:
+		status = rse_protocol_pointer_access_calculate_msg_len(handle, in_vec, in_len, msg_len);
+		if (status != PSA_SUCCESS)
+			return status;
+		break;
 	default:
 		return PSA_ERROR_NOT_SUPPORTED;
 	}
