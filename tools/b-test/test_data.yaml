@@ -201,6 +201,10 @@ data:
       src: "$TS_ROOT/deployments/se-proxy/config/default-sp"
       params:
             - "-GUnix Makefiles"
+    - name: "se-proxy-rd1ae-opteesp"
+      src: "$TS_ROOT/deployments/se-proxy/config/rd1ae-opteesp"
+      params:
+            - "-GUnix Makefiles"
     - name: "smm-gateway-default-opteesp"
       src: "$TS_ROOT/deployments/smm-gateway/config/default-opteesp"
       params:

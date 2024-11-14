@@ -10,7 +10,7 @@ set(SMM_GATEWAY_MAX_UEFI_VARIABLES 60 CACHE STRING "Maximum UEFI variable count"
 set(SMM_RPC_CALLER_SESSION_SHARED_MEMORY_SIZE 4*4096 CACHE STRING "RPC caller buffer size in SMMGW")
 set(SMM_SP_HEAP_SIZE 80*1024 CACHE STRING "SMM gateway SP heap size")
 set(PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE 0x2080 CACHE STRING "Size of the RSE_COMMS_PAYLOAD buffer")
-set(COMMS_MHU_MSG_SIZE 0xFFFC CACHE STRING "Max message size that can be transfered via MHU")
+set(COMMS_MHU_MSG_SIZE 0xC CACHE STRING "Max message size that can be transfered via MHU")
 
 target_compile_definitions(${TGT} PRIVATE
 	SMM_VARIABLE_INDEX_STORAGE_UID=0x787

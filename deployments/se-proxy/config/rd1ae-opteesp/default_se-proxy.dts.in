@@ -34,5 +34,11 @@
 			pages-count = <16>;
 			attributes = <0x3>; /* read-write */
 		};
+		rse-carveout {
+			base-address = <@RSE_COMM_CARVEOUT_BASE@>;
+			physical-address = <@RSE_COMM_CARVEOUT_BASE@>;
+			pages-count = <@RSE_COMM_CARVEOUT_PAGE_COUNT@>;
+			attributes = <0x3>;  /* read-write */
+		};
 	};
 };

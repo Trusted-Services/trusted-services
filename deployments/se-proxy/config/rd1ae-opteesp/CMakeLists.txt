@@ -26,6 +26,10 @@ set(SP_HEAP_SIZE "32 * 1024" CACHE STRING "SP heap size in bytes")
 set(SP_BOOT_ORDER "1" CACHE STRING "Boot order of the SP")
 set(TRACE_PREFIX "SEPROXY" CACHE STRING "Trace prefix")
 
+# Setting the RSE communication carveout region parameters
+set(RSE_COMM_CARVEOUT_BASE "0x00000000 0xFFFFC000" CACHE STRING "RSE communication carveout physical address")
+set(RSE_COMM_CARVEOUT_PAGE_COUNT "4" CACHE STRING "Size of the RSE communication carveout region in 4k pages")
+
 target_include_directories(se-proxy PRIVATE
 	${CMAKE_CURRENT_LIST_DIR}
 )
