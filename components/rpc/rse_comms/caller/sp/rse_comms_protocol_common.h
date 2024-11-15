@@ -32,4 +32,7 @@
 	 ((((uint32_t)(in_len)) << IN_LEN_OFFSET) & IN_LEN_MASK) | \
 	 ((((uint32_t)(out_len)) << OUT_LEN_OFFSET) & OUT_LEN_MASK))
 
+#define PARAM_UNPACK_IN_LEN(ctrl_param)                            \
+        ((size_t)(((ctrl_param) & IN_LEN_MASK) >> IN_LEN_OFFSET))
+
 #endif /* RSE_COMMS_PROTOCOL_COMMON */

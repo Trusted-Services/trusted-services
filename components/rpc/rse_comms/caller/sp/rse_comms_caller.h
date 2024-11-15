@@ -10,6 +10,10 @@
 #include "rpc_caller.h"
 #include "rse_comms_messenger_api.h"
 
+struct rse_comms_caller_context {
+	struct rse_comms_messenger rse_comms;
+};
+
 typedef void *rse_comms_call_handle;
 
 rpc_status_t rse_comms_caller_init(struct rpc_caller_interface *rpc_caller);

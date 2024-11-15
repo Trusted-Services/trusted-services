@@ -24,7 +24,8 @@ struct __packed rse_pointer_access_reply_t {
 	uint32_t out_sizes[PSA_MAX_IOVEC];
 };
 
-psa_status_t rse_protocol_pointer_access_serialize_msg(psa_handle_t handle,
+psa_status_t rse_protocol_pointer_access_serialize_msg(struct rpc_caller_interface *caller,
+						       psa_handle_t handle,
 						       int16_t type,
 						       const struct psa_invec *in_vec,
 						       uint8_t in_len,
@@ -33,7 +34,8 @@ psa_status_t rse_protocol_pointer_access_serialize_msg(psa_handle_t handle,
 						       struct rse_pointer_access_msg_t *msg,
 						       size_t *msg_len);
 
-psa_status_t rse_protocol_pointer_access_deserialize_reply(struct psa_outvec *out_vec,
+psa_status_t rse_protocol_pointer_access_deserialize_reply(struct rpc_caller_interface *caller,
+							   struct psa_outvec *out_vec,
 							   uint8_t out_len,
 							   psa_status_t *return_val,
 							   const struct rse_pointer_access_reply_t *reply,

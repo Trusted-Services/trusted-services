@@ -117,8 +117,8 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 
 	req->header.protocol_ver = protocol_ver;
 
-	psa_status = rse_protocol_serialize_msg(handle, type, in_vec, in_len, out_vec, out_len, req,
-						&req_len);
+	psa_status = rse_protocol_serialize_msg(caller, handle, type, in_vec, in_len, out_vec,
+						out_len, req, &req_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Serialize msg failed: %d", psa_status);
 		return psa_status;
@@ -143,7 +143,8 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 	DMSG("client_id=%u", reply->header.client_id);
 	DMSG("resp_len=%lu", resp_len);
 
-	psa_status = rse_protocol_deserialize_reply(out_vec, out_len, &return_val, reply, resp_len);
+	psa_status = rse_protocol_deserialize_reply(caller, out_vec, out_len, &return_val, reply,
+						    resp_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Protocol deserialize reply failed: %d", psa_status);
 		return psa_status;

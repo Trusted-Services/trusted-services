@@ -10,9 +10,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
+struct rse_comms_msg {
+	uint8_t *req_buf;
+	size_t req_len;
+	uint8_t *resp_buf;
+};
+
 struct rse_comms_messenger {
 	void *msg;
 	void *platform;
+	void *protocol;
 };
 
 int rse_comms_messenger_init(struct rse_comms_messenger *rse_comms);
