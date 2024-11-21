@@ -74,6 +74,14 @@ data:
       src: "$TS_ROOT/deployments/env-test/config/n1sdp-opteesp"
       params:
             - "-GUnix Makefiles"
+    - name: "ftpm-default-opteesp"
+      src: "$TS_ROOT/deployments/ftpm/config/default-opteesp"
+      params:
+            - "-GUnix Makefiles"
+    - name: "ftpm-default-sp"
+      src: "$TS_ROOT/deployments/ftpm/config/default-sp"
+      params:
+            - "-GUnix Makefiles"
     - name: "fwu-tool-linux-pc"
       src: "$TS_ROOT/deployments/fwu-tool/linux-pc"
       os_id : "GNU/Linux"
