@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2024, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -58,6 +58,10 @@ extern "C" {
 #define TFM_ATTEST_GET_TOKEN_SIZE  1002
 
 /******** TFM_SP_FWU ********/
+#define TFM_FIRMWARE_UPDATE_SERVICE_SID                            (0x000000A0U)
+#define TFM_FIRMWARE_UPDATE_SERVICE_VERSION                        (1U)
+#define TFM_FIRMWARE_UPDATE_SERVICE_HANDLE                         (0x40000104U)
+
 #define TFM_FWU_WRITE_SID                                          (0x000000A0U)
 #define TFM_FWU_WRITE_VERSION                                      (1U)
 #define TFM_FWU_INSTALL_SID                                        (0x000000A1U)
