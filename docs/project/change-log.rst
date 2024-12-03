@@ -83,7 +83,7 @@ The first stabilised release of the project from previously prototype releases r
 Feature Highlights
 ^^^^^^^^^^^^^^^^^^
 
-- Introduce the :doc:`Block Storage Service </services/block-storage-service-description>`. The Block Storage service
+- Introduce the :doc:`Block Storage Service </services/block-storage/block-storage-service-description>`. The Block Storage service
   can be used to share a block-oriented storage device such as a QSPI flash between a set of independent secure world
   clients.
 

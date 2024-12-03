@@ -5,13 +5,9 @@ Overview
 The Block Storage service can be used to share a block-oriented storage device
 such as a QSPI flash between a set of independent secure world clients. A block
 storage service provider presents a block level interface for accessing an
-underlying block storage device. To allow multiple higher layer filesystems to
-share the same storage device, logical block addresses are partitioned, based on
-configuration data provided by a system integrator. The partition configuration
-data may be read from a GUID Partition Table (GPT) or from the block storage SP
-manifest. The configuration data restricts access to a storage partition to a
-defined owner. Each owner is allocated a maximum number of blocks and is given
-exclusive access to its own blocks, based on the client ID of the calling client.
+underlying block storage device. The basic storage functionality provided by a
+device can be extended by Stacked Block Stores, which add extra features, like
+encryption or partitioning on top of a device.
 
 The following diagram illustrates a firmware integration that uses a single block
 storage service provider to control access to a dedicated flash device. In this
@@ -19,7 +15,7 @@ example StMM, OP-TEE, Update Agent and the Protected Storage SP act as clients o
 the service.  Each client independently manages its own filesystem and is presented
 with its own logical partition, starting with a logical block address (LBA) of zero.
 
-.. image:: image/block-storage-example-usage.svg
+.. image:: ../image/block-storage-example-usage.svg
 
 Project Directories
 -------------------
@@ -33,11 +29,46 @@ are located under the following directories:
     - Contains
   * - ``components/service/block_storage``
     - Service specific code components.
+  * - ``components/service/block_storage/block_store``
+    - Client, devices, stacked block stores.
   * - ``deployments/block-storage``
     - Build files and deployment specific code for building alternative configurations
       of the block storage service provider.
   * - ``protocols/service/block_storage``
     - Service access protocol definitions.
+
+Design Description
+------------------
+The block storage service provider conforms to the same model as other service providers
+within the TS project. Service requests from clients are received by a service provider
+that is responsible for parameter deserialization/serialization and service level access
+control. Block storage operations are delegated to a backend *block_store* that provides
+block-level storage in some way. There is much flexibility to realize the backend block-level
+storage in different ways, allowing platform integrators to use alternative *block_store*
+realizations to provide storage solutions that meet specific product requirements.
+
+The following class diagram illustrates the block storage service provider model:
+
+.. uml:: ../uml/BlockStorageProvider.puml
+
+Block Store
+^^^^^^^^^^^
+The *block_store* component defines a virtual interface for block IO operations. Alternative
+concrete *block_store* implementations are supported. Some *block_store* components are stackable
+over other *block_store* components to add features such as store partitioning or block
+authentication. Separation of functionality into stackable *block_store* components gives
+platform integrators the flexibility to create alternative storage solutions with different
+security/cost tradeoffs. The base *block_store* interface is defined in::
+
+  components/service/block_storage/block_store/block_store.h
+
+Components that implement the *block_store* interface are located in subdirectories beneath
+``components/service/block_storage/block_store``. A *block_device* is class of *block_store*
+that actually provides block-level storage. In a stack of *block_store* components, a
+*block_device* will always live at the bottom. The following layer diagram illustrates a
+typical block storage deployment where storage is provided by a stack of *block_store* components:
+
+.. image:: ../image/block-storage-layers.svg
 
 Service Interface
 -----------------
@@ -55,7 +86,7 @@ supported operations:
       a handle to be used as a qualifier for other requests made by a client.
   * - Close
     - Close a previously opened session.
-  * - GetInfo
+  * - GetPartitionInfo
     - Returns information about the partition associated with an open session. Includes
       the block size and the total number of blocks assigned to the partition.
   * - Read
@@ -65,8 +96,6 @@ supported operations:
   * - Erase
     - Erase a set of one or more blocks.
 
-Protocol definitions live under: ``protocols/service/block_storage``.
-
 The service interface is realized by the block storage service provider. It delegates
 storage operations to a backend *block_store*. The *block_store* defines a common
 interface for components that realize block storage operations. Where an underlying storage
@@ -75,17 +104,47 @@ concrete *block_store* should return success for a call to erase but perform no 
 operation (if the partition is writable and the LBA falls within the limits of the
 partition).
 
-Service Provider Configuration
-------------------------------
-A platform integrator must provide a set of configuration data to configure how the block
-storage service provider presents block storage to clients. Configuration data relates to
-the following:
+Block Store Client
+------------------
 
-  - **Storage partition configuration** - determines how storage is divided into separate partitions
-  - **Block device configuration** - determines how the backed storage device is configured
+Communicates with a remote block storage service provider to provide storage.
+
+Block Store Devices
+-------------------
+
+  - **file_block_store** - stores blocks in file accessed using the standard C file (stdio.h) API.
+    The file represents a contiguous array of storage blocks. Designed to be used in a POSIX
+    environment as a virtual storage media.
+  - **fvb_block_store** - an adapter that uses a UEFI firmware volume block driver to access
+    storage. Can be used with drivers from the EDK2 project.
+  - **mock_block_store** - mocked block store for unit testing.
+  - **null_block_store** - a store with no real storage. Always accepts legal writes and returns
+    zeros for reads.
+  - **ram_block_store** - stores blocks in RAM. Intended for test purposes.
+  - **rpmb_block_store** - it is a Replay Protected Memory Block device
+    (see `SD Association home page`_) that uses the RPMB frontend to provide RPMB based storage.
+  - **semihosting_block_store** - it is a block device that can be used on emulators
+    (FVP, qemu, etc...) or on target platforms where the debugger can provide the file-system
+    semihosting features (See `this page`_.). Semihosting allows accessing files from the host
+    environment. This block store uses a single file to represent a contiguous array of storage
+    blocks.
+
+Stacked Block Stores
+--------------------
+
+Partitioned Block Store
+^^^^^^^^^^^^^^^^^^^^^^^
+
+To allow multiple higher layer filesystems to share the same storage device,
+logical block addresses are partitioned, based on configuration data provided
+by a system integrator. The partition configuration data may be read from a
+GUID Partition Table (GPT) or from the block storage SP manifest. The
+configuration data restricts access to a storage partition to a defined owner.
+Each owner is allocated a maximum number of blocks and is given exclusive access
+to its own blocks, based on the client ID of the calling client.
 
 Storage Partition Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""
 The block storage service allows a block storage device to be presented as a single storage
 partition or as a set of smaller storage partitions. The way that storage is presented is
 determined by configuration data prepared by a platform integrator. Each storage partition
@@ -206,56 +265,46 @@ following:
     - 72 bytes
     - PartitionName - Holds canonical UUID string for owner.
 
-Design Description
-------------------
-The block storage service provider conforms to the same model as other service providers
-within the TS project. Service requests from clients are received by a service provider
-that is responsible for parameter deserialization/serialization and service level access
-control. Block storage operations are delegated to a backend *block_store* that provides
-block-level storage in some way. There is much flexibility to realize the backend block-level
-storage in different ways, allowing platform integrators to use alternative *block_store*
-realizations to provide storage solutions that meet specific product requirements.
+Encrypted Block Store
+^^^^^^^^^^^^^^^^^^^^^
 
-The following class diagram illustrates the block storage service provider model:
+To provide data in rest, and data in transit protection for the stored data using encryption.
+The current implementation uses *AES-CBC with ESSIV* encryption, where the encryption key is
+derived from the Encryption Root key (ERK).
+This way a unique, deterministic, but unpredictable vector is generated for each sector, which
+mitigates IV prediction based attacks, like watermarking attack.
+To implement the algorithm two keys are derived from the root key and generated with the same
+salt value, but with different info:
 
-.. uml:: uml/BlockStorageProvider.puml
+  - **encryption key** - encryption and decryption of the data (AES with CBC block cipher mode)
+  - **essiv key** - generation of the IV (AES with ECB block cipher mode)
 
-Block Store
-^^^^^^^^^^^
-The *block_store* component defines a virtual interface for block IO operations. Alternative
-concrete *block_store* implementations are supported. Some *block_store* components are stackable
-over other *block_store* components to add features such as store partitioning or block
-authentication. Separation of functionality into stackable *block_store* components gives
-platform integrators the flexibility to create alternative storage solutions with different
-security/cost tradeoffs. The base *block_store* interface is defined in::
+Encrypted Block Store Configuration
+"""""""""""""""""""""""""""""""""""
 
-  components/service/block_storage/block_store/block_store.h
+  - **ENCRYPTED_BLK_AES_KEY_BITS** - determines the size of the keys derived from the root key
+    supported values are 128, 192 and 256.
+  - **ENCRYPTED_BLK_BLOCK_ENCRYPTION_ROOT_KEY** - root key to be used to derive encryption
+    and ESSIV keys from.
+  - **ENCRYPTED_BLK_BLOCK_ENCRYPTION_SALT** - Salt value to make impossible for an attacker to
+    derive the same keys as the ones used for encryption without knowing this value.
 
-Components that implement the *block_store* interface are located in subdirectories beneath
-``components/service/block_storage/block_store``. A *block_device* is class of *block_store*
-that actually provides block-level storage. In a stack of *block_store* components, a
-*block_device* will always live at the bottom. The following layer diagram illustrates a
-typical block storage deployment where storage is provided by a stack of *block_store* components:
+Encrypted Block Store Limitations
+"""""""""""""""""""""""""""""""""
 
-.. image:: image/block-storage-layers.svg
-
-Some block devices supported in the TS project (located under:
-``components/service/block_storage/block_store/block_device``) are:
-
-  - **ram_block_store** - stores blocks in RAM. Intended for test purposes.
-  - **null_block_store** - a store with no real storage. Always accepts legal writes and returns
-    zeros for reads.
-  - **fvb_block_store** - an adapter that uses a UEFI firmware volume block driver to access
-    storage. Can be used with drivers from the EDK2 project.
-
-Other supported block_store components:
-
-  - **partitioned_block_store** - a stackable *block_store* that presents an underlying *block_store*
-    as a set of configurable storage partitions.
-  - **block_storage_client** - communicates with a remote block storage service provider to provide
-    storage.
+  - Block size of the store must be multiple of the AES block size (16 bytes).
+  - Encryption root key is currently a configurable vector in the future it should come from a
+    secure source, like from the Crypto SP or a separate SP responsible for root key storage and
+    key derivation, but in the current implementation
+  - AES with CBC block method encrypts a whole block, where the consecutive AES blocks are
+    interconnected. A drawback of this algorithm is that partial read or write does not
+    work. To mitigate this limitation at read request the whole block is read and only partial
+    data is returned, at write request the read-modify-write methodology is used.
 
 --------------
+
+.. _`SD Association home page`: https://www.sdcard.org/developers/boot-and-new-security-features/replay-protected-memory-block/
+.. _`this page`: https://developer.arm.com/documentation/dui0203/j/semihosting?lang=en
 
 *Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.*
 
