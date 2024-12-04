@@ -26,6 +26,14 @@ data:
       src: "$TS_ROOT/deployments/block-storage/config/default-sp"
       params:
             - "-GUnix Makefiles"
+    - name: "block-storage-encrypted-ram-opteesp"
+      src: "$TS_ROOT/deployments/block-storage/config/encrypted-ram-opteesp"
+      params:
+            - "-GUnix Makefiles"
+    - name: "block-storage-encrypted-ram-sp"
+      src: "$TS_ROOT/deployments/block-storage/config/encrypted-ram-sp"
+      params:
+            - "-GUnix Makefiles"
     - name: "block-storage-semihosted-opteesp"
       src: "$TS_ROOT/deployments/block-storage/config/semihosted-opteesp"
       params:
