@@ -106,3 +106,62 @@ function(ts_add_uuid_to_exe_name)
 		set_target_properties(${_MY_PARAMS_TGT} PROPERTIES OUTPUT_NAME "${_out_name}")
 	endif()
 endfunction()
+
+#[===[.rst:
+.. cmake:command:: uint64_split
+
+	.. code-block:: cmake
+
+		uint64_split(VALUE 4294967296 OUT_PREFIX RES)
+		message("RES_LO=${RES_LO} RES_HI=${RES_HI}")
+
+		uint64_split(VALUE 0x1122334455667788 OUT_PREFIX RES DECIMAL)
+		message("RES_LO=${RES_LO} RES_HI=${RES_HI}")
+
+	Split an uint64 integer to uint32 integers. The returned values will be hexadecimal unless the 	``DECIMAL``
+	argument is passed.
+	The result is returned in two values <OUT_PREFIX>_LO and <OUT_PREFIX>_HI.
+
+	INPUTS:
+
+	``VALUE``
+	Mandatory. uint64 value to be converted. The value shall either be an integer (e.g. 123) or a string representing
+	an integer (e.g. "123"). Hexadecimal numbers can be specified with "0x" prefix.
+
+	``DECIMAL``
+	Optional. Set the format of the returned values to be decimal instead of hexadecimal.
+
+	OUTPUTS:
+
+	``OUT_PREFIX``
+	Mandatory. The prefix of the output variables. Two variable will be created in the callers scope. <OUT_PREFIX>_LO
+	is the lower 32 bits and <OUT_PREFIX>_HI is the higher 32 bits.
+
+#]===]
+function(uint64_split )
+	set(options DECIMAL)
+	set(oneValueArgs VALUE OUT_PREFIX)
+	set(multiValueArgs)
+	cmake_parse_arguments(_MY_PARAMS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+	check_args(uint64_split VALUE OUT_PREFIX)
+
+	# Ensure the input is a valid uint64 integer
+	if (NOT "${_MY_PARAMS_VALUE}" MATCHES "^(0x[0-9a-fA-F]+)|([0-9]+)$")
+		message(FATAL_ERROR "${CMAKE_CURRENT_FUNCTION}: Invalid uint64 integer: ${_MY_PARAMS_VALUE}")
+	endif()
+
+	if (_MY_PARAMS_DECIMAL)
+		set(_out_format "DECIMAL")
+	else()
+		set(_out_format "HEXADECIMAL")
+	endif()
+
+	# Split the uint64 integer into two uint32 integers
+	math(EXPR _high_uint32 "(${_MY_PARAMS_VALUE} >> 32) & 0xFFFFFFFF" OUTPUT_FORMAT ${_out_format})
+	math(EXPR _low_uint32 "${_MY_PARAMS_VALUE} & 0xFFFFFFFF" OUTPUT_FORMAT ${_out_format})
+
+	# Return the results
+	set(${_MY_PARAMS_OUT_PREFIX}_LO ${_low_uint32} PARENT_SCOPE)
+	set(${_MY_PARAMS_OUT_PREFIX}_HI ${_high_uint32} PARENT_SCOPE)
+endfunction()

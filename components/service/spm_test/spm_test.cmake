@@ -61,6 +61,15 @@ install(TARGETS spm-test${SP_NUMBER}
 			RUNTIME DESTINATION ${TS_ENV}/bin
 		)
 
+
+# Convert the base address used for memory region testing for the manifest file. The manifest template will use
+# MEM_REG_LO and MEM_REG_HI.
+# This value is either defined in platform.cmake or on the command line.
+if (NOT DEFINED CFG_TEST_MEM_REGION_ADDRESS)
+	message(FATAL_ERROR "Mandatory variable CFG_TEST_MEM_REGION_ADDRESS is not defined.")
+endif()
+uint64_split(VALUE ${CFG_TEST_MEM_REGION_ADDRESS} OUT_PREFIX MEM_REG)
+
 include(${TS_ROOT}/tools/cmake/common/ExportSp.cmake)
 export_sp(
 	SP_FFA_UUID_CANON ${SP_FFA_UUID_CANON}

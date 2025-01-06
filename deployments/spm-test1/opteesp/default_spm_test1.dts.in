@@ -26,7 +26,7 @@
 
 		test-region {
 			/* Armv8 A Foundation Platform values */
-			base-address = <0x00000000 0x6248000>;
+			base-address = <@MEM_REG_HI@ @MEM_REG_LO@>;
 			pages-count = <1>;
 			attributes = <0x3>; /* read-write */
 		};
