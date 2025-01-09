@@ -26,7 +26,7 @@ add_components(TARGET "se-proxy"
 		"components/service/fwu/provider"
 		"components/service/fwu/provider/serializer"
 		"components/service/fwu/psa_fwu_m/agent"
-		"components/service/fwu/psa_fwu_m/interface/stub"
+		"components/service/fwu/psa_fwu_m/interface/psa_ipc"
 		"components/service/secure_storage/backend/secure_storage_ipc"
 )
 

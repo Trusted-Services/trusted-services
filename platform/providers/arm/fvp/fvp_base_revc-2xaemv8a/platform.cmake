@@ -15,6 +15,9 @@ get_property(_platform_driver_dependencies TARGET ${TGT}
 
 set(CFG_SFS_FLASH_AREA_SIZE "32*1024" CACHE STRING "Size of SFS ram store")
 
+# Test memory region base address for manifest testing in spm_test deployments.
+set(CFG_TEST_MEM_REGION_ADDRESS  0x6248000 CACHE STRING "Base address of memory region used to test mainfest processing.")
+
 #-------------------------------------------------------------------------------
 #  Map platform dependencies to suitable drivers for this platform
 #
