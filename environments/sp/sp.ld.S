@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2014, STMicroelectronics International N.V. All rights reserved.
  * Copyright (c) 2015, Linaro Limited. All rights reserved.
- * Copyright (c) 2021-2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
  */
 #ifdef ARM32
 OUTPUT_FORMAT("elf32-littlearm")
@@ -91,7 +91,15 @@ SECTIONS {
 	.tbss : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
 	.got : { *(.got.plt) *(.got) }
 
-	.data : { *(.data .data.* .gnu.linkonce.d.*) }
+	.data : {
+		*(.data .data.* .gnu.linkonce.d.*)
+		/* Construct an array from service factory members defined */
+		. = ALIGN(8);
+		__proxy_service_factory_list = .;
+		KEEP(*(SORT_BY_NAME(.proxy_service_factory_list.*)));
+		__proxy_service_factory_list_end = .;
+	}
+
 	.bss : {
 		__bss_start = .;
 		*(.bss .bss.* .gnu.linkonce.b.* COMMON)
