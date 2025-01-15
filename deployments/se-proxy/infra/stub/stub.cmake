@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2022-2025, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -7,6 +7,13 @@
 # realized with stub components that do absolutely nothing.
 #-------------------------------------------------------------------------------
 
+# Configure supported set of proxy services.
+set(CFG_ENABLE_ITS           On)
+set(CFG_ENABLE_PS            On)
+set(CFG_ENABLE_CRYPTO        On)
+set(CFG_ENABLE_CRYPTO_NANO   On)
+set(CFG_ENABLE_IAT           On)
+set(CFG_ENABLE_FWU           On)
 #-------------------------------------------------------------------------------
 # Infrastructure components
 #
