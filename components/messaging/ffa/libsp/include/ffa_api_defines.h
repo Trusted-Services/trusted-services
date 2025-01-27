@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright (c) 2020-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2025, Arm Limited and Contributors. All rights reserved.
  */
 
 #ifndef LIBSP_INCLUDE_FFA_API_DEFINES_H_
@@ -43,8 +43,8 @@
 #define FFA_PARTITION_INFO_GET		UINT32_C(0x84000068)
 #define FFA_ID_GET			UINT32_C(0x84000069)
 #define FFA_MSG_WAIT			UINT32_C(0x8400006B)
-#define FFA_MSG_YIELD			UINT32_C(0x8400006C)
-#define FFA_MSG_RUN			UINT32_C(0x8400006D)
+#define FFA_YIELD			UINT32_C(0x8400006C)
+#define FFA_RUN				UINT32_C(0x8400006D)
 #define FFA_MSG_SEND			UINT32_C(0x8400006E)
 #define FFA_MSG_SEND_DIRECT_REQ_32	UINT32_C(0x8400006F)
 #define FFA_MSG_SEND_DIRECT_REQ_64	UINT32_C(0xC400006F)

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2025, Arm Limited. All rights reserved.
  */
 
 #include <CppUTest/TestHarness.h>
@@ -923,6 +923,7 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_one_interrupt_success)
 {
 	const uint16_t source_id = 0x1122;
 	const uint16_t dest_id = 0x3344;
+	const uint32_t target_info = ((uint32_t)dest_id << 16 | 0x5678);
 	const uint32_t arg0 = 0x01234567ULL;
 	const uint32_t arg1 = 0x12345678ULL;
 	const uint32_t arg2 = 0x23456789ULL;
@@ -932,13 +933,12 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_one_interrupt_success)
 	struct ffa_params interrupt_params;
 
 	interrupt_params.a0 = 0x84000062;
-	interrupt_params.a2 = interrupt_id;
+	interrupt_params.a1 = target_info;
 	expect_ffa_svc(0x8400006F, ((uint32_t)source_id << 16) | dest_id, 0,
 		       arg0, arg1, arg2, arg3, arg4, &interrupt_params);
-	expect_ffa_interrupt_handler(interrupt_id);
 
 	svc_result.a0 = 0x84000061;
-	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &svc_result);
+	expect_ffa_svc(0x8400006D, target_info, 0, 0, 0, 0, 0, 0, &svc_result);
 	ffa_result result = ffa_msg_send_direct_req_32(
 		source_id, dest_id, arg0, arg1, arg2, arg3, arg4, &msg);
 	LONGS_EQUAL(0, result);
@@ -949,6 +949,7 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_two_interrupt_success)
 {
 	const uint16_t source_id = 0x1122;
 	const uint16_t dest_id = 0x3344;
+	const uint32_t target_info = ((uint32_t)dest_id << 16 | 0x5678);
 	const uint32_t arg0 = 0x01234567ULL;
 	const uint32_t arg1 = 0x12345678ULL;
 	const uint32_t arg2 = 0x23456789ULL;
@@ -961,18 +962,16 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_two_interrupt_success)
 	struct ffa_params interrupt_params1;
 
 	interrupt_params0.a0 = 0x84000062;
-	interrupt_params0.a2 = interrupt_id0;
+	interrupt_params0.a1 = target_info;
 	expect_ffa_svc(0x8400006F, ((uint32_t)source_id << 16) | dest_id, 0,
 		       arg0, arg1, arg2, arg3, arg4, &interrupt_params0);
-	expect_ffa_interrupt_handler(interrupt_id0);
 
 	interrupt_params1.a0 = 0x84000062;
-	interrupt_params1.a2 = interrupt_id1;
-	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &interrupt_params1);
-	expect_ffa_interrupt_handler(interrupt_id1);
+	interrupt_params1.a1 = target_info;
+	expect_ffa_svc(0x8400006D, target_info, 0, 0, 0, 0, 0, 0, &interrupt_params1);
 
 	svc_result.a0 = 0x84000061;
-	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &svc_result);
+	expect_ffa_svc(0x8400006D, target_info, 0, 0, 0, 0, 0, 0, &svc_result);
 	ffa_result result = ffa_msg_send_direct_req_32(
 		source_id, dest_id, arg0, arg1, arg2, arg3, arg4, &msg);
 	LONGS_EQUAL(0, result);
