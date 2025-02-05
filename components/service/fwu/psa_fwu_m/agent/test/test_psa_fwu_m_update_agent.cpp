@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Arm Limited. All rights reserved.
+ * Copyright (c) 2024-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,6 +14,9 @@
 
 TEST_GROUP(psa_fwu_m_update_agent) {
 	TEST_SETUP() {
+		psa_fwu_component_info_t info = {0};
+		expect_mock_psa_fwu_query(mapping[0].component, &info, PSA_SUCCESS);
+		expect_mock_psa_fwu_query(mapping[1].component, &info, PSA_SUCCESS);
 		agent = psa_fwu_m_update_agent_init(mapping, 2, 4096);
 		handle = 0;
 		progress = 0;
@@ -667,4 +670,46 @@ TEST(psa_fwu_m_update_agent, select_previous)
 
 	expect_mock_psa_fwu_reject(0, PSA_SUCCESS);
 	LONGS_EQUAL(FWU_STATUS_SUCCESS, update_agent_select_previous(agent));
+}
+
+TEST(psa_fwu_m_update_agent, boot_in_trial_mode_query_fail) {
+	psa_fwu_component_info_t info = {0};
+
+	expect_mock_psa_fwu_query(mapping[0].component, &info, PSA_ERROR_GENERIC_ERROR);
+	POINTERS_EQUAL(NULL, psa_fwu_m_update_agent_init(mapping, 2, 4096));
+}
+
+TEST(psa_fwu_m_update_agent, boot_in_trial_mode_select_previous) {
+	psa_fwu_component_info_t info0 = {0};
+	psa_fwu_component_info_t info1 = {0};
+
+	info1.state = PSA_FWU_TRIAL;
+
+	expect_mock_psa_fwu_query(mapping[0].component, &info0, PSA_SUCCESS);
+	expect_mock_psa_fwu_query(mapping[1].component, &info1, PSA_SUCCESS);
+
+	update_agent *agent = psa_fwu_m_update_agent_init(mapping, 2, 4096);
+
+	expect_mock_psa_fwu_reject(0, PSA_SUCCESS);
+	LONGS_EQUAL(FWU_STATUS_SUCCESS, update_agent_select_previous(agent));
+
+	psa_fwu_m_update_agent_deinit(agent);
+}
+
+TEST(psa_fwu_m_update_agent, boot_in_trial_mode_accept) {
+	psa_fwu_component_info_t info0 = {0};
+	psa_fwu_component_info_t info1 = {0};
+
+	info1.state = PSA_FWU_TRIAL;
+
+	expect_mock_psa_fwu_query(mapping[0].component, &info0, PSA_SUCCESS);
+	expect_mock_psa_fwu_query(mapping[1].component, &info1, PSA_SUCCESS);
+
+	update_agent *agent = psa_fwu_m_update_agent_init(mapping, 2, 4096);
+
+	expect_mock_psa_fwu_accept(PSA_SUCCESS);
+	LONGS_EQUAL(FWU_STATUS_DENIED, update_agent_accept_image(agent, &mapping[0].uuid));
+	LONGS_EQUAL(FWU_STATUS_SUCCESS, update_agent_accept_image(agent, &mapping[1].uuid));
+
+	psa_fwu_m_update_agent_deinit(agent);
 }
