@@ -102,7 +102,7 @@ void sp_main(union ffa_boot_info *boot_info)
 
 fatal_error:
 	/* SP is not viable */
-	EMSG("ITS SP error");
+	EMSG("PS SP error");
 	while (1) {}
 }
 
