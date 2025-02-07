@@ -27,8 +27,12 @@
  * the underlying block size. This configuration allows larger objects
  * to be stored by aggregating multiple storage blocks and presenting
  * them to SFS as a super block. */
+/*
+ * Current value is set to be able to store a 16k NV block with
+ * metadata header for ms-tpm.
+ */
 #ifndef CONFIG_SFS_MIN_FLASH_BLOCK_SIZE
-#define CONFIG_SFS_MIN_FLASH_BLOCK_SIZE		(4096)
+#define CONFIG_SFS_MIN_FLASH_BLOCK_SIZE		(5 * 4096)
 #endif
 
 /* Configures the maximum number of objects held by SFS */

@@ -52,6 +52,14 @@ struct block_store *ref_ram_gpt_block_store_factory_create(void)
 
 		volume_index_init();
 
+		/* Make sure the ref partition size matches the configuration */
+		if (ref_partition_data_length !=
+			REF_PARTITION_FULL_SIZE * REF_PARTITION_BLOCK_SIZE) {
+			EMSG("Size defined by the reference partition configuration "
+			     "differs from the size of the partition data");
+			return NULL;
+		}
+
 		/* Reference partition must be multiple of the block size */
 		if (ref_partition_data_length % REF_PARTITION_BLOCK_SIZE) {
 			EMSG("Reference partition size is not multiple of the block size");

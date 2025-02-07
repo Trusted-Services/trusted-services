@@ -8,7 +8,7 @@ built into test deployments.
 
 Once the MBR and GPT have been added, for a sector size of 512 bytes,
 the first usable LBA is 34. 34 free blocks are also needed at the top
-of the LBA space to accommodate theh backup MBR and GPT.
+of the LBA space to accommodate the backup MBR and GPT.
 
 Tools used to create images were:
 
@@ -22,7 +22,7 @@ Steps to create:
     0xff (the normal erased value). Use ('bs' is block size, 'count' is
     number of blocks)::
 
-        dd if=/dev/zero bs=512 count=267 | tr "\000" "\377" >flash.img
+        dd if=/dev/zero bs=512 count=268 | tr "\000" "\377" >flash.img
 
  2. Create MBR+GPT using::
 
@@ -44,6 +44,20 @@ Steps to create:
  3. Convert the disk to C code::
 
         srec_cat flash.img -Binary -o ref_partition_data.c -C-Array ref_partition_data -INClude
+
+Example steps to create ref_partition.img:
+
+    dd if=/dev/zero bs=512 count=268 | tr "\000" "\377" >ref_partition.img
+
+    sgdisk --clear \
+                --disk-guid=0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
+                --new=1:34:129  --typecode=1:8300 --change-name=1:"PSA-ITS" --partition-guid=1:92F7D53B-127E-432B-815C-9A95B80D69B7 \
+                --new=2:130:225 --typecode=2:8300 --change-name=2:"PSA_PS" --partition-guid=2:701456DA-9B50-49B2-9722-47510F851CCD \
+                --new=3:226:229 --typecode=3:8300 --change-name=3:"FWU_META" --partition-guid=3:C39EF8A6-EC97-4883-AA64-025F40F7D922 \
+                --new=4:230:233 --typecode=4:8300 --change-name=4:"FWU_META_BKP" --partition-guid=4:C3D82065-58F3-4FCB-A8FC-772434BFC91D \
+                ref_partition.img
+
+    srec_cat ref_partition.img -Binary -o ref_partition_data.c -C-Array ref_partition_data -INClude
 
 Disk Image Descriptions
 -----------------------

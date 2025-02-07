@@ -23,17 +23,23 @@ extern "C" {
  * used with a ram backed store in environments where available memory is
  * constrained.
  */
-
+/* Make sure to keep ref_partition.c synchronized with these settings! */
 #define REF_PARTITION_1_NUM_BLOCKS      (96)
 #define REF_PARTITION_2_NUM_BLOCKS      (96)
 #define REF_PARTITION_3_NUM_BLOCKS      (4)
 #define REF_PARTITION_4_NUM_BLOCKS      (4)
+#define REF_PARTITION_BLOCK_SIZE	(512)
 
 #define REF_PARTITION_BACK_STORE_SIZE   (REF_PARTITION_1_NUM_BLOCKS + \
 					 REF_PARTITION_2_NUM_BLOCKS + \
 					 REF_PARTITION_3_NUM_BLOCKS + \
 					 REF_PARTITION_4_NUM_BLOCKS)
-#define REF_PARTITION_BLOCK_SIZE        (256)
+
+/* GPT header size */
+#define GPT_HEADER_BLOCKS		(34)
+
+/* Number of blocks including the primary and backup GPT-s */
+#define REF_PARTITION_FULL_SIZE		(2 * GPT_HEADER_BLOCKS + REF_PARTITION_BACK_STORE_SIZE)
 
 /* About the right size for PSA storage */
 #define REF_PARTITION_1_GUID            DISK_GUID_UNIQUE_PARTITION_PSA_ITS

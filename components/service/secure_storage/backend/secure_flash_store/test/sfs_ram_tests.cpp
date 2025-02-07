@@ -33,7 +33,8 @@ TEST(SfsRamTests, itsStoreNewItem)
 
 TEST(SfsRamTests, itsStorageLimitTest)
 {
-    its_api_tests::storageLimitTest(5000);
+    /* This value should match CONFIG_SFS_MIN_FLASH_BLOCK_SIZE */
+    its_api_tests::storageLimitTest(20480);
 }
 
 TEST(SfsRamTests, Set)
