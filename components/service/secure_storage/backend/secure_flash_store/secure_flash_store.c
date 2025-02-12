@@ -12,6 +12,7 @@
 #include "secure_flash_store.h"
 #include <string.h>
 #include <stddef.h>
+#include <trace.h>
 
 #ifndef SFS_MAX_ASSET_SIZE
 #define SFS_MAX_ASSET_SIZE (4096) /* TODO: comes from flash layout */
@@ -385,6 +386,7 @@ struct storage_backend *sfs_init(const struct sfs_flash_info_t *flash_binding)
          */
         status = sfs_flash_fs_wipe_all(&fs_ctx_sfs);
         if (status != PSA_SUCCESS) {
+            EMSG("Can not wipe sfs flash store");
             return NULL;
         }
 

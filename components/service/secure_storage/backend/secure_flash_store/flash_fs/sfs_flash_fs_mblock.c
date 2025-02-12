@@ -7,6 +7,7 @@
 
 #include "sfs_flash_fs_mblock.h"
 #include <string.h>
+#include <trace.h>
 
 /* Physical ID of the two metadata blocks */
 /* NOTE: the earmarked area may not always start at block number 0.
@@ -355,6 +356,7 @@ static psa_status_t sfs_mblock_erase_scratch_blocks(
     err = fs_ctx->flash_info->erase(fs_ctx->flash_info,
                                     fs_ctx->scratch_metablock);
     if (err != PSA_SUCCESS) {
+        EMSG("Failed to erase scratch metablock");
         return err;
     }
 
@@ -692,6 +694,7 @@ static psa_status_t sfs_init_get_active_metablock(
     if (num_valid_meta_blocks > 1) {
         cur_meta_block = sfs_mblock_latest_meta_block(&h_meta0, &h_meta1);
     } else if (num_valid_meta_blocks == 0) {
+        EMSG("Found no valid metablock headers");
         return PSA_ERROR_GENERIC_ERROR;
     }
 
@@ -784,16 +787,19 @@ psa_status_t sfs_flash_fs_mblock_init(struct sfs_flash_fs_ctx_t *fs_ctx)
     /* Initialize Flash Interface */
     err = fs_ctx->flash_info->init(fs_ctx->flash_info);
     if (err != PSA_SUCCESS) {
+        EMSG("Failed to initialize flash interface");
         return err;
     }
 
     err = sfs_init_get_active_metablock(fs_ctx);
     if (err != PSA_SUCCESS) {
+        EMSG("Failed to get active metablock");
         return PSA_ERROR_GENERIC_ERROR;
     }
 
     err = sfs_mblock_read_meta_header(fs_ctx);
     if (err != PSA_SUCCESS) {
+        EMSG("Failed to read metablock header");
         return PSA_ERROR_GENERIC_ERROR;
     }
 
