@@ -40,6 +40,7 @@ building and running the software stacks of these platforms is out of scope for 
     :maxdepth: 1
 
     ./Corstone1000
+    ./rd1ae
 
 --------------
 
