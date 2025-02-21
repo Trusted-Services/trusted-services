@@ -58,6 +58,12 @@ The data flow diagram visualizes the connection between components and where the
     | DF13      | FF-A manifest and other data is handed over to a Trussed Service                | No       |
     +-----------+---------------------------------------------------------------------------------+----------+
 
+It is worth highlighting two different dataflow types between the service and its clients:
+    1. Direct communication through shared memory. DF1 and DF5 represents this type of communication and it may be
+       sensitive to TOCTTOU attacks. See threat 10 below.
+    2. Indirect communication through registers. DF2 and DF3 represents this type. This type is more secure and less
+       performant.
+
 Trust boundaries
 ----------------
 
@@ -418,6 +424,33 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. list-table::
+    :widths: 15,80
+
+    * - **ID**
+      - 10
+    * - Description
+      - Time-of-Check to Time-of-Use (TOCTTOU) attack trough shared memory.
+    * - Data flow
+      - DF1, DF5
+    * - Asset(s)
+      - ``Sensitive Data``, ``Code execution``, ``Availability``
+    * - Threat Agent/Attacker
+      - ``SClient``, ``NSClient``
+    * - Threat type
+      - ``Tampering``, ``Information disclosure``, ``Denial of service``, ``Elevation of privilege``
+    * - Impact
+      - An attacker may cause incorrect operation of the service, and thus:
+            - make the system enter an unusable state,
+            - breach logical isolation boundary within the trust domain of the service and impersonate other client
+            - execute unauthentic code.
+    * - Scoring/CVSS
+      - High, 7.4 `CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H>`_
+    * - Mitigation
+      - - The Trusted service must copy data to a private buffer when executing TOCTTOU sensitive operation.
+        - The service implementation must not read the input buffer multiple times.
+    * - Mitigation in place
+      - yes
 
 --------------
 
