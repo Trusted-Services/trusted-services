@@ -1,11 +1,11 @@
 Generic Threat Model
 ====================
 
-Threat modeling is a process to identify security requirements, pinpoint security threats and potential vulnerabilities,
-quantify threat and vulnerability criticality and prioritize remediation methods.
+The Generic Threat Model discusses an abstract physical Secure Partition and captures service independent security
+related information like assets, threats, and mitigations.
 
-In the next sections you can find the output of this process the for a generic, use-case and service independent
-assessment.
+This model serves as the foundation for assessing the security of any specific deployment involving one or more Trusted
+Services.
 
 Target evaluation
 -----------------
@@ -434,6 +434,6 @@ Source file of the `Data flow diagram`_. Please use the yEd_ for editing. :downl
 .. _`STRIDE threat analysis technique`: https://docs.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats#stride-model
 .. _yEd: https://www.yworks.com/products/yed
 
-*Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2022-2025, Arm Limited and Contributors. All rights reserved.*
 
 SPDX-License-Identifier: BSD-3-Clause
