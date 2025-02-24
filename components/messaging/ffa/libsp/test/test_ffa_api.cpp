@@ -929,7 +929,6 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_one_interrupt_success)
 	const uint32_t arg2 = 0x23456789ULL;
 	const uint32_t arg3 = 0x3456789aULL;
 	const uint32_t arg4 = 0x456789abULL;
-	const uint32_t interrupt_id = 0x12345678;
 	struct ffa_params interrupt_params;
 
 	interrupt_params.a0 = 0x84000062;
@@ -955,8 +954,6 @@ TEST(ffa_api, ffa_msg_send_direct_req_32_two_interrupt_success)
 	const uint32_t arg2 = 0x23456789ULL;
 	const uint32_t arg3 = 0x3456789aULL;
 	const uint32_t arg4 = 0x456789abULL;
-	const uint32_t interrupt_id0 = 0x12345678;
-	const uint32_t interrupt_id1 = 0x81234567;
 	struct ffa_params interrupt_params0;
 	struct ffa_params interrupt_params1;
 
