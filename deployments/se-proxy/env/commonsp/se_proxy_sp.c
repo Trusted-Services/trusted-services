@@ -15,6 +15,12 @@
 
 #include <stddef.h>
 
+/*
+ * This must be a global variable so the communication layer (e.g. RSE_COMMS)
+ * can use this to remap message client_ids if needed.
+ */
+uint16_t own_id;
+
 static bool sp_init(uint16_t *own_sp_id);
 
 void __noreturn sp_main(union ffa_boot_info *boot_info)
@@ -23,7 +29,6 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 	struct sp_msg req_msg = { 0 };
 	struct sp_msg resp_msg = { 0 };
 	struct rpc_service_interface *rpc_iface = NULL;
-	uint16_t own_id = 0;
 	sp_result result = SP_RESULT_INTERNAL_ERROR;
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	unsigned int n_services = PROXY_SERVICE_FACTORY_LIST_LENGTH();
