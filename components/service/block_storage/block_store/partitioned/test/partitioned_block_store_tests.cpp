@@ -201,17 +201,17 @@ TEST(PartitionedBlockStoreTests, writeReadEraseBlock)
 	LONGS_EQUAL(PSA_SUCCESS, status);
 	UNSIGNED_LONGS_EQUAL(sizeof(write_buffer), num_written);
 
-	/* Write to the previously written block in partition 2 should fail as it hasn't been erased */
+	/* Write to the previously written block in partition 2 should be successful */
 	status = block_store_write(
 		m_block_store, LOCAL_CLIENT_ID, handle_2, lba_2,
 		0, write_buffer, sizeof(write_buffer), &num_written);
-	LONGS_EQUAL(PSA_ERROR_STORAGE_FAILURE, status);
+	LONGS_EQUAL(PSA_SUCCESS, status);
 
 	/* Erase the block in the partition 2 */
 	status = block_store_erase(m_block_store, LOCAL_CLIENT_ID, handle_2, lba_2, 1);
 	LONGS_EQUAL(PSA_SUCCESS, status);
 
-	/* Now the write to partition 2 should work */
+	/* Now the write to partition 2 should work again */
 	status = block_store_write(
 		m_block_store, LOCAL_CLIENT_ID, handle_2, lba_2,
 		0, write_buffer, sizeof(write_buffer), &num_written);

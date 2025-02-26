@@ -14,36 +14,6 @@
 
 #define RAM_BLOCK_STORE_ERASED_VALUE	    (0xff)
 
-static bool is_block_erased(const struct ram_block_store *ram_block_store,
-	uint64_t lba,
-	size_t offset,
-	size_t len)
-{
-	bool is_erased = true;
-	size_t block_start_index =
-		ram_block_store->base_block_device.storage_partition.block_size * lba;
-	size_t block_end_index =
-		block_start_index + ram_block_store->base_block_device.storage_partition.block_size;
-
-	size_t index = block_start_index + offset;
-	size_t end_index = (index + len < block_end_index) ?
-		index + len :
-		block_end_index;
-
-	while (index < end_index) {
-
-		if (ram_block_store->ram_back_store[index] != RAM_BLOCK_STORE_ERASED_VALUE) {
-
-			is_erased = false;
-			break;
-		}
-
-		++index;
-	}
-
-	return is_erased;
-}
-
 static psa_status_t ram_block_store_get_partition_info(void *context,
 	const struct uuid_octets *partition_guid,
 	struct storage_partition_info *info)
@@ -133,9 +103,6 @@ static psa_status_t ram_block_store_write(void *context,
 
 		if (storage_partition_is_lba_legal(storage_partition, lba) &&
 			(offset < storage_partition->block_size)) {
-
-			if (!is_block_erased(ram_block_store, lba, offset, data_len))
-				return PSA_ERROR_STORAGE_FAILURE;
 
 			size_t bytes_remaining = storage_partition->block_size - offset;
 			uint8_t *block_start =
