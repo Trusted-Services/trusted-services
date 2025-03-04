@@ -13,6 +13,7 @@
 #include "service/block_storage/block_store/device/rpmb/rpmb_block_store.h"
 #include "service/block_storage/block_store/partitioned/partitioned_block_store.h"
 #include "service/block_storage/config/gpt/gpt_partition_configurator.h"
+#include "service/block_storage/config/ref/ref_partition_configurator.h"
 #include "service/rpmb/frontend/platform/default/rpmb_platform_default.h"
 #include "service/rpmb/client/rpmb_client.h"
 #include "service/locator/interface/service_locator.h"
@@ -78,7 +79,7 @@ struct block_store *rpmb_block_store_factory_create(void)
 		goto error3;
 
 	rpmb_store = rpmb_block_store_init(&assembly->rpmb_block_store, &back_store_guid,
-					   &assembly->rpmb_frontend);
+					   &assembly->rpmb_frontend, REF_PARTITION_BLOCK_SIZE);
 	if (!rpmb_store)
 		goto error2;
 

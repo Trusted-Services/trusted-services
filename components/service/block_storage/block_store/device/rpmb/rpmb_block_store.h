@@ -24,21 +24,26 @@ extern "C" {
 struct rpmb_block_store {
 	struct block_device base_block_device;
 	struct rpmb_frontend *frontend;
+	size_t block_ratio;
+	size_t block_size;
+	size_t logical_block_size;
+	uint8_t *block_buffer;
 };
 
 /**
  * \brief Initialize a RPMB blockstore
  *
- * \param[in]  block_store	The subject block_store
- * \param[in]  disk_guid	The disk GUID
- * \param[in]  num_blocks	The number of contiguous blocks
- * \param[in]  block_size	Block size in bytes
+ * \param[in]  block_store		The subject block_store
+ * \param[in]  disk_guid		The disk GUID
+ * \param[in]  frontend			High level read/write interface for the RPMB
+ * \param[in]  logical_block_size	Logical block size requested by the layer above in bytes
  *
  * \return Pointer to block_store or NULL on failure
  */
 struct block_store *rpmb_block_store_init(struct rpmb_block_store *block_store,
 					  const struct uuid_octets *disk_guid,
-					  struct rpmb_frontend *frontend);
+					  struct rpmb_frontend *frontend,
+					  size_t logical_block_size);
 
 /**
  * \brief De-initialize a RPMB blockstore
