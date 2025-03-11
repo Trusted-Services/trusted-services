@@ -30,33 +30,49 @@ The data flow diagram visualizes the connection between components and where the
 .. image:: ./generic-data-flow.svg
    :target: Attachments_
 
-.. table:: List of data flows
+.. list-table:: List of generic data flows
+    :header-rows: 1
+    :widths: auto
 
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | Data flow | Description                                                                     | In scope |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF1       | Trusted Service interacts with NWd client directly.                             | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF2       | Trusted Service interacts with NWd client through SPM.                          | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF3       | Trusted Services interact through SPM.                                          | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF4       | Trusted Service logs debug information.                                         | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF5       | Trusted Services interact directly.                                             | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF6, DF7  | Trusted Services interacts with shared hardware.                                | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF8       | Trusted Service interacts with dedicated peripheral interface.                  | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF9, DF10 | Trusted Service interacts with shared, external hardware.                       | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF11      | Trusted Service interacts with dedicated, external hardware.                    | Yes      |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF12      | NWd interacts with more privileged software.                                    | No       |
-    +-----------+---------------------------------------------------------------------------------+----------+
-    | DF13      | FF-A manifest and other data is handed over to a Trussed Service                | No       |
-    +-----------+---------------------------------------------------------------------------------+----------+
+    * - Data flow
+      - Description
+      - In scope
+    * - DF1
+      - Trusted Service interacts with NWd client directly.
+      - Yes
+    * - DF2
+      - Trusted Service interacts with NWd client through SPM.
+      - Yes
+    * - DF3
+      - Trusted Services interact through SPM.
+      - Yes
+    * - DF4
+      - Trusted Service logs debug information.
+      - Yes
+    * - DF5
+      - Trusted Services interact directly.
+      - Yes
+    * - DF6, DF7
+      - Trusted Services interacts with shared hardware.
+      - Yes
+    * - DF8
+      - Trusted Service interacts with dedicated peripheral interface.
+      - Yes
+    * - DF9, DF10
+      - Trusted Service interacts with shared, external hardware.
+      - Yes
+    * - DF11
+      - Trusted Service interacts with dedicated, external hardware.
+      - Yes
+    * - DF12
+      - NWd interacts with more privileged software.
+      - No
+    * - DF13
+      - FF-A manifest and other data is handed over to a Trusted Service
+      - No
+    * - DF14
+      - Trusted Service interacts with dedicated, physically protected hardware.
+      - Yes
 
 It is worth highlighting two different dataflow types between the service and its clients:
     1. Direct communication through shared memory. DF1 and DF5 represents this type of communication and it may be
@@ -68,6 +84,8 @@ Trust boundaries
 ----------------
 
 .. list-table:: List of trust boundaries
+    :header-rows: 1
+    :widths: auto
 
     * - Trust boundary
       - Description
@@ -85,22 +103,23 @@ Assets
 
 The above dataflow identifies the following generalized assets.
 
-.. table::
+.. list-table:: Assets
+    :header-rows: 1
+    :widths: auto
 
-    +----------------------+----------------------------------------------------------------------------------+
-    | Asset                | Description                                                                      |
-    +----------------------+----------------------------------------------------------------------------------+
-    | ``availability``     | Availability of a trusted service to clients.                                    |
-    +----------------------+----------------------------------------------------------------------------------+
-    | ``code execution``   | Code or code flow of a trusted service.                                          |
-    +----------------------+----------------------------------------------------------------------------------+
-    | ``sensitive data``   | Data that an attacker must not tamper with. These include device identity key,   |
-    |                      | Initial Attestation Key, Protected Storage Key, UEFI variables, tpm-event log,   |
-    |                      | etc...                                                                           |
-    +----------------------+----------------------------------------------------------------------------------+
-    |``sensitive hardware``| Hardware that an attacker must not be tamper with. Examples are control interface|
-    |                      | of storage medium, true random number generator, crypto accelerator.             |
-    +----------------------+----------------------------------------------------------------------------------+
+    * - Asset
+      - Description
+    * - ``availability``
+      - Availability of a trusted service to clients.
+    * - ``code execution``
+      - Code or code flow of a trusted service.
+    * - ``sensitive data``
+      - Data that an attacker must not tamper with. These include device identity key, Initial Attestation Key,
+        Protected Storage Key, UEFI variables, TPM event log.
+    * - ``sensitive hardware``
+      - Hardware that an attacker must not be tamper with. Examples are control interface of storage medium, true
+        random number generator, crypto accelerator.
+
 
 Attackers and threat agents
 ---------------------------
@@ -108,6 +127,7 @@ Attackers and threat agents
 This section identifies the generalized stakeholders interacting with secure services.
 
 .. list-table::
+    :header-rows: 1
     :widths: 20,70,10
 
     * - Attacker/Threat agent
@@ -135,6 +155,7 @@ This section identifies the generalized stakeholders interacting with secure ser
       - No
 
 
+.. _generic_threat_priority:
 
 Threat Priority
 ---------------
@@ -145,6 +166,8 @@ calculated using the `Vulnerability Calculator`_.
 
 For each threat the priority and a link to CVSS calculator capturing the calculator settings will be listed.
 
+.. _generic_threat_types:
+
 Threat Types
 ------------
 
@@ -152,11 +175,15 @@ In this threat model we categorize threats using the `STRIDE threat analysis tec
 categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudiation``, ``Information disclosure``,
 ``Denial of service`` or ``Elevation of privilege``.
 
+.. _generic_threat_1:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
+
 
     * - **ID**
-      - 1
+      - GEN1
     * - Description
       - Information leak via debug logs.
 
@@ -181,11 +208,15 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_2:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
+
 
     * - **ID**
-      - 2
+      - GEN2
     * - Description
       - An attacker can tamper with sensitive data and execute arbitrary code through hardware-assisted
         debug interface.
@@ -210,11 +241,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_3:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 3
+      - GEN3
     * - Description
       - An attacker can perform a denial-of-service attack by using a broken service call that
         causes the service to enter an unknown state.
@@ -240,11 +274,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_4:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 4
+      - GEN4
     * - Description
       - Memory corruption due to memory overflows and lack of boundary checking when accessing
         resources.
@@ -272,11 +309,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_5:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 5
+      - GEN5
     * - Description
       - External devices connected to the system storing sensitive data. An attacker could eavesdrop external signals.
     * - Data flow
@@ -303,11 +343,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_6:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 6
+      - GEN6
     * - Description
       - State of external devices connected to the system might be modified by an attacker.
 
@@ -335,12 +378,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_7:
 
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
-    * - ID
-      - 7
+    * - **ID**
+      - GEN7
     * - Description
       - Invalid or conflicting access to shared hardware.
 
@@ -366,11 +411,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_8:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 8
+      - GEN8
     * - Description
       - Unauthenticated access to hardware.
 
@@ -397,12 +445,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_9:
 
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 9
+      - GEN9
     * - Description
       - Unauthenticated access to sensitive data.
     * - Data flow
@@ -424,11 +474,14 @@ categorized as one or more of these types: ``Spoofing``, ``Tampering``, ``Repudi
     * - Mitigation in place
       - yes
 
+.. _generic_threat_10:
+
 .. list-table::
     :widths: 15,80
+    :width: 100%
 
     * - **ID**
-      - 10
+      - GEN10
     * - Description
       - Time-of-Check to Time-of-Use (TOCTTOU) attack trough shared memory.
     * - Data flow
