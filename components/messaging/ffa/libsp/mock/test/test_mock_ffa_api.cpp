@@ -124,6 +124,12 @@ TEST(mock_ffa_api, ffa_msg_wait)
 	MEMCMP_EQUAL(&expected_msg, &msg, sizeof(expected_msg));
 }
 
+TEST(mock_ffa_api, ffa_yield)
+{
+	expect_ffa_yield(result);
+	LONGS_EQUAL(result, ffa_yield());
+}
+
 TEST(mock_ffa_api, ffa_msg_send_direct_req_32)
 {
 	const uint16_t source = 0x1122;

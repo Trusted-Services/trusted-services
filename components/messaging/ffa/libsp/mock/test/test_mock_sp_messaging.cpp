@@ -49,6 +49,12 @@ TEST(mock_sp_messaging, sp_msg_wait)
 	MEMCMP_EQUAL(&expected_req, &req, sizeof(expected_req));
 }
 
+TEST(mock_sp_messaging, sp_yield)
+{
+	expect_sp_yield(result);
+	LONGS_EQUAL(result, sp_yield());
+}
+
 TEST(mock_sp_messaging, sp_msg_send_direct_req)
 {
 	req = expected_req;

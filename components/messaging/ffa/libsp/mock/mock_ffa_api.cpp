@@ -166,6 +166,19 @@ ffa_result ffa_msg_wait(struct ffa_direct_msg *msg)
 		.returnIntValue();
 }
 
+void expect_ffa_yield(ffa_result result)
+{
+	mock().expectOneCall("ffa_yield")
+		.andReturnValue(result);
+}
+
+ffa_result ffa_yield(void)
+{
+	return mock()
+		.actualCall("ffa_yield")
+		.returnIntValue();
+}
+
 void expect_ffa_msg_send_direct_req_32(uint16_t source, uint16_t dest,
 				       uint32_t a0, uint32_t a1, uint32_t a2,
 				       uint32_t a3, uint32_t a4,

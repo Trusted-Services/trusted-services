@@ -16,6 +16,7 @@ extern "C" {
 
 void expect_sp_msg_wait(const struct sp_msg *msg, sp_result result);
 
+void expect_sp_yield(sp_result result);
 
 void expect_sp_msg_send_direct_req(const struct sp_msg *req,
 				   const struct sp_msg *resp,

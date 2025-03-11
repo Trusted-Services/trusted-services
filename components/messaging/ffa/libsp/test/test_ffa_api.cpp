@@ -494,6 +494,22 @@ TEST(ffa_api, ffa_msg_wait_error)
 	msg_equal_32(0, 0, 0, 0, 0, 0, 0, 0);
 }
 
+TEST(ffa_api, ffa_yield_success)
+{
+	svc_result.a0 = 0x8400006D;
+	expect_ffa_svc(0x8400006C, 0, 0, 0, 0, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_yield();
+	LONGS_EQUAL(0, result);
+}
+
+TEST(ffa_api, ffa_yield_error)
+{
+	setup_error_response(-1);
+	expect_ffa_svc(0x8400006C, 0, 0, 0, 0, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_yield();
+	LONGS_EQUAL(-1, result);
+}
+
 TEST(ffa_api, ffa_msg_wait_direct_req_32)
 {
 	const uint16_t source_id = 0x1122;

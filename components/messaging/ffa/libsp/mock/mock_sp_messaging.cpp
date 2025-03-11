@@ -22,6 +22,20 @@ sp_result sp_msg_wait(struct sp_msg *msg)
 		.returnIntValue();
 }
 
+void expect_sp_yield(sp_result result)
+{
+	mock()
+		.expectOneCall("sp_yield")
+		.andReturnValue(result);
+}
+
+sp_result sp_yield(void)
+{
+	return mock()
+		.actualCall("sp_yield")
+		.returnIntValue();
+}
+
 void expect_sp_msg_send_direct_req(const struct sp_msg *req,
 				   const struct sp_msg *resp,
 				   sp_result result)
