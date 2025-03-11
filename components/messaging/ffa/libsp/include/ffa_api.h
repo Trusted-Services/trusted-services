@@ -414,6 +414,63 @@ ffa_result ffa_console_log_32(const char *message, size_t length);
 ffa_result ffa_console_log_64(const char *message, size_t length);
 
 /**
+ * @brief 	Requests the partition manager to bind notifications specified
+ * 		in the Notification bitmap parameter to the Sender endpoint.
+ *
+ * @param[in]  sender              Sender endpoint ID
+ * @param[in]  receiver            Receiver endpoint ID
+ * @param[in]  flags               Notification flags
+ * @param[in]  notification_bitmap Bitmap to identify the notifications which the
+ *                                 Sender endpoint is allowed to signal.
+ * @return                         The FF-A error status code
+ */
+ffa_result ffa_notification_bind(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t notification_bitmap);
+
+/**
+ * @brief 	Requests the partition manager to unbind notifications specified
+ *              in the Notification bitmap parameter to the Sender endpoint.
+ *
+ * @param[in]  sender              Sender endpoint ID
+ * @param[in]  receiver            Receiver endpoint ID
+ * @param[in]  notification_bitmap Bitmap to identify the notifications which the
+ *                                 sender endpoint is allowed to signal.
+ * @return                         The FF-A error status code
+ */
+ffa_result ffa_notification_unbind(uint16_t sender, uint16_t receiver,
+				   uint64_t notification_bitmap);
+
+/**
+ * @brief 	Requests the partition manager to signal notifications specified
+ *              in the Notification bitmap parameter to the Sender endpoint.
+ *
+ * @param[in]  sender              Sender endpoint ID
+ * @param[in]  receiver            Receiver endpoint ID
+ * @param[in]  flags               Notification flags
+ * @param[in]  notification_bitmap Bitmap to identify the notifications which the
+ *                                 sender endpoint is allowed to signal.
+ * @return                         The FF-A error status code
+ */
+ffa_result ffa_notification_set(uint16_t sender, uint16_t receiver, uint32_t flags,
+				uint64_t notification_bitmap);
+
+/**
+ * @brief 	Requests the partition manager to request notifications specified
+ *              in the Notification bitmap parameter to the Sender endpoint.
+ *
+ * @param[in]  sender                        Sender endpoint ID
+ * @param[in]  receiver                      Receiver endpoint ID
+ * @param[in]  flags                         Notification flags
+ * @param[out] sp_notification_bitmap        Pending notifications received from SPs.
+ * @param[out] vm_notification_bitmap        Pending notifications received from VMs.
+ * @param[out] framework_notification_bitmap Pending notifications received from the framework.
+ * @return                                   The FF-A error status code
+ */
+ffa_result ffa_notification_get(uint16_t sender, uint16_t receiver, uint32_t flags,
+				uint64_t *sp_notification_bitmap, uint64_t *vm_notification_bitmap,
+				uint64_t *framework_notification_bitmap);
+
+/**
  * @brief      Interrupt handler prototype. Must be implemented by another
  *             component.
  *

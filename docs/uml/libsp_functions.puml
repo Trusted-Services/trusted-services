@@ -43,6 +43,12 @@ package "FF-A layer" {
     + ffa_mem_relinquish()
     + ffa_mem_reclaim()
 
+    .. Notification interfaces ..
+    + ffa_notification_bind()
+    + ffa_notification_unbind()
+    + ffa_notification_set()
+    + ffa_notification_get()
+
     .. Interrupt handler definition ..
     + ffa_interrupt_handler()
   }
