@@ -25,6 +25,7 @@ package "FF-A layer" {
 
     .. CPU cycle management interfaces ..
     + ffa_msg_wait()
+    + ffa_yield()
 
     .. Messaging interfaces ..
     + ffa_msg_send_direct_req()

@@ -299,6 +299,22 @@ ffa_result ffa_msg_wait(struct ffa_direct_msg *msg)
 	return FFA_OK;
 }
 
+ffa_result ffa_yield(void)
+{
+	struct ffa_params result = {0};
+
+	ffa_svc(FFA_YIELD, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		&result);
+
+	if (result.a0 == FFA_ERROR)
+		return ffa_get_errorcode(&result);
+
+	assert(result.a0 == FFA_RUN);
+
+	return FFA_OK;
+}
+
 static ffa_result ffa_msg_send_direct_req(uint32_t function_id, uint32_t resp_id,
 					  uint16_t source, uint16_t dest,
 					  uint64_t a0, uint64_t a1, uint64_t a2,

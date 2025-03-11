@@ -82,6 +82,11 @@ sp_result sp_msg_wait(struct sp_msg *msg)
 	return SP_RESULT_OK;
 }
 
+sp_result sp_yield(void)
+{
+	return SP_RESULT_FFA(ffa_yield());
+}
+
 sp_result sp_msg_send_direct_req(const struct sp_msg *req, struct sp_msg *resp)
 {
 	ffa_result ffa_res = FFA_OK;

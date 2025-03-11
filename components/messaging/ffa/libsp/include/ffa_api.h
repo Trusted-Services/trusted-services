@@ -146,6 +146,15 @@ ffa_result ffa_id_get(uint16_t *id);
  */
 ffa_result ffa_msg_wait(struct ffa_direct_msg *msg);
 
+/**
+ * @brief      Yields execution back to the FF-A component that scheduled the SP.
+ *             E.g. SP0 yields execution back to VM0 instead of busy waiting
+ *             for an IO operation to complete.
+ *
+ * @return     The FF-A error status code
+ */
+ffa_result ffa_yield(void);
+
 /** Messaging interfaces */
 
 /**
