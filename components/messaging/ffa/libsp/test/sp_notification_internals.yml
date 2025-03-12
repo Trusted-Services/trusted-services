@@ -1,0 +1,17 @@
+#
+# Copyright (c) 2025, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+elements:
+- file: components/messaging/ffa/libsp/sp_notification.c
+  type: include
+- file: components/messaging/ffa/libsp/sp_notification.c
+  type: function
+  name: build_notif_bind_flags
+  options: [remove_static]
+- file: components/messaging/ffa/libsp/sp_notification.c
+  type: function
+  name: build_notif_set_flags
+  options: [remove_static]

@@ -636,3 +636,102 @@ ffa_result ffa_console_log_64(const char *message, size_t length)
 		.withUnsignedIntParameter("length", length)
 		.returnIntValue();
 }
+
+void expect_ffa_notification_bind(uint16_t sender, uint16_t receiver, uint32_t flags,
+				  uint64_t notification_bitmap, ffa_result result)
+{
+	mock().expectOneCall("ffa_notification_bind")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("flags", flags)
+		.withUnsignedIntParameter("notification_bitmap", notification_bitmap)
+		.andReturnValue(result);
+}
+
+ffa_result ffa_notification_bind(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t notification_bitmap)
+{
+	return mock()
+		.actualCall("ffa_notification_bind")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("flags", flags)
+		.withUnsignedIntParameter("notification_bitmap", notification_bitmap)
+		.returnIntValue();
+}
+
+void expect_ffa_notification_unbind(uint16_t sender, uint16_t receiver,
+				    uint64_t notification_bitmap, ffa_result result)
+{
+	mock().expectOneCall("ffa_notification_unbind")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("notification_bitmap", notification_bitmap)
+		.andReturnValue(result);
+}
+
+ffa_result ffa_notification_unbind(uint16_t sender, uint16_t receiver, uint64_t notification_bitmap)
+{
+	return mock()
+		.actualCall("ffa_notification_unbind")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("notification_bitmap", notification_bitmap)
+		.returnIntValue();
+}
+
+void expect_ffa_notification_set(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t notification_bitmap, ffa_result result)
+{
+	mock().expectOneCall("ffa_notification_set")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("flags", flags)
+		.withUnsignedIntParameter("notification_bitmap", notification_bitmap)
+		.andReturnValue(result);
+}
+
+ffa_result ffa_notification_set(uint16_t sender, uint16_t receiver, uint32_t flags,
+				uint64_t notification_bitmap)
+{
+	return mock()
+		.actualCall("ffa_notification_set")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("flags", flags)
+		.withUnsignedIntParameter("notification_bitmap", notification_bitmap)
+		.returnIntValue();
+}
+
+void expect_ffa_notification_get(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t *sp_notification_bitmap, uint64_t *vm_notification_bitmap,
+				 uint64_t *framework_notification_bitmap, ffa_result result)
+{
+	mock().expectOneCall("ffa_notification_get")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("flags", flags)
+		.withOutputParameterReturning("sp_notification_bitmap", sp_notification_bitmap,
+					      sizeof(*sp_notification_bitmap))
+		.withOutputParameterReturning("vm_notification_bitmap", vm_notification_bitmap,
+					      sizeof(*vm_notification_bitmap))
+		.withOutputParameterReturning("framework_notification_bitmap",
+					      framework_notification_bitmap,
+					      sizeof(*framework_notification_bitmap))
+		.andReturnValue(result);
+}
+
+ffa_result ffa_notification_get(uint16_t sender, uint16_t receiver, uint32_t flags,
+				uint64_t *sp_notification_bitmap, uint64_t *vm_notification_bitmap,
+				uint64_t *framework_notification_bitmap)
+{
+	return mock()
+		.actualCall("ffa_notification_get")
+		.withUnsignedIntParameter("sender", sender)
+		.withUnsignedIntParameter("receiver", receiver)
+		.withUnsignedIntParameter("flags", flags)
+		.withOutputParameter("sp_notification_bitmap", sp_notification_bitmap)
+		.withOutputParameter("vm_notification_bitmap", vm_notification_bitmap)
+		.withOutputParameter("framework_notification_bitmap", framework_notification_bitmap)
+		.returnIntValue();
+}

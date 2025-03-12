@@ -250,3 +250,33 @@ unit_test_add_suite(
 		-DFFA_DIRECT_MSG_ROUTING_EXTENSION=1
 		-DCFG_FFA_VERSION=0x00010000
 )
+
+unit_test_add_suite(
+	NAME libsp_sp_notification
+	SOURCES
+		${CMAKE_CURRENT_LIST_DIR}/test/test_sp_notification.cpp
+		${CMAKE_CURRENT_LIST_DIR}/test/sp_notification_internals.yml
+		${CMAKE_CURRENT_LIST_DIR}/mock/mock_ffa_api.cpp
+		${CMAKE_CURRENT_LIST_DIR}/sp_notification.c
+	INCLUDE_DIRECTORIES
+		${CMAKE_CURRENT_LIST_DIR}/include/
+		${CMAKE_CURRENT_LIST_DIR}/mock
+		${UNIT_TEST_PROJECT_PATH}/components/common/utils/include
+	COMPILE_DEFINITIONS
+		-DARM64
+		-DCFG_FFA_VERSION=0x00010000
+)
+
+unit_test_add_suite(
+	NAME libsp_mock_sp_notification
+	SOURCES
+		${CMAKE_CURRENT_LIST_DIR}/mock/test/test_mock_sp_notification.cpp
+		${CMAKE_CURRENT_LIST_DIR}/mock/mock_sp_notification.cpp
+	INCLUDE_DIRECTORIES
+		${CMAKE_CURRENT_LIST_DIR}/include/
+		${CMAKE_CURRENT_LIST_DIR}/mock
+		${UNIT_TEST_PROJECT_PATH}/components/common/utils/include
+	COMPILE_DEFINITIONS
+		-DARM64
+		-DCFG_FFA_VERSION=0x00010000
+)

@@ -1912,3 +1912,148 @@ TEST(ffa_api, ffa_console_log_64)
 		       0x6261393837363534, &svc_result);
 	ffa_console_log_64(message, length);
 }
+
+TEST(ffa_api, ffa_notification_bind_success)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xAAAAAAAA;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x8400007F, sender << 16 | receiver, flags, notification_bitmap & 0xFFFFFFFF,
+		       (notification_bitmap >> 32) & 0xFFFFFFFF, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_bind(sender, receiver, flags, notification_bitmap);
+
+	LONGS_EQUAL(0, result);
+}
+
+TEST(ffa_api, ffa_notification_bind_error)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xAAAAAAAA;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	setup_error_response(-1);
+	expect_ffa_svc(0x8400007F, sender << 16 | receiver, flags, notification_bitmap & 0xFFFFFFFF,
+		       (notification_bitmap >> 32) & 0xFFFFFFFF, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_bind(sender, receiver, flags, notification_bitmap);
+
+	LONGS_EQUAL(-1, result);
+}
+
+TEST(ffa_api, ffa_notification_unbind_success)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000080, sender << 16 | receiver, 0, notification_bitmap & 0xFFFFFFFF,
+		       (notification_bitmap >> 32) & 0xFFFFFFFF, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_unbind(sender, receiver, notification_bitmap);
+
+	LONGS_EQUAL(0, result);
+}
+
+TEST(ffa_api, ffa_notification_unbind_error)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	setup_error_response(-1);
+	expect_ffa_svc(0x84000080, sender << 16 | receiver, 0, notification_bitmap & 0xFFFFFFFF,
+		       (notification_bitmap >> 32) & 0xFFFFFFFF, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_unbind(sender, receiver, notification_bitmap);
+
+	LONGS_EQUAL(-1, result);
+}
+
+TEST(ffa_api, ffa_notification_set_success)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xF;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000081, sender << 16 | receiver, flags, notification_bitmap & 0xFFFFFFFF,
+		       (notification_bitmap >> 32) & 0xFFFFFFFF, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_set(sender, receiver, flags, notification_bitmap);
+
+	LONGS_EQUAL(0, result);
+}
+
+TEST(ffa_api, ffa_notification_set_error)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xF;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	setup_error_response(-1);
+	expect_ffa_svc(0x84000081, sender << 16 | receiver, flags, notification_bitmap & 0xFFFFFFFF,
+		       (notification_bitmap >> 32) & 0xFFFFFFFF, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_set(sender, receiver, flags, notification_bitmap);
+
+	LONGS_EQUAL(-1, result);
+}
+
+TEST(ffa_api, ffa_notification_set_invalid_flag)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xAAAAAAAA;
+	const uint64_t notification_bitmap = 0x55555555AAAAAAAA;
+
+	ffa_result result = ffa_notification_set(sender, receiver, flags, notification_bitmap);
+
+	LONGS_EQUAL(FFA_INVALID_PARAMETERS, result);
+}
+
+TEST(ffa_api, ffa_notification_get_success)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xF;
+	uint64_t sp_notification_bitmap = 0;
+	uint64_t vm_notification_bitmap = 0;
+	uint64_t framework_notification_bitmap = 0;
+
+	svc_result.a0 = 0x84000061;
+	svc_result.a2 = 0xAAAAAAAA;
+	svc_result.a3 = 0xBBBBBBBB;
+	svc_result.a4 = 0xCCCCCCCC;
+	svc_result.a5 = 0xDDDDDDDD;
+	svc_result.a6 = 0xEEEEEEEE;
+	svc_result.a7 = 0xFFFFFFFF;
+	expect_ffa_svc(0x84000082, sender << 16 | receiver, flags, 0, 0, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_get(sender, receiver, flags, &sp_notification_bitmap,
+						 &vm_notification_bitmap,
+						 &framework_notification_bitmap);
+
+	LONGS_EQUAL(0, result);
+	LONGS_EQUAL(sp_notification_bitmap, 0xBBBBBBBBAAAAAAAA);
+	LONGS_EQUAL(vm_notification_bitmap, 0xDDDDDDDDCCCCCCCC);
+	LONGS_EQUAL(framework_notification_bitmap, 0xFFFFFFFFEEEEEEEE);
+}
+
+TEST(ffa_api, ffa_notification_get_error)
+{
+	const uint16_t sender = 0x1234;
+	const uint16_t receiver = 0x5678;
+	const uint32_t flags = 0xF;
+	uint64_t sp_notification_bitmap = 0;
+	uint64_t vm_notification_bitmap = 0;
+	uint64_t framework_notification_bitmap = 0;
+
+	setup_error_response(-1);
+	expect_ffa_svc(0x84000082, sender << 16 | receiver, flags, 0, 0, 0, 0, 0, &svc_result);
+	ffa_result result = ffa_notification_get(sender, receiver, flags, &sp_notification_bitmap,
+						 &vm_notification_bitmap,
+						 &framework_notification_bitmap);
+
+	LONGS_EQUAL(-1, result);
+}
