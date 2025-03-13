@@ -750,6 +750,22 @@ TEST(ffa_api, ffa_msg_wait_vm_created_interrupt_destroyed_success)
 	msg_equal_32(0x84000061, 0, 0, 0, 0, 0, 0, 0);
 }
 
+TEST(ffa_api, ffa_msg_wait_unknown_framework_msg)
+{
+	struct ffa_params unknown_msg;
+
+	unknown_msg.a0 = 0x8400006F;
+	unknown_msg.a2 = FFA_MSG_FLAG_FRAMEWORK | (0xF << FFA_FRAMEWORK_MSG_TYPE_SHIFT);
+	expect_ffa_svc(0x8400006B, 0, 0, 0, 0, 0, 0, 0, &unknown_msg);
+
+	svc_result.a0 = 0x84000061;
+	expect_ffa_svc(0x84000060, FFA_PARAM_MBZ, FFA_INVALID_PARAMETERS, 0, 0, 0, 0, 0,
+		       &svc_result);
+
+	ffa_result result = ffa_msg_wait(&msg);
+	LONGS_EQUAL(0, result);
+}
+
 TEST(ffa_api, ffa_msg_wait_unknown_response)
 {
 	assert_environment_t assert_env;
