@@ -74,7 +74,8 @@ const char* sp_test_str[]= {
 	"EP_SP_MEM_SHARING_MULTI",
 	"EP_SP_MEM_SHARING_EXC",
 	"EP_SP_MEM_INCORRECT_ACCESS",
-	"EP_SP_NOP"
+	"EP_SP_NOP",
+	"EP_TEST_SP_COMMUNICATION_RESPONSE"
 };
 
 static bool test_ffa_version(void)
