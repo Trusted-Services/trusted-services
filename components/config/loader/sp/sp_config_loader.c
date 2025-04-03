@@ -190,6 +190,7 @@ static bool load_fdt(const void *fdt, size_t fdt_size)
 		fdt_for_each_subnode(subnode, fdt, node) {
 			struct device_region device_region = {0};
 			uint64_t base_addr = 0;
+			uint64_t phys_addr = 0;
 			uint32_t page_cnt = 0;
 			const char *subnode_name = fdt_get_name(fdt, subnode, NULL);
 			size_t name_length = 0;
@@ -202,6 +203,10 @@ static bool load_fdt(const void *fdt, size_t fdt_size)
 			if(!dt_get_u64(fdt, subnode, "base-address", &base_addr)) {
 				EMSG("base-address is missing");
 				return false;
+			}
+
+			if(!dt_get_u64(fdt, subnode, "physical-address", &phys_addr)) {
+				DMSG("physical-address is not configured");
 			}
 
 			if (!dt_get_u32(fdt, subnode, "pages-count", &page_cnt)) {
@@ -217,6 +222,7 @@ static bool load_fdt(const void *fdt, size_t fdt_size)
 
 			memcpy(device_region.dev_class, subnode_name, name_length);
 			device_region.base_addr = base_addr;
+			device_region.phys_addr = phys_addr;
 			device_region.io_region_size = page_cnt * FFA_SP_MANIFEST_PAGE_SIZE;
 			device_region.dev_instance = 0;
 
