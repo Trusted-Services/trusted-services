@@ -7,6 +7,7 @@
 #include <psa/crypto.h>
 #include "psa_crypto_client.h"
 #include "crypto_caller_selector.h"
+#include <string.h>
 
 psa_status_t psa_aead_encrypt_setup(psa_aead_operation_t *operation,
 	psa_key_id_t key,
@@ -244,14 +245,19 @@ psa_status_t psa_aead_encrypt(psa_key_id_t key,
 	{
 		size_t remaining_aead_len = 0;
 		size_t tag_len = 0;
+		uint8_t tag[PSA_AEAD_TAG_MAX_SIZE];
 
 		psa_status = psa_aead_finish(&operation,
-			NULL, 0, &remaining_aead_len,
-			&aeadtext[bytes_output], aeadtext_size - bytes_output, &tag_len);
+			&aeadtext[bytes_output], aeadtext_size - bytes_output, &remaining_aead_len,
+			tag, PSA_AEAD_TAG_MAX_SIZE, &tag_len);
+
+		if (aeadtext_size < bytes_output + remaining_aead_len + tag_len)
+			psa_status = PSA_ERROR_BUFFER_TOO_SMALL;
 
 		if (psa_status == PSA_SUCCESS) {
-
-			*aeadtext_length = bytes_output + remaining_aead_len + tag_len;
+			bytes_output += remaining_aead_len;
+			memcpy(&aeadtext[bytes_output], tag, tag_len);
+			*aeadtext_length = bytes_output + tag_len;
 		}
 		else {
 
@@ -301,8 +307,8 @@ psa_status_t psa_aead_decrypt(psa_key_id_t key,
 		size_t remaining_plaintext_len = 0;
 
 		psa_status = psa_aead_verify(&operation,
-			NULL, 0, &remaining_plaintext_len,
-			&aeadtext[bytes_output], aeadtext_length - bytes_output);
+			&plaintext[bytes_output], plaintext_size - bytes_output,
+			&remaining_plaintext_len, &aeadtext[ciphertext_len], tag_len);
 
 		if (psa_status == PSA_SUCCESS) {
 
