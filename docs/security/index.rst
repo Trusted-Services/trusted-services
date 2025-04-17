@@ -7,6 +7,7 @@ Security
 
     security-model
     threat-models/generic-threat-model
+    threat-assessment/index
 
 The security model outlines the foundational security principles of the project. Refer to this section for an overview
 of key concepts and the high-level security architecture.
