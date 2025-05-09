@@ -12,6 +12,7 @@ Services
     block-storage/block-storage-service-description
     uefi-smm-services
     logging-service-description
+    tpm-service-description
 
 --------------
 
