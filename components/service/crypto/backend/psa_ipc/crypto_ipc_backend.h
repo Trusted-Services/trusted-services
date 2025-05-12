@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,6 +8,7 @@
 #define CRYPTO_IPC_BACKEND_H
 
 #include <service/crypto/client/psa/psa_crypto_client.h>
+#include <psa/crypto_types.h>
 #include <psa/error.h>
 #include <rpc_caller.h>
 

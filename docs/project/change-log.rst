@@ -4,6 +4,78 @@ Change Log & Release Notes
 This document contains a summary of the new features, changes, fixes and known issues in each release of Trusted
 Services.
 
+Version v1.2.0
+--------------
+
+Feature Highlights
+^^^^^^^^^^^^^^^^^^
+
+- Corstone1000 updates:
+    - Integrated PSA-FWU proxy to the proxy SP.
+    - Enabled compile-time configuration for MHU and RSE buffer sizes.
+    - Aligned psa-crypto size definitions with TF-M v2.1
+- rd1-ae:
+    - Introduce the new Arm Reference Design-1 AE platform targeting the Automotive segment. It features
+      high-performance Arm Neoverse V3AE Application Processor compute system, Arm Cortex-R82AE based Safety Island, and
+      a Runtime Security Engine (RSE) for enhanced security. See :doc:`/target-platforms/rd1ae`
+    - Added driver support for MHU v3.
+- se-proxy:
+    - Added support for compile-time configuration of supported services.
+    - Client ID value 0 is considered invalid by TF-M (the firmware implementation for RSE and SE) and is rejected
+      starting from version v2.1.x. As a workaround, the SE-Proxy replaces value 0 with its own FF-A ID, which is always
+      a valid positive integer. This substitution is safe, as the SE-Proxy does not initiate requests on its own behalf.
+    - Added support for pointer access protocol.
+- Block Storage SP
+    - Added encryption support using the new Encrypted Block Store component.
+- Test updates:
+    - Removed libts-test
+    - Merged unit-tests into a single deployment
+    - spm-test
+
+        - Fix mem retrieve in SPM test SP
+        - Enabled platform-specific configuration of certain manifest entries.
+
+- fTPM SP (experimental)
+    - Introduced the fTPM SP deployment, which provides TPM services using the ms-tpm20-ref implementation.
+- Documentation:
+    - Added a new section covering threat assessments for various SPs.
+- Notable generic fixes:
+    - PSA FWU M: Load initial image state in PSA FWU M update agent.
+    - Fix interrupted FFA_MSG_SEND_DIRECT_REQ handling.
+
+Deprecations
+^^^^^^^^^^^^
+
+None.
+
+
+Updated external components
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+None.
+
+Breaking changes
+^^^^^^^^^^^^^^^^
+
+None.
+
+Resolved issues
+^^^^^^^^^^^^^^^
+
+None.
+
+Known limitations
+^^^^^^^^^^^^^^^^^
+
+- fTPM SP:
+
+    - The implementation is experimental. The end-to-end integration is lacking, some
+      components are not published yet.
+    - Missing support of hardware time source.
+    - Missing support for boot measurements (event log) made by earlier boot stages.
+    - Locality 4 command handling is not implemented yet.
+
+
 Version v1.1.0
 --------------
 
@@ -83,7 +155,7 @@ The first stabilised release of the project from previously prototype releases r
 Feature Highlights
 ^^^^^^^^^^^^^^^^^^
 
-- Introduce the :doc:`Block Storage Service </services/block-storage-service-description>`. The Block Storage service
+- Introduce the :doc:`Block Storage Service </services/block-storage/block-storage-service-description>`. The Block Storage service
   can be used to share a block-oriented storage device such as a QSPI flash between a set of independent secure world
   clients.
 

@@ -492,7 +492,7 @@ static void test_mem_retrieve(struct ffa_direct_msg *msg)
 	descriptor.sender_id = msg->args.args64[3] & 0xffff;
 	acc_desc.receiver_id = own_id;
 	acc_desc.data_access = sp_data_access_read_write;
-	res = sp_memory_retrieve(&descriptor, &acc_desc, regions, 1,
+	res = sp_memory_retrieve(&descriptor, &acc_desc, regions, 0,
 				 &out_region_count, handle);
 
 	if (res) {

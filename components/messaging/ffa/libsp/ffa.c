@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2020-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2025, Arm Limited and Contributors. All rights reserved.
  */
 
 #include <assert.h>            // for assert
@@ -312,8 +312,9 @@ static ffa_result ffa_msg_send_direct_req(uint32_t function_id, uint32_t resp_id
 		dest, FFA_PARAM_MBZ, a0, a1, a2, a3, a4, &result);
 
 	while (result.a0 == FFA_INTERRUPT) {
-		ffa_interrupt_handler(result.a2);
-		ffa_return_from_interrupt(&result);
+		ffa_svc(FFA_RUN, result.a1, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+			FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+			&result);
 	}
 
 	if (result.a0 == FFA_ERROR) {

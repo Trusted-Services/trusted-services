@@ -24,6 +24,7 @@ struct device_region
     char dev_class[16];     /**< Identifier for class of device e.g. 'trng' */
     int dev_instance;       /**< Instance of the class of device on a platform */
     uintptr_t base_addr;    /**< Base address or region */
+    uintptr_t phys_addr;    /**< Physical address of the region */
     size_t io_region_size;  /**< Size of I/O region in bytes */
 };
 

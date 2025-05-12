@@ -9,21 +9,29 @@
 #include <stdlib.h>
 #include <trace.h>
 
+#include "config/interface/config_store.h"
+#include "platform/interface/device_region.h"
 #include "protocols/rpc/common/packed-c/status.h"
 #include "rse_comms_messenger_api.h"
 #include "rse_comms_platform_api.h"
 
-struct rse_comms_msg {
-	uint8_t *req_buf;
-	size_t req_len;
-	uint8_t *resp_buf;
-};
+static struct device_region *rse_comms_messenger_protocol_init() {
+	static struct device_region carveout_region;
+
+	if (!config_store_query(CONFIG_CLASSIFIER_DEVICE_REGION,
+				"rse-carveout",
+				0, &carveout_region,
+				sizeof(carveout_region))) {
+		IMSG("rse-carveout is not set in SP configuration");
+		return NULL;
+	}
+
+	return &carveout_region;
+}
 
 int rse_comms_messenger_init(struct rse_comms_messenger *rse_comms)
 {
-	int ret = 0;
-
-	if (!rse_comms || rse_comms->msg || rse_comms->platform)
+	if (!rse_comms || rse_comms->msg || rse_comms->platform || rse_comms->protocol)
 		return -1;
 
 	rse_comms->msg = calloc(1, sizeof(struct rse_comms_msg));
@@ -35,8 +43,10 @@ int rse_comms_messenger_init(struct rse_comms_messenger *rse_comms)
 		EMSG("Platform init failed");
 		free(rse_comms->msg);
 		rse_comms->msg = NULL;
-		return ret;
+		return -1;
 	}
+
+	rse_comms->protocol = rse_comms_messenger_protocol_init();
 
 	return 0;
 }
@@ -62,6 +72,7 @@ void rse_comms_messenger_deinit(struct rse_comms_messenger *rse_comms)
 
 	rse_comms_platform_deinit(rse_comms->platform);
 	rse_comms->platform = NULL;
+	rse_comms->protocol = NULL;
 }
 
 int rse_comms_messenger_call_invoke(struct rse_comms_messenger *rse_comms, uint8_t **resp_buf,

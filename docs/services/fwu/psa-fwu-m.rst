@@ -44,6 +44,11 @@ The solutions to these differences:
 * Convert the image query result returned by FWU-M to FWU-A format. There are similar field, but this imposes some
   limitations.
 
+Initialization
+```````````````
+
+The initial image and agent state is determined based on the image state returned by ``psa_fwu_query()``.
+
 
 ``fwu_discover()``
 ``````````````````
@@ -71,6 +76,10 @@ agent switches to trial state, so the client can validate the new set of images 
 
 On calling ``fwu_end_staging()`` the agent calls ``psa_fwu_finish()`` on each selected image, then calls
 ``psa_fwu_install()``. If all images have been accepted (see ``fwu_commit()``) it also calls ``psa_fwu_accept()``.
+The implementation treats ``PSA_SUCCESS_REBOOT`` and ``PSA_SUCCESS_RESTART`` status values as error. In an A+M system the M
+class side shouldn't restart the system, so calling ``psa_fwu_request_reboot()`` does not fit the system. There's also no
+PSA FWU A return code for inidicating the restart request to the normal world. If the normal world has to restart the
+system after ending the staging phase, it has to do it in an implementation defined way.
 
 .. uml:: ../uml/psa_fwu_m_update_agent/fwu_end_staging.puml
 
@@ -136,7 +145,10 @@ calls ``psa_fwu_accept()`` when all images have been accepted. This results in a
 `````````````````````````
 
 Selects previous working state (i.e. rejects the firmware update) and transitions back to regular state after calling
-``psa_fwu_reject()``.
+``psa_fwu_reject()``. The implementation treats ``PSA_SUCCESS_REBOOT`` and ``PSA_SUCCESS_RESTART`` status values as error.
+In an A+M system the M class side shouldn't restart the system, so calling ``psa_fwu_request_reboot()`` does not fit the
+system. There's also no PSA FWU A return code for inidicating the restart request to the normal world. If the normal
+world has to restart the system when rejecting the installed firmware, it has to do it in an implementation defined way.
 
 .. uml:: ../uml/psa_fwu_m_update_agent/fwu_select_previous.puml
 

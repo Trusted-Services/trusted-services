@@ -10,11 +10,10 @@ include(../../deployment.cmake REQUIRED)
 #-------------------------------------------------------------------------------
 #  The CMakeLists.txt for building the libts deployment for linux-pc
 #
-#  Used for building the libts library for the linux-pc enviroment.  Also
-#  builds the libts-test executable that acts as a client for the services
-#  accessed via libts.  For the linux-pc deployment, libts contains
-#  standalone versions of a set of trusted services to support client
-#  application development in a native PC environment.
+#  Used for building the libts library for the linux-pc enviroment.
+#  For the linux-pc deployment, libts contains standalone versions of a set of
+#  trusted services to support client application development in a native PC
+#  environment.
 #-------------------------------------------------------------------------------
 include(${TS_ROOT}/environments/linux-pc/env_shared_lib.cmake)
 project(trusted-services LANGUAGES CXX C)
@@ -202,58 +201,3 @@ target_link_libraries(ts PRIVATE qcbor)
 # t_cose
 include(${TS_ROOT}/external/t_cose/t_cose.cmake)
 target_link_libraries(ts PRIVATE t_cose)
-
-#-------------------------------------------------------------------------------
-#  Test executable (libts-test) for testing libts static library
-#
-#-------------------------------------------------------------------------------
-add_executable(libts-test)
-target_include_directories(libts-test PRIVATE "${TOP_LEVEL_INCLUDE_DIRS}")
-target_link_libraries(libts-test PRIVATE "-Wl,--whole-archive" ts "-Wl,--no-whole-archive")
-
-add_components(
-	TARGET "libts-test"
-	BASE_DIR ${TS_ROOT}
-	COMPONENTS
-		"components/app/test-runner"
-		"components/common/tlv"
-		"components/rpc/common/caller"
-		"components/rpc/common/interface"
-		"components/rpc/common/endpoint"
-		"components/service/common/include"
-		"components/service/secure_storage/include"
-		"components/service/secure_storage/test/service"
-		"components/service/secure_storage/frontend/psa/its"
-		"components/service/secure_storage/frontend/psa/its/test"
-		"components/service/secure_storage/frontend/psa/ps"
-		"components/service/secure_storage/frontend/psa/ps/test"
-		"components/service/secure_storage/backend/secure_storage_client"
-		"components/service/crypto/test/service"
-		"components/service/crypto/test/service/protobuf"
-		"components/service/crypto/test/service/packed-c"
-		"components/service/crypto/include"
-		"components/service/crypto/client/psa"
-		"components/service/crypto/client/cpp"
-		"components/service/crypto/client/cpp/protocol/protobuf"
-		"components/service/crypto/client/cpp/protocol/packed-c"
-		"components/service/common/serializer/protobuf"
-		"components/service/common/client"
-		"protocols/service/crypto/protobuf"
-		"protocols/service/crypto/packed-c"
-)
-
-#-------------------------------------------------------------------------------
-#  Components used by libts-test from external projects
-#
-#-------------------------------------------------------------------------------
-
-# CppUTest
-include(${TS_ROOT}/external/CppUTest/CppUTest.cmake)
-target_link_libraries(libts-test PRIVATE CppUTest)
-
-# Nanopb
-target_link_libraries(libts-test PRIVATE nanopb::protobuf-nanopb-static)
-protobuf_generate_all(TGT "libts-test" NAMESPACE "protobuf" BASE_DIR "${TS_ROOT}/protocols")
-
-# Mbedcrypto
-target_link_libraries(libts-test PRIVATE MbedTLS::mbedcrypto)

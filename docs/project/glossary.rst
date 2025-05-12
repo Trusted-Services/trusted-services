@@ -48,7 +48,8 @@ You can find additional definitions in the `Arm Glossary`_.
         Trusted Execution Environment. An SPE implemented using TrustZone.
 
     TrustZone
-        Hardware assisted isolation technology built into arm CPUs. See `TrustZone for Cortex-A`_.
+        Arm :sup:`®` TrustZone :sup:`®` ia a hardware assisted isolation technology built into arm CPUs. See `TrustZone
+        for Cortex-A`_.
 
     SPE
         See :term:`Secure Processing Environment`.
@@ -70,7 +71,7 @@ You can find additional definitions in the `Arm Glossary`_.
         A Secure Partition which executes a software image in and isolated physical address space.
 
     Logical SP
-        A Secure Partition which executes a software image isolated buy without physical address space isolation.
+        A Secure Partition which executes a software image isolated without physical address space isolation.
 
     SPM
         See :term:`Secure Partition Manager`.
@@ -80,9 +81,15 @@ You can find additional definitions in the `Arm Glossary`_.
         is built from two sub-components the :term:`Secure Partition Manager Dispatcher` and the
         :term:`Secure Partition Manager Core`.
 
+    SPMD
+        See :term:`Secure Partition Manager Dispatcher`.
+
     Secure Partition Manager Dispatcher
         The SPM component responsible for SPMC initialization boot-time, and forwarding FF-A calls run-time between SPs
         and between SPs and the SPMC.
+
+    SPMC
+        See :term:`Secure Partition Manager Core`.
 
     Secure Partition Manager Core
         A component responsible for SP initialization and isolation at boot-time, inter partition isolation at run-time,

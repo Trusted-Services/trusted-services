@@ -1,0 +1,596 @@
+From c2a8aedf66eb2a7dfb208d378adae98680931536 Mon Sep 17 00:00:00 2001
+From: Balint Dobszay <balint.dobszay@arm.com>
+Date: Thu, 14 Nov 2024 17:11:04 +0100
+Subject: [PATCH 3/3] Add CMake support
+
+Add a minimal CMake build system that can build the TPM code as a
+library and export the CMake config files so it's more convenient to use
+it from another CMake project.
+
+Signed-off-by: Balint Dobszay <balint.dobszay@arm.com>
+Change-Id: I56985c0042776a2759de12bb373017a21e1aab0e
+---
+ CMakeLists.txt        | 553 ++++++++++++++++++++++++++++++++++++++++++
+ ms_tpmConfig.cmake.in |  10 +
+ 2 files changed, 563 insertions(+)
+ create mode 100644 CMakeLists.txt
+ create mode 100644 ms_tpmConfig.cmake.in
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..faaefb5
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,553 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2024, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
++project(ms-tpm-20-ref LANGUAGES C ASM)
++
++add_library(tpm STATIC)
++
++set(TPM_EXTRA_DEFINITIONS "" CACHE STRING "Defines coming from Trusted Services")
++target_compile_definitions(tpm PUBLIC "${TPM_EXTRA_DEFINITIONS}")
++
++set(TPM_EXTRA_INCLUDES "" CACHE STRING "Include paths coming from Trusted Services")
++target_include_directories(tpm PUBLIC "${TPM_EXTRA_INCLUDES}")
++
++target_sources(tpm PRIVATE
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/ECC_Decrypt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/ECC_Encrypt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/ECC_Parameters.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/ECDH_KeyGen.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/ECDH_ZGen.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/EC_Ephemeral.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/RSA_Decrypt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/RSA_Encrypt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Asymmetric/ZGen_2Phase.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/AttachedComponent/AC_GetCapability.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/AttachedComponent/AC_Send.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/AttachedComponent/AC_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/AttachedComponent/Policy_AC_SendSelect.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/Attest_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/Certify.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/CertifyCreation.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/CertifyX509.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/GetCommandAuditDigest.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/GetSessionAuditDigest.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/GetTime.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Attestation/Quote.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Capability/GetCapability.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Capability/TestParms.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/ClockTimer/ACT_SetTimeout.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/ClockTimer/ACT_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/ClockTimer/ClockRateAdjust.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/ClockTimer/ClockSet.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/ClockTimer/ReadClock.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/CommandAudit/SetCommandCodeAuditStatus.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Context/ContextLoad.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Context/ContextSave.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Context/Context_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Context/EvictControl.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Context/FlushContext.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/DA/DictionaryAttackLockReset.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/DA/DictionaryAttackParameters.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Duplication/Duplicate.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Duplication/Import.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Duplication/Rewrap.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyAuthorize.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyAuthorizeNV.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyAuthValue.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyCommandCode.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyCounterTimer.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyCpHash.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyDuplicationSelect.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyGetDigest.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyLocality.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyNameHash.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyNV.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyNvWritten.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyOR.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyPassword.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyPCR.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyPhysicalPresence.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicySecret.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicySigned.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/Policy_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyTemplate.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/EA/PolicyTicket.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Ecdaa/Commit.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/FieldUpgrade/FieldUpgradeData.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/FieldUpgrade/FieldUpgradeStart.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/FieldUpgrade/FirmwareRead.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/HashHMAC/EventSequenceComplete.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/HashHMAC/HashSequenceStart.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/HashHMAC/HMAC_Start.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/HashHMAC/MAC_Start.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/HashHMAC/SequenceComplete.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/HashHMAC/SequenceUpdate.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/ChangeEPS.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/ChangePPS.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/Clear.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/ClearControl.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/CreatePrimary.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/HierarchyChangeAuth.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/HierarchyControl.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Hierarchy/SetPrimaryPolicy.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Misc/PP_Commands.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Misc/SetAlgorithmSet.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_Certify.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_ChangeAuth.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_DefineSpace.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_Extend.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_GlobalWriteLock.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_Increment.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_Read.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_ReadLock.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_ReadPublic.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_SetBits.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_UndefineSpace.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_UndefineSpaceSpecial.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_Write.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/NVStorage/NV_WriteLock.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/ActivateCredential.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/Create.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/CreateLoaded.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/Load.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/LoadExternal.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/MakeCredential.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/ObjectChangeAuth.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/Object_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/ReadPublic.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Object/Unseal.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_Allocate.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_Event.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_Extend.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_Read.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_Reset.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_SetAuthPolicy.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/PCR/PCR_SetAuthValue.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Random/GetRandom.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Random/StirRandom.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Session/PolicyRestart.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Session/StartAuthSession.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Signature/Sign.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Signature/VerifySignature.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Startup/Shutdown.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Startup/Startup.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Symmetric/EncryptDecrypt2.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Symmetric/EncryptDecrypt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Symmetric/EncryptDecrypt_spt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Symmetric/Hash.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Symmetric/HMAC.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Symmetric/MAC.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Testing/GetTestResult.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Testing/IncrementalSelfTest.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Testing/SelfTest.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/command/Vendor/Vendor_TCG_Test.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/AlgorithmTests.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/BnConvert.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/BnMath.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/BnMemory.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptCmac.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptDes.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptEccCrypt.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptEccData.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptEccKeyExchange.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptEccMain.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptEccSignature.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptHash.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptPrime.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptPrimeSieve.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptRand.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptRsa.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptSelfTest.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptSmac.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptSym.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/CryptUtil.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/PrimeData.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/RsaKeyCache.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/Ticket.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSym.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/mbed/TpmToMbedMath.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSupport.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/events/_TPM_Hash_Data.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/events/_TPM_Hash_End.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/events/_TPM_Hash_Start.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/events/_TPM_Init.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/main/CommandDispatcher.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/main/ExecCommand.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/main/SessionProcess.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/CommandAudit.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/DA.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/Hierarchy.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/NvDynamic.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/NvReserved.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/Object.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/PCR.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/PP.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/Session.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/subsystem/Time.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/AlgorithmCap.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Bits.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/CommandCodeAttributes.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Entity.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Global.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Handle.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/IoBuffers.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Locality.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Manufacture.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Marshal.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/MathOnByteBuffers.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Memory.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Power.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/PropertyCap.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/Response.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/ResponseCodeProcessing.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/TableDrivenMarshal.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/TableMarshalData.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/TpmFail.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/support/TpmSizeChecks.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/X509/TpmASN1.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/X509/X509_ECC.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/X509/X509_RSA.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/src/X509/X509_spt.c
++)
++
++target_include_directories(tpm PUBLIC
++	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include>
++	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes>
++	$<INSTALL_INTERFACE:include>
++)
++
++set_property(TARGET tpm APPEND PROPERTY PUBLIC_HEADER
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/ACT.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/BaseTypes.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/BnValues.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Capabilities.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CommandAttributeData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CommandAttributes.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CommandDispatchData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CommandDispatcher.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Commands.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CompilerDependencies.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CryptEcc.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CryptHash.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CryptRand.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CryptRsa.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CryptSym.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/CryptTest.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/EccTestData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Global.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/GpMacros.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/HandleProcess.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/HashTestData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/InternalRoutines.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/KdfTestData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/LibSupport.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Marshal.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Mbed/TpmToMbedHash.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Mbed/TpmToMbedMath.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Mbed/TpmToMbedSym.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/MinMax.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/NV.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/OIDs.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/PRNG_TestVectors.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/AC_GetCapability_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/AC_Send_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/AC_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ActivateCredential_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ACT_SetTimeout_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ACT_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/AlgorithmCap_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/AlgorithmTests_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Attest_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Bits_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/BnConvert_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/BnMath_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/BnMemory_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CertifyCreation_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Certify_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CertifyX509_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ChangeEPS_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ChangePPS_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ClearControl_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Clear_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ClockRateAdjust_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ClockSet_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CommandAudit_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CommandCodeAttributes_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CommandDispatcher_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Commit_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ContextLoad_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ContextSave_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Context_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Create_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CreateLoaded_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CreatePrimary_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptCmac_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptDes_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptEccCrypt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptEccKeyExchange_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptEccMain_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptEccSignature_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptHash_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptPrime_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptPrimeSieve_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptRand_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptRsa_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptSelfTest_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptSmac_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptSym_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/CryptUtil_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/DA_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/DictionaryAttackLockReset_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/DictionaryAttackParameters_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Duplicate_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ECC_Decrypt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ECC_Encrypt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ECC_Parameters_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ECDH_KeyGen_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ECDH_ZGen_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/EC_Ephemeral_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/EncryptDecrypt2_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/EncryptDecrypt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/EncryptDecrypt_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Entity_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/EventSequenceComplete_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/EvictControl_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ExecCommand_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/FieldUpgradeData_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/FieldUpgradeStart_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/FirmwareRead_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/FlushContext_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/GetCapability_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/GetCommandAuditDigest_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/GetRandom_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/GetSessionAuditDigest_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/GetTestResult_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/GetTime_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Handle_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Hash_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/HashSequenceStart_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/HierarchyChangeAuth_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/HierarchyControl_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Hierarchy_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/HMAC_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/HMAC_Start_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Import_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/IncrementalSelfTest_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/IoBuffers_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/LoadExternal_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Load_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Locality_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/MAC_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/MAC_Start_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/MakeCredential_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Manufacture_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Marshal_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/MathOnByteBuffers_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Memory_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_Certify_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_ChangeAuth_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_DefineSpace_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NvDynamic_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_Extend_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_GlobalWriteLock_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_Increment_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_Read_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_ReadLock_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_ReadPublic_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NvReserved_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_SetBits_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_UndefineSpace_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_UndefineSpaceSpecial_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_Write_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/NV_WriteLock_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ObjectChangeAuth_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Object_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Object_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_Allocate_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_Event_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_Extend_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_Read_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_Reset_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_SetAuthPolicy_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PCR_SetAuthValue_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Policy_AC_SendSelect_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyAuthorize_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyAuthorizeNV_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyAuthValue_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyCommandCode_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyCounterTimer_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyCpHash_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyDuplicationSelect_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyGetDigest_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyLocality_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyNameHash_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyNV_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyNvWritten_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyOR_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyPassword_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyPCR_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyPhysicalPresence_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyRestart_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicySecret_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicySigned_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Policy_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyTemplate_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PolicyTicket_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Power_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PP_Commands_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PP_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/PropertyCap_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Quote_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ReadClock_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ReadPublic_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ResponseCodeProcessing_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Response_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Rewrap_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/RSA_Decrypt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/RSA_Encrypt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/RsaKeyCache_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SelfTest_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SequenceComplete_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SequenceUpdate_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Session_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SessionProcess_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SetAlgorithmSet_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SetCommandCodeAuditStatus_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/SetPrimaryPolicy_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Shutdown_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Sign_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/StartAuthSession_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Startup_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/StirRandom_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TableDrivenMarshal_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TestParms_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Ticket_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Time_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TpmASN1_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TpmFail_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/_TPM_Hash_Data_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/_TPM_Hash_End_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/_TPM_Hash_Start_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/_TPM_Init_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TpmSizeChecks_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TpmToMbedMath_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TpmToMbedSupport_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/TpmToMbedSym_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Unseal_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/Vendor_TCG_Test_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/VerifySignature_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/X509_ECC_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/X509_RSA_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/X509_spt_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/prototypes/ZGen_2Phase_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/RsaTestData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/SelfTest.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/SupportLibraryFunctionPrototypes_fp.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/swap.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/SymmetricTestData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/SymmetricTest.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TableMarshalDefines.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TableMarshal.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TableMarshalTypes.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TpmAlgorithmDefines.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TpmASN1.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TPMB.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TpmBuildSwitches.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TpmError.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/Tpm.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TpmProfile.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/TpmTypes.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/VendorString.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/tpm/include/X509.h
++)
++
++target_sources(tpm PRIVATE
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/Cancel.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/Clock.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/DebugHelpers.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/Entropy.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/LocalityPlat.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/NVMem.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/PlatformACT.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/PlatformData.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/PowerPlat.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/PPPlat.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/RunCommand.c
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/src/Unique.c
++)
++
++target_include_directories(tpm PUBLIC
++	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include>
++	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include/prototypes>
++	$<INSTALL_INTERFACE:include>
++)
++
++set_property(TARGET tpm APPEND PROPERTY PUBLIC_HEADER
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include/Platform.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include/PlatformACT.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include/PlatformClock.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include/PlatformData.h
++	${CMAKE_CURRENT_LIST_DIR}/TPMCmd/Platform/include/prototypes/Platform_fp.h
++)
++
++set(LIB_NAME ms_tpm)
++set(PKG_CONFIG_FILE "${CMAKE_CURRENT_LIST_DIR}/ms_tpmConfig.cmake.in")
++
++# Set default install location if none specified
++if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
++	set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "" FORCE)
++endif()
++
++# Specify export name and destinations for install
++install(TARGETS tpm
++	EXPORT ${LIB_NAME}_targets
++	ARCHIVE DESTINATION lib
++	LIBRARY DESTINATION lib
++	PUBLIC_HEADER DESTINATION include
++)
++
++# Create targets file.
++export(EXPORT ${LIB_NAME}_targets
++	FILE "${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Targets.cmake"
++	NAMESPACE ${LIB_NAME}::
++)
++
++# Create a config file package.
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++	"${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
++	VERSION 1
++	COMPATIBILITY SameMajorVersion
++)
++
++# Finalize config file.
++# Config package location relative to install root.
++set(ConfigPackageLocation ${CMAKE_INSTALL_PREFIX}/lib/cmake/${LIB_NAME})
++
++get_filename_component(_configured_pkgcfg_name "${PKG_CONFIG_FILE}" NAME_WLE)
++set(_configured_pkgcfg_name "${CMAKE_CURRENT_BINARY_DIR}/${_configured_pkgcfg_name}")
++configure_package_config_file("${PKG_CONFIG_FILE}" "${_configured_pkgcfg_name}"
++		INSTALL_DESTINATION ${ConfigPackageLocation}
++)
++
++# Install the export details
++install(EXPORT ${LIB_NAME}_targets
++	FILE ${LIB_NAME}Targets.cmake
++	NAMESPACE ${LIB_NAME}::
++	DESTINATION ${ConfigPackageLocation}
++	COMPONENT ${LIB_NAME}
++)
++
++# install config and version files
++install(FILES "${_configured_pkgcfg_name}" "${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
++	DESTINATION ${ConfigPackageLocation}
++	COMPONENT ${LIB_NAME}
++)
+diff --git a/ms_tpmConfig.cmake.in b/ms_tpmConfig.cmake.in
+new file mode 100644
+index 0000000..da70f71
+--- /dev/null
++++ b/ms_tpmConfig.cmake.in
+@@ -0,0 +1,10 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2024, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++@PACKAGE_INIT@
++
++include("${CMAKE_CURRENT_LIST_DIR}/ms_tpmTargets.cmake")
+-- 
+2.34.1
+

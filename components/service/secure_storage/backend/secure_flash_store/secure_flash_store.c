@@ -13,7 +13,9 @@
 #include <string.h>
 #include <stddef.h>
 
+#ifndef SFS_MAX_ASSET_SIZE
 #define SFS_MAX_ASSET_SIZE (4096) /* TODO: comes from flash layout */
+#endif
 #define SFS_CREATE_FLASH_LAYOUT /* TODO: move this to a proper place */
 
 #define SFS_INVALID_UID 0 /* TODO: are there any invalid UID-s? */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Arm Limited. All rights reserved.
+ * Copyright (c) 2024-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -609,8 +609,11 @@ struct update_agent *psa_fwu_m_update_agent_init(
 	const struct psa_fwu_m_image_mapping image_mapping[], size_t image_count,
 	uint32_t max_payload_size)
 {
+	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct psa_fwu_m_update_agent *context = NULL;
+	struct psa_fwu_component_info_t info = { 0 };
 	struct psa_fwu_m_image *images = NULL;
+	enum psa_fwu_m_state state = regular;
 	struct update_agent *agent = NULL;
 	size_t i = 0;
 
@@ -637,9 +640,23 @@ struct update_agent *psa_fwu_m_update_agent_init(
 	}
 
 	for (i = 0; i < image_count; i++) {
+		psa_status = psa_fwu_query(image_mapping[i].component, &info);
+		if (psa_status != PSA_SUCCESS) {
+			free(images);
+			free(context);
+			free(agent);
+			return NULL;
+		}
+
 		images[i].uuid = image_mapping[i].uuid;
 		images[i].component = image_mapping[i].component;
-		images[i].selected_for_staging = false;
+		if (info.state == PSA_FWU_TRIAL) {
+			images[i].selected_for_staging = true;
+			state = trial;
+		} else {
+			images[i].selected_for_staging = false;
+		}
+
 		images[i].read = NULL; /* Cannot read images */
 		images[i].write = image_write;
 	}
@@ -654,7 +671,7 @@ struct update_agent *psa_fwu_m_update_agent_init(
 	context->images = images;
 	context->image_count = image_count + 1;
 	context->max_payload_size = max_payload_size;
-	context->state = regular;
+	context->state = state;
 
 	agent->context = context;
 	agent->interface = &interface;

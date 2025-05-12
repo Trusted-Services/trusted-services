@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -20,6 +20,12 @@
 #ifndef COMMS_MHU_MSG_SIZE
 #define COMMS_MHU_MSG_SIZE 0x2200
 #endif
+
+/*
+ * This must be set beforehand, during the SP's initialization. This is
+ * the FF-A ID of the SP.
+ */
+extern uint16_t own_id;
 
 static uint8_t select_protocol_version(const struct psa_invec *in_vec, size_t in_len,
 				       const struct psa_outvec *out_vec, size_t out_len)
@@ -95,12 +101,24 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 	}
 
 	req->header.seq_num = seq_num;
-	/* No need to distinguish callers (currently concurrent calls are not supported). */
-	req->header.client_id = client_id;
+
+	/*
+	 * This is needed because the "0" is not accepted in TF-M so it has to be remapped
+	 * to a different value.
+	 * The SE-Proxy's own FFA ID is used as the new value. This is a viable option
+	 * because the SE-Proxy SP never originates requests itself, it just
+	 * forwards the requests of the other endpoints.
+	 */
+
+	if (client_id == 0)
+		req->header.client_id = own_id;
+	else
+		req->header.client_id = client_id;
+
 	req->header.protocol_ver = protocol_ver;
 
-	psa_status = rse_protocol_serialize_msg(handle, type, in_vec, in_len, out_vec, out_len, req,
-						&req_len);
+	psa_status = rse_protocol_serialize_msg(caller, handle, type, in_vec, in_len, out_vec,
+						out_len, req, &req_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Serialize msg failed: %d", psa_status);
 		return psa_status;
@@ -125,7 +143,8 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 	DMSG("client_id=%u", reply->header.client_id);
 	DMSG("resp_len=%lu", resp_len);
 
-	psa_status = rse_protocol_deserialize_reply(out_vec, out_len, &return_val, reply, resp_len);
+	psa_status = rse_protocol_deserialize_reply(caller, out_vec, out_len, &return_val, reply,
+						    resp_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Protocol deserialize reply failed: %d", psa_status);
 		return psa_status;

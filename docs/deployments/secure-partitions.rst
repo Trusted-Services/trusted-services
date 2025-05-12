@@ -113,6 +113,25 @@ provides a lightweight alternative to StMM. For more information, see:
     - * | Secure storage service instance (e.g. hosted by protected-storage SP)
       * | Crypto service instance (e.g. hosted crypto SP)
 
+ftpm
+----
+The fTPM deployment provides a software TPM 2.0 implementation in an SP, based
+on the `ms-tpm-20-ref` reference implementation. It exposes a TPM CRB interface
+over FF-A, conforming to the `Arm DEN0138` specification. For more information,
+see: :ref:`TPM 2.0 service`.
+
+.. list-table::
+  :widths: 1 2
+  :header-rows: 0
+
+  * - Supported Environments
+    - * *opteesp* (runs as an S-EL0 SP under OP-TEE)
+      * *sp* (SPMC agnostic S-EL0 SP format)
+  * - External Dependencies
+    - * | Secure storage service instance (e.g. hosted by protected-storage SP)
+      * | TRNG (platform specific)
+      * | Carveout for CRB memory regions
+
 env-test
 --------
 An instance of the test runner service provider is built into an SP image to

@@ -97,6 +97,8 @@ add_components(
 		"components/service/block_storage/block_store/client"
 		"components/service/block_storage/block_store/partitioned"
 		"components/service/block_storage/block_store/partitioned/test"
+		"components/service/block_storage/block_store/encrypted"
+		"components/service/block_storage/block_store/encrypted/test"
 		"components/service/block_storage/provider"
 		"components/service/block_storage/provider/serializer/packed-c"
 		"components/service/block_storage/config/ref"

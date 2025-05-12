@@ -92,11 +92,11 @@ TEST(RamBlockStoreTests, writeReadEraseBlock)
 	UNSIGNED_LONGS_EQUAL(BLOCK_SIZE, data_len);
 	MEMCMP_EQUAL(write_buffer, read_buffer, BLOCK_SIZE);
 
-	/* Attempt to write the same block again without an erase. Expect this to fail. */
+	/* Write to the previously written block in partition 2 should be successful */
 	memset(write_buffer, 0xbb, BLOCK_SIZE);
 	status = block_store_write(m_block_store, CLIENT_ID, handle, lba,
 		0, write_buffer, BLOCK_SIZE, &num_written);
-	LONGS_EQUAL(PSA_ERROR_STORAGE_FAILURE, status);
+	LONGS_EQUAL(PSA_SUCCESS, status);
 
 	/* Erase the block */
 	status = block_store_erase(m_block_store, CLIENT_ID, handle, lba, 1);

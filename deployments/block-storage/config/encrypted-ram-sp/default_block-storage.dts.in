@@ -1,0 +1,27 @@
+/*
+ * Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+@DTS_TAG@
+
+@DTS_NODE@ {
+	compatible = "arm,ffa-manifest-1.0";
+	ffa-version = <@CFG_FFA_VERSION@>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <@EXPORT_SP_UUID_DT@>;
+	description = "BlockStorage";
+	execution-ctx-count = <1>;
+	exception-level = <1>; /* S-EL0 */
+	execution-state = <0>; /* AArch64 */
+	xlat-granule = <0>; /* 4KiB */
+	boot-order = /bits/ 16 <@EXPORT_SP_BOOT_ORDER@>;
+	messaging-method = <3>; /* Direct messaging only */
+	ns-interrupts-action = <2>; /* Non-secure interrupts are signaled */
+
+	memory-regions {
+		compatible = "arm,ffa-manifest-memory-regions";
+
+		#include "@EXPORT_DTS_MEM_REGIONS@"
+	};
+};

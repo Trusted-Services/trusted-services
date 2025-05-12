@@ -1,0 +1,19 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2025, Arm Limited and Contributors. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+set(CMAKE_INSTALL_PREFIX @BUILD_INSTALL_DIR@ CACHE STRING "")
+set(CMAKE_TOOLCHAIN_FILE @TS_EXTERNAL_LIB_TOOLCHAIN_FILE@ CACHE STRING "")
+
+set(TPM_EXTRA_DEFINITIONS @TPM_EXTRA_DEFINITIONS@ CACHE STRING "Defines coming from Trusted Services")
+set(TPM_EXTRA_INCLUDES @TPM_EXTRA_INCLUDES@ CACHE STRING "Include paths coming from Trusted Services")
+
+string(TOUPPER @CMAKE_CROSSCOMPILING@ CMAKE_CROSSCOMPILING) # CMake expects TRUE
+if (CMAKE_CROSSCOMPILING)
+	set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE STRING "")
+endif()
+
+@_cmake_fragment@

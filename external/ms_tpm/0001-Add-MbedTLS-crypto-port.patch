@@ -1,0 +1,1287 @@
+From 3e974d38472520577aead8f861e71ac48d2acd5e Mon Sep 17 00:00:00 2001
+From: Balint Dobszay <balint.dobszay@arm.com>
+Date: Wed, 25 Sep 2024 17:41:43 +0200
+Subject: [PATCH 1/3] Add MbedTLS crypto port
+
+Add a new crypto port that uses MbedTLS. The code is based on the crypto
+port code for OpenSSL and WolfSSL found in this repo.
+
+The autotools build system is changed to use MbedTLS by default. This
+makes it possible to simply build the TPM and the simulator for the
+host system, and run e.g. tpm2_tools commands against it. Make sure that
+MbedTLS can be found by pkg-config, i.e. it's either installed to some
+system default location, or pkg-config is configured to find the custom
+installation. Tested with MbedTLS v3.6.0, the older v2.x that comes with
+Ubuntu 22.04 and 24.04 is not compatible.
+
+The build on the host system is done by these commands:
+cd TPMCmd
+./bootstrap
+./configure
+make
+
+To start the simulator, run:
+./TPMCmd/Simulator/src/tpm2-simulator -m
+
+This creates an NVChip file, which is the non-volatile memory of the
+TPM. If something goes wrong and the TPM ends up in a bad state, just
+delete this file and restart the simulator.
+
+To run tpm2_tools commands against the sim, in a separate terminal run:
+export TPM2TOOLS_TCTI=mssim:host=localhost,port=2321
+tpm2_startup -c
+tpm2_getrandom --hex 4
+...
+
+Signed-off-by: Balint Dobszay <balint.dobszay@arm.com>
+Change-Id: I0abfab17918f0b1917e9ca30d30f7fe781cceca2
+---
+ TPMCmd/configure.ac                           |   8 +-
+ TPMCmd/tpm/include/Mbed/TpmToMbedHash.h       | 158 +++++++
+ TPMCmd/tpm/include/Mbed/TpmToMbedMath.h       |  87 ++++
+ TPMCmd/tpm/include/Mbed/TpmToMbedSym.h        |  98 +++++
+ .../tpm/include/prototypes/TpmToMbedMath_fp.h | 160 +++++++
+ .../include/prototypes/TpmToMbedSupport_fp.h  |  44 ++
+ .../tpm/include/prototypes/TpmToMbedSym_fp.h  |  51 +++
+ TPMCmd/tpm/src/crypt/mbed/TpmToMbedMath.c     | 407 ++++++++++++++++++
+ TPMCmd/tpm/src/crypt/mbed/TpmToMbedSupport.c  |  46 ++
+ TPMCmd/tpm/src/crypt/mbed/TpmToMbedSym.c      |  94 ++++
+ 10 files changed, 1149 insertions(+), 4 deletions(-)
+ create mode 100644 TPMCmd/tpm/include/Mbed/TpmToMbedHash.h
+ create mode 100644 TPMCmd/tpm/include/Mbed/TpmToMbedMath.h
+ create mode 100644 TPMCmd/tpm/include/Mbed/TpmToMbedSym.h
+ create mode 100644 TPMCmd/tpm/include/prototypes/TpmToMbedMath_fp.h
+ create mode 100644 TPMCmd/tpm/include/prototypes/TpmToMbedSupport_fp.h
+ create mode 100644 TPMCmd/tpm/include/prototypes/TpmToMbedSym_fp.h
+ create mode 100644 TPMCmd/tpm/src/crypt/mbed/TpmToMbedMath.c
+ create mode 100644 TPMCmd/tpm/src/crypt/mbed/TpmToMbedSupport.c
+ create mode 100644 TPMCmd/tpm/src/crypt/mbed/TpmToMbedSym.c
+
+diff --git a/TPMCmd/configure.ac b/TPMCmd/configure.ac
+index 58a74b4..d3ebfba 100644
+--- a/TPMCmd/configure.ac
++++ b/TPMCmd/configure.ac
+@@ -51,16 +51,16 @@ AC_ARG_ENABLE(usedeviceid,
+     AS_HELP_STRING([--enable-usedeviceid],
+     [tpm simulator get seeds derived from hardware parameters. Seeds are not derived from secure hardware source.]))
+ 
+-PKG_CHECK_MODULES([LIBCRYPTO], [libcrypto])
++PKG_CHECK_MODULES([LIBCRYPTO], [mbedcrypto])
+ AS_IF([test "x$enable_usedeviceid" = "xyes"], [
+     PKG_CHECK_MODULES([LIBUDEV], [libudev])
+     [ADDITIONAL_LIBS="-ludev"]
+ ])
+ AX_PTHREAD([], [AC_MSG_ERROR([requires pthread])])
+ 
+-AC_DEFINE([HASH_LIB], [Ossl], [Crypto lib for hash algorithms])
+-AC_DEFINE([SYM_LIB], [Ossl], [Crypto lib for symmetric encryption algorithms])
+-AC_DEFINE([MATH_LIB], [Ossl], [Crypto lib for bignum operations])
++AC_DEFINE([HASH_LIB], [Mbed], [Crypto lib for hash algorithms])
++AC_DEFINE([SYM_LIB], [Mbed], [Crypto lib for symmetric encryption algorithms])
++AC_DEFINE([MATH_LIB], [Mbed], [Crypto lib for bignum operations])
+ 
+ ADD_COMPILER_FLAG([-std=gnu11])
+ ADD_COMPILER_FLAG([-Werror])
+diff --git a/TPMCmd/tpm/include/Mbed/TpmToMbedHash.h b/TPMCmd/tpm/include/Mbed/TpmToMbedHash.h
+new file mode 100644
+index 0000000..2fec472
+--- /dev/null
++++ b/TPMCmd/tpm/include/Mbed/TpmToMbedHash.h
+@@ -0,0 +1,158 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef HASH_LIB_DEFINED
++#define HASH_LIB_DEFINED
++
++#define HASH_LIB_MBED
++
++#define HASH_ALIGNMENT RADIX_BYTES
++
++#if ALG_SM3_256
++#  undef ALG_SM3_256
++#  define ALG_SM3_256 ALG_NO
++#  error "SM3 is not available"
++#endif
++
++#include <mbedtls/sha1.h>
++#include <mbedtls/sha256.h>
++#include <mbedtls/sha512.h>
++
++#define tpmHashStateSHA1_t   mbedtls_sha1_context
++#define tpmHashStateSHA256_t mbedtls_sha256_context
++#define tpmHashStateSHA384_t mbedtls_sha512_context
++#define tpmHashStateSHA512_t mbedtls_sha512_context
++
++#ifdef _CRYPT_HASH_C_
++
++typedef BYTE*       PBYTE;
++typedef const BYTE* PCBYTE;
++
++// Initialize the hash context
++#  define HASH_START_METHOD_DEF void(HASH_START_METHOD)(PANY_HASH_STATE state)
++#  define HASH_START(hashState) ((hashState)->def->method.start)(&(hashState)->state);
++
++// Add data to the hash
++#  define HASH_DATA_METHOD_DEF \
++    void(HASH_DATA_METHOD)(PANY_HASH_STATE state, PCBYTE buffer, size_t size)
++#  define HASH_DATA(hashState, dInSize, dIn) \
++    ((hashState)->def->method.data)(&(hashState)->state, dIn, dInSize)
++
++// Finalize the hash and get the digest
++#  define HASH_END_METHOD_DEF \
++    void(HASH_END_METHOD)(PANY_HASH_STATE state, BYTE * buffer)
++#  define HASH_END(hashState, buffer) \
++    ((hashState)->def->method.end)(&(hashState)->state, buffer)
++
++// Copy the hash context
++// Note: For import, export, and copy, memcpy() is used since there is no
++// reformatting necessary between the internal and external forms.
++#  define HASH_STATE_COPY_METHOD_DEF \
++    void(HASH_STATE_COPY_METHOD)(    \
++        PANY_HASH_STATE to, PCANY_HASH_STATE from, size_t size)
++#  define HASH_STATE_COPY(hashStateOut, hashStateIn)          \
++    ((hashStateIn)->def->method.copy)(&(hashStateOut)->state, \
++                                      &(hashStateIn)->state,  \
++                                      (hashStateIn)->def->contextSize)
++
++// Copy (with reformatting when necessary) an internal hash structure to an
++// external blob
++#  define HASH_STATE_EXPORT_METHOD_DEF \
++    void(HASH_STATE_EXPORT_METHOD)(BYTE * to, PCANY_HASH_STATE from, size_t size)
++#  define HASH_STATE_EXPORT(to, hashStateFrom)         \
++    ((hashStateFrom)->def->method.copyOut)(            \
++        &(((BYTE*)(to))[offsetof(HASH_STATE, state)]), \
++        &(hashStateFrom)->state,                       \
++        (hashStateFrom)->def->contextSize)
++
++// Copy from an external blob to an internal formate (with reformatting when
++// necessary
++#  define HASH_STATE_IMPORT_METHOD_DEF \
++    void(HASH_STATE_IMPORT_METHOD)(PANY_HASH_STATE to, const BYTE* from, size_t size)
++#  define HASH_STATE_IMPORT(hashStateTo, from)                 \
++    ((hashStateTo)->def->method.copyIn)(                       \
++        &(hashStateTo)->state,                                 \
++        &(((const BYTE*)(from))[offsetof(HASH_STATE, state)]), \
++        (hashStateTo)->def->contextSize)
++
++static inline int sha256_start(void *hash_state)
++{
++    return mbedtls_sha256_starts(hash_state, 0);
++}
++
++static inline int sha384_start(void *hash_state)
++{
++    return mbedtls_sha512_starts(hash_state, 1);
++}
++
++static inline int sha512_start(void *hash_state)
++{
++    return mbedtls_sha512_starts(hash_state, 0);
++}
++
++// Function aliases. The code in CryptHash.c uses the internal designation for the
++// functions. These need to be translated to the function names of the library.
++#  define tpmHashStart_SHA1         mbedtls_sha1_starts
++#  define tpmHashData_SHA1          mbedtls_sha1_update
++#  define tpmHashEnd_SHA1           mbedtls_sha1_finish
++#  define tpmHashStateCopy_SHA1     memcpy
++#  define tpmHashStateExport_SHA1   memcpy
++#  define tpmHashStateImport_SHA1   memcpy
++#  define tpmHashStart_SHA256       sha256_start
++#  define tpmHashData_SHA256        mbedtls_sha256_update
++#  define tpmHashEnd_SHA256         mbedtls_sha256_finish
++#  define tpmHashStateCopy_SHA256   memcpy
++#  define tpmHashStateExport_SHA256 memcpy
++#  define tpmHashStateImport_SHA256 memcpy
++#  define tpmHashStart_SHA384       sha384_start
++#  define tpmHashData_SHA384        mbedtls_sha512_update
++#  define tpmHashEnd_SHA384         mbedtls_sha512_finish
++#  define tpmHashStateCopy_SHA384   memcpy
++#  define tpmHashStateExport_SHA384 memcpy
++#  define tpmHashStateImport_SHA384 memcpy
++#  define tpmHashStart_SHA512       sha512_start
++#  define tpmHashData_SHA512        mbedtls_sha512_update
++#  define tpmHashEnd_SHA512         mbedtls_sha512_finish
++#  define tpmHashStateCopy_SHA512   memcpy
++#  define tpmHashStateExport_SHA512 memcpy
++#  define tpmHashStateImport_SHA512 memcpy
++
++#endif  // _CRYPT_HASH_C_
++
++#define LibHashInit()
++#define HashLibSimulationEnd()
++
++#endif  // HASH_LIB_DEFINED
+diff --git a/TPMCmd/tpm/include/Mbed/TpmToMbedMath.h b/TPMCmd/tpm/include/Mbed/TpmToMbedMath.h
+new file mode 100644
+index 0000000..59edef8
+--- /dev/null
++++ b/TPMCmd/tpm/include/Mbed/TpmToMbedMath.h
+@@ -0,0 +1,87 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef MATH_LIB_DEFINED
++#define MATH_LIB_DEFINED
++
++#define MATH_LIB_MBED
++
++#include <mbedtls/bignum.h>
++#include <mbedtls/ecp.h>
++#include <mbedtls/psa_util.h>
++
++// Make sure that the library is using the correct size for a crypt word
++#if (defined MBEDTLS_HAVE_INT32 && (RADIX_BITS != 32)) || \
++    (defined MBEDTLS_HAVE_INT64 && (RADIX_BITS != 64))
++#  error MbedTLS library is using different radix
++#endif
++
++#define MBEDTLS_OK 0
++
++#define MPI_INITIALIZED(name, initializer) \
++  mbedtls_mpi _##name; \
++  mbedtls_mpi* name = MpiInitialize(&_##name); \
++  BnToMbed(name, initializer);
++
++#define MPI_DELETE(name) \
++  mbedtls_mpi_free(&_##name);
++
++#define POINT_CREATE(name) \
++  mbedtls_ecp_point name; \
++  mbedtls_ecp_point_init(&name);
++
++#define POINT_DELETE(name) \
++  mbedtls_ecp_point_free(&name);
++
++typedef struct
++{
++    const ECC_CURVE_DATA *C; // the TPM curve values
++    mbedtls_ecp_group     G; // group parameters
++} MBED_CURVE_DATA;
++
++typedef MBED_CURVE_DATA *bigCurve;
++
++#define AccessCurveData(E) ((E)->C)
++
++#define CURVE_INITIALIZED(name, initializer) \
++  MBED_CURVE_DATA _##name; \
++  bigCurve name = BnCurveInitialize(&_##name, initializer)
++
++#define CURVE_FREE(name) BnCurveFree(name)
++
++#define MathLibSimulationEnd()
++
++#endif  // MATH_LIB_DEFINED
+diff --git a/TPMCmd/tpm/include/Mbed/TpmToMbedSym.h b/TPMCmd/tpm/include/Mbed/TpmToMbedSym.h
+new file mode 100644
+index 0000000..db697d0
+--- /dev/null
++++ b/TPMCmd/tpm/include/Mbed/TpmToMbedSym.h
+@@ -0,0 +1,98 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef SYM_LIB_DEFINED
++#define SYM_LIB_DEFINED
++
++#define SYM_LIB_MBED
++
++#include <mbedtls/aes.h>
++
++#if ALG_TDES
++#  include <mbedtls/des.h>
++#endif
++
++#if ALG_SM4
++#  undef ALG_SM4
++#  define ALG_SM4 ALG_NO
++#  error "SM4 is not available"
++#endif
++
++#if ALG_CAMELLIA
++#  include <mbedtls/camellia.h>
++#endif
++
++#include "TpmToMbedSym_fp.h"
++
++#define SWIZZLE(keySchedule, in, out) \
++  (const BYTE*)(in), (BYTE*)(out), (void*)(keySchedule)
++
++typedef void (*TpmCryptSetSymKeyCall_t)(const BYTE* in, BYTE* out, void* keySchedule);
++
++#define SYM_ALIGNMENT RADIX_BYTES
++
++#define TpmCryptSetEncryptKeyAES(key, keySizeInBits, schedule) \
++  mbedtls_aes_setkey_enc((tpmKeyScheduleAES*)(schedule), key, keySizeInBits)
++#define TpmCryptSetDecryptKeyAES(key, keySizeInBits, schedule) \
++  mbedtls_aes_setkey_dec((tpmKeyScheduleAES*)(schedule), key, keySizeInBits)
++
++#define TpmCryptEncryptAES AES_encrypt
++#define TpmCryptDecryptAES AES_decrypt
++#define tpmKeyScheduleAES  mbedtls_aes_context
++
++#define TpmCryptSetEncryptKeyTDES(key, keySizeInBits, schedule) \
++  TDES_set_encrypt_key((key), (keySizeInBits), (tpmKeyScheduleTDES*)(schedule))
++#define TpmCryptSetDecryptKeyTDES(key, keySizeInBits, schedule) \
++  TDES_set_decrypt_key((key), (keySizeInBits), (tpmKeyScheduleTDES*)(schedule))
++
++#define TpmCryptEncryptTDES(in, out, keySchedule) mbedtls_des3_crypt_ecb((keySchedule), (in), (out))
++#define TpmCryptDecryptTDES(in, out, keySchedule) mbedtls_des3_crypt_ecb((keySchedule), (in), (out))
++#define tpmKeyScheduleTDES  mbedtls_des3_context
++
++#define TpmCryptSetEncryptKeyCAMELLIA(key, keySizeInBits, schedule) \
++  mbedtls_camellia_setkey_enc((tpmKeyScheduleCAMELLIA*)(schedule), (key), (keySizeInBits))
++#define TpmCryptSetDecryptKeyCAMELLIA(key, keySizeInBits, schedule) \
++  mbedtls_camellia_setkey_dec((tpmKeyScheduleCAMELLIA*)(schedule), (key), (keySizeInBits))
++
++#define TpmCryptEncryptCAMELLIA CAMELLIA_encrypt
++#define TpmCryptDecryptCAMELLIA CAMELLIA_decrypt
++#define tpmKeyScheduleCAMELLIA  mbedtls_camellia_context
++
++typedef union tpmCryptKeySchedule_t tpmCryptKeySchedule_t;
++
++#define SymLibSimulationEnd()
++
++#endif  // SYM_LIB_DEFINED
+diff --git a/TPMCmd/tpm/include/prototypes/TpmToMbedMath_fp.h b/TPMCmd/tpm/include/prototypes/TpmToMbedMath_fp.h
+new file mode 100644
+index 0000000..ac03575
+--- /dev/null
++++ b/TPMCmd/tpm/include/prototypes/TpmToMbedMath_fp.h
+@@ -0,0 +1,160 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef _TPM_TO_MBED_MATH_FP_H_
++#define _TPM_TO_MBED_MATH_FP_H_
++
++#ifdef MATH_LIB_MBED
++
++void BnFromMbed(bigNum bn, mbedtls_mpi *mbedBn);
++void BnToMbed(mbedtls_mpi *toInit, bigConst initializer);
++mbedtls_mpi *MpiInitialize(mbedtls_mpi *toInit);
++
++#  if LIBRARY_COMPATIBILITY_CHECK
++BOOL MathLibraryCompatibilityCheck(void);
++#  endif
++
++//*** BnModMult()
++// This function does a modular multiply. It first does a multiply and then a divide
++// and returns the remainder of the divide.
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation
++LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst modulus);
++
++//*** BnMult()
++// Multiplies two numbers
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation
++LIB_EXPORT BOOL BnMult(bigNum result, bigConst multiplicand, bigConst multiplier);
++
++//*** BnDiv()
++// This function divides two bigNum values. The function returns FALSE if
++// there is an error in the operation.
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation
++LIB_EXPORT BOOL BnDiv(
++    bigNum quotient, bigNum remainder, bigConst dividend, bigConst divisor);
++
++#  if ALG_RSA
++//*** BnGcd()
++// Get the greatest common divisor of two numbers
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation
++LIB_EXPORT BOOL BnGcd(bigNum   gcd,      // OUT: the common divisor
++                      bigConst number1,  // IN:
++                      bigConst number2   // IN:
++);
++
++//***BnModExp()
++// Do modular exponentiation using bigNum values. The conversion from a bignum_t to
++// a bigNum is trivial as they are based on the same structure
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation
++LIB_EXPORT BOOL BnModExp(bigNum   result,    // OUT: the result
++                         bigConst number,    // IN: number to exponentiate
++                         bigConst exponent,  // IN:
++                         bigConst modulus    // IN:
++);
++
++//*** BnModInverse()
++// Modular multiplicative inverse
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation
++LIB_EXPORT BOOL BnModInverse(bigNum result, bigConst number, bigConst modulus);
++#  endif  // ALG_RSA
++#  if ALG_ECC
++
++//*** BnCurveInitialize()
++// This function initializes the curve information structure. This
++// structure points to the TPM-defined values for the curve, to the context for the
++// number values in the frame, and to the defined group values.
++//  Return Type: bigCurve *
++//      NULL        the TPM_ECC_CURVE is not valid or there was a problem in
++//                  in initializing the curve data
++//      non-NULL    points to 'E'
++LIB_EXPORT bigCurve BnCurveInitialize(
++    bigCurve      E,       // IN: curve structure to initialize
++    TPM_ECC_CURVE curveId  // IN: curve identifier
++);
++
++//*** BnCurveFree()
++// This function will free the allocated components of the curve and end the
++// frame in which the curve data exists
++LIB_EXPORT void BnCurveFree(bigCurve E);
++
++//*** BnEccModMult()
++// This function does a point multiply of the form R = [d]S
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation; treat as result being point at infinity
++LIB_EXPORT BOOL BnEccModMult(bigPoint   R,  // OUT: computed point
++                             pointConst S,  // IN: point to multiply by 'd' (optional)
++                             bigConst   d,  // IN: scalar for [d]S
++                             bigCurve   E);
++
++//*** BnEccModMult2()
++// This function does a point multiply of the form R = [d]G + [u]Q
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation; treat as result being point at infinity
++LIB_EXPORT BOOL BnEccModMult2(bigPoint   R,  // OUT: computed point
++                              pointConst S,  // IN: optional point
++                              bigConst   d,  // IN: scalar for [d]S or [d]G
++                              pointConst Q,  // IN: second point
++                              bigConst   u,  // IN: second scalar
++                              bigCurve   E   // IN: curve
++);
++
++//** BnEccAdd()
++// This function does addition of two points.
++//  Return Type: BOOL
++//      TRUE(1)         success
++//      FALSE(0)        failure in operation; treat as result being point at infinity
++LIB_EXPORT BOOL BnEccAdd(bigPoint   R,  // OUT: computed point
++                         pointConst S,  // IN: point to multiply by 'd'
++                         pointConst Q,  // IN: second point
++                         bigCurve   E   // IN: curve
++);
++#  endif  // ALG_ECC
++#endif    // MATHLIB_MBED
++
++#endif  // _TPM_TO_MBED_MATH_FP_H_
+diff --git a/TPMCmd/tpm/include/prototypes/TpmToMbedSupport_fp.h b/TPMCmd/tpm/include/prototypes/TpmToMbedSupport_fp.h
+new file mode 100644
+index 0000000..72e666e
+--- /dev/null
++++ b/TPMCmd/tpm/include/prototypes/TpmToMbedSupport_fp.h
+@@ -0,0 +1,44 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef _TPM_TO_MBED_SUPPORT_FP_H_
++#define _TPM_TO_MBED_SUPPORT_FP_H_
++
++#if defined(HASH_LIB_MBED) || defined(MATH_LIB_MBED) || defined(SYM_LIB_MBED)
++LIB_EXPORT int SupportLibInit(void);
++#endif  // HASH_LIB_MBED || MATH_LIB_MBED || SYM_LIB_MBED
++
++#endif  // _TPM_TO_MBED_SUPPORT_FP_H_
+diff --git a/TPMCmd/tpm/include/prototypes/TpmToMbedSym_fp.h b/TPMCmd/tpm/include/prototypes/TpmToMbedSym_fp.h
+new file mode 100644
+index 0000000..7aad912
+--- /dev/null
++++ b/TPMCmd/tpm/include/prototypes/TpmToMbedSym_fp.h
+@@ -0,0 +1,51 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef _TPM_TO_MBED_SYM_FP_H_
++#define _TPM_TO_MBED_SYM_FP_H_
++
++#ifdef SYM_LIB_MBED
++
++int TDES_set_encrypt_key(const BYTE *key, UINT16 keySizeInBits, void *keySchedule);
++int TDES_set_decrypt_key(const BYTE *key, UINT16 keySizeInBits, void *keySchedule);
++int AES_encrypt(const BYTE *in, BYTE *out, void *keySchedule);
++int AES_decrypt(const BYTE *in, BYTE *out, void *keySchedule);
++int CAMELLIA_encrypt(const BYTE *in, BYTE *out, void *keySchedule);
++int CAMELLIA_decrypt(const BYTE *in, BYTE *out, void *keySchedule);
++
++#endif  // SYM_LIB_MBED
++
++#endif  // _TPM_TO_MBED_SYM_FP_H_
+diff --git a/TPMCmd/tpm/src/crypt/mbed/TpmToMbedMath.c b/TPMCmd/tpm/src/crypt/mbed/TpmToMbedMath.c
+new file mode 100644
+index 0000000..bad931b
+--- /dev/null
++++ b/TPMCmd/tpm/src/crypt/mbed/TpmToMbedMath.c
+@@ -0,0 +1,407 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "Tpm.h"
++
++#ifdef MATH_LIB_MBED
++#  include "BnConvert_fp.h"
++#  include "TpmToMbedMath_fp.h"
++
++// This function converts a mbedtls_mpi to a TPM bignum. In this implementation
++// it is assumed that MbedTLS uses the same format for a big number as does the
++// TPM -- an array of native-endian words in little-endian order.
++void BnFromMbed(bigNum bn, mbedtls_mpi *mbedBn)
++{
++    uint32_t i;
++
++    if(bn != NULL) {
++        pAssert((unsigned)mbedBn->private_n <= BnGetAllocated(bn));
++
++        for(i = 0; i < mbedBn->private_n; i++)
++            bn->d[i] = mbedBn->private_p[i];
++
++        BnSetTop(bn, mbedBn->private_n);
++    }
++}
++
++// This function converts a TPM bignum to a mbedtls_mpi, and has the same
++// assumptions as made by BnFromMbed()
++void BnToMbed(mbedtls_mpi *toInit, bigConst initializer)
++{
++    uint32_t i;
++
++    if(toInit != NULL && initializer != NULL) {
++        mbedtls_mpi_grow(toInit, initializer->size);
++
++        for(i = 0; i < initializer->size; i++)
++            toInit->private_p[i] = initializer->d[i];
++
++        toInit->private_n = initializer->size;
++        /* TPM bignums are never negative, we can fix the sign to 1 */
++        toInit->private_s = 1;
++    }
++}
++
++mbedtls_mpi *MpiInitialize(mbedtls_mpi *toInit)
++{
++    mbedtls_mpi_init(toInit);
++    return toInit;
++}
++
++#  if LIBRARY_COMPATIBILITY_CHECK
++BOOL MathLibraryCompatibilityCheck(void)
++{
++    BN_VAR(tpmTemp, 64 * 8);
++    crypt_uword_t i;
++    TPM2B_TYPE(TEST, 16);
++    TPM2B_TEST test = {{16,
++                        {0x0F,
++                         0x0E,
++                         0x0D,
++                         0x0C,
++                         0x0B,
++                         0x0A,
++                         0x09,
++                         0x08,
++                         0x07,
++                         0x06,
++                         0x05,
++                         0x04,
++                         0x03,
++                         0x02,
++                         0x01,
++                         0x00}}};
++    // Convert the test TPM2B to a bigNum
++    BnFrom2B(tpmTemp, &test.b);
++    MPI_INITIALIZED(mbedTemp, tpmTemp);
++    // Make sure the values are consistent
++    VERIFY(mbedTemp->private_n * sizeof(mbedtls_mpi_uint)
++           == (int)tpmTemp->size * sizeof(crypt_uword_t));
++    for(i = 0; i < tpmTemp->size; i++)
++        VERIFY(((crypt_uword_t*)mbedTemp->private_p)[i] == tpmTemp->d[i]);
++
++    MPI_DELETE(mbedTemp);
++    return 1;
++Error:
++    return 0;
++}
++#  endif
++
++LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst modulus)
++{
++    BOOL OK;
++    MPI_INITIALIZED(bnOp1, op1);
++    MPI_INITIALIZED(bnOp2, op2);
++    MPI_INITIALIZED(bnTemp, NULL);
++    BN_VAR(temp, LARGEST_NUMBER_BITS * 2);
++
++    pAssert(BnGetAllocated(result) >= BnGetSize(modulus));
++
++    OK = (mbedtls_mpi_mul_mpi(bnTemp, bnOp1, bnOp2) == MBEDTLS_OK);
++    if(OK) {
++        BnFromMbed(temp, bnTemp);
++        OK = BnDiv(NULL, result, temp, modulus);
++    }
++
++    MPI_DELETE(bnOp1);
++    MPI_DELETE(bnOp2);
++    MPI_DELETE(bnTemp);
++
++    return OK;
++}
++
++LIB_EXPORT BOOL BnMult(bigNum result, bigConst multiplicand, bigConst multiplier)
++{
++    BOOL OK;
++    MPI_INITIALIZED(bnTemp, NULL);
++    MPI_INITIALIZED(bnA, multiplicand);
++    MPI_INITIALIZED(bnB, multiplier);
++
++    pAssert(result->allocated >= (BITS_TO_CRYPT_WORDS(
++                BnSizeInBits(multiplicand) + BnSizeInBits(multiplier))));
++
++    OK = (mbedtls_mpi_mul_mpi(bnTemp, bnA, bnB) == MBEDTLS_OK);
++    if(OK) {
++        BnFromMbed(result, bnTemp);
++    }
++
++    MPI_DELETE(bnTemp);
++    MPI_DELETE(bnA);
++    MPI_DELETE(bnB);
++
++    return OK;
++}
++
++LIB_EXPORT BOOL BnDiv(bigNum quotient, bigNum remainder, bigConst dividend, bigConst divisor)
++{
++    BOOL OK;
++    MPI_INITIALIZED(bnQ, quotient);
++    MPI_INITIALIZED(bnR, remainder);
++    MPI_INITIALIZED(bnDend, dividend);
++    MPI_INITIALIZED(bnSor, divisor);
++
++    pAssert(!BnEqualZero(divisor));
++    if(BnGetSize(dividend) < BnGetSize(divisor)) {
++        if(quotient)
++            BnSetWord(quotient, 0);
++        if(remainder)
++            BnCopy(remainder, dividend);
++        OK = TRUE;
++    } else {
++        pAssert((quotient == NULL) ||
++                (quotient->allocated >= (unsigned)(dividend->size - divisor->size)));
++        pAssert((remainder == NULL) || (remainder->allocated >= divisor->size));
++        OK = (mbedtls_mpi_div_mpi(bnQ, bnR, bnDend, bnSor) == MBEDTLS_OK);
++        if(OK) {
++            BnFromMbed(quotient, bnQ);
++            BnFromMbed(remainder, bnR);
++        }
++    }
++
++    MPI_DELETE(bnQ);
++    MPI_DELETE(bnR);
++    MPI_DELETE(bnDend);
++    MPI_DELETE(bnSor);
++
++    return OK;
++}
++
++#  if ALG_RSA
++LIB_EXPORT BOOL BnGcd(bigNum gcd,bigConst number1, bigConst number2)
++{
++    BOOL OK;
++    MPI_INITIALIZED(bnGcd, gcd);
++    MPI_INITIALIZED(bn1, number1);
++    MPI_INITIALIZED(bn2, number2);
++
++    pAssert(gcd != NULL);
++    OK = (mbedtls_mpi_gcd(bnGcd, bn1, bn2) == MBEDTLS_OK);
++    if(OK) {
++        BnFromMbed(gcd, bnGcd);
++    }
++
++    MPI_DELETE(bnGcd);
++    MPI_DELETE(bn1);
++    MPI_DELETE(bn2);
++
++    return OK;
++}
++
++LIB_EXPORT BOOL BnModExp(bigNum result, bigConst number, bigConst exponent, bigConst modulus)
++{
++    BOOL OK;
++    MPI_INITIALIZED(bnResult, result);
++    MPI_INITIALIZED(bnN, number);
++    MPI_INITIALIZED(bnE, exponent);
++    MPI_INITIALIZED(bnM, modulus);
++
++    OK = (mbedtls_mpi_exp_mod(bnResult, bnN, bnE, bnM, NULL) == MBEDTLS_OK);
++    if(OK) {
++        BnFromMbed(result, bnResult);
++    }
++
++    MPI_DELETE(bnResult);
++    MPI_DELETE(bnN);
++    MPI_DELETE(bnE);
++    MPI_DELETE(bnM);
++
++    return OK;
++}
++
++LIB_EXPORT BOOL BnModInverse(bigNum result, bigConst number, bigConst modulus)
++{
++    BOOL OK;
++    MPI_INITIALIZED(bnResult, result);
++    MPI_INITIALIZED(bnN, number);
++    MPI_INITIALIZED(bnM, modulus);
++
++    OK = (mbedtls_mpi_inv_mod(bnResult, bnN, bnM) == MBEDTLS_OK);
++    if(OK) {
++        BnFromMbed(result, bnResult);
++    }
++
++    MPI_DELETE(bnResult);
++    MPI_DELETE(bnN);
++    MPI_DELETE(bnM);
++
++    return OK;
++}
++#  endif  // TPM_ALG_RSA
++
++#  if ALG_ECC
++
++void PointFromMbed(bigPoint pOut, mbedtls_ecp_point* pIn)
++{
++    BnFromMbed(pOut->x, &pIn->private_X);
++    BnFromMbed(pOut->y, &pIn->private_Y);
++    BnFromMbed(pOut->z, &pIn->private_Z);
++}
++
++void PointToMbed(mbedtls_ecp_point* pOut, pointConst pIn)
++{
++    BnToMbed(&pOut->private_X, pIn->x);
++    BnToMbed(&pOut->private_Y, pIn->y);
++    BnToMbed(&pOut->private_Z, pIn->z);
++}
++
++LIB_EXPORT bigCurve BnCurveInitialize(bigCurve E, TPM_ECC_CURVE curveId)
++{
++    const ECC_CURVE_DATA* C = GetCurveData(curveId);
++
++    if(C == NULL)
++        E = NULL;
++
++    if(E != NULL) {
++        E->C   = C;
++
++        mbedtls_ecp_group_init(&E->G);
++        BnToMbed(&E->G.P, C->prime);
++        BnToMbed(&E->G.A, C->a);
++        BnToMbed(&E->G.B, C->b);
++        BnToMbed(&E->G.N, C->order);
++
++        BnToMbed(&E->G.G.private_X, C->base.x);
++        BnToMbed(&E->G.G.private_Y, C->base.y);
++
++        E->G.pbits = mbedtls_mpi_bitlen(&E->G.P);
++        E->G.nbits = mbedtls_mpi_bitlen(&E->G.N);
++
++        E->G.private_h = 1;
++    }
++
++    return E;
++}
++
++LIB_EXPORT void BnCurveFree(bigCurve E)
++{
++    if(E)
++        mbedtls_ecp_group_free(&E->G);
++}
++
++LIB_EXPORT BOOL BnEccModMult(bigPoint R, pointConst S, bigConst d, bigCurve E)
++{
++    BOOL OK;
++    POINT_CREATE(pR);
++    POINT_CREATE(pS);
++    MPI_INITIALIZED(bnD, d);
++
++    if(S == NULL)
++        S = CurveGetG(AccessCurveData(E));
++
++    PointToMbed(&pS, S);
++
++    OK = (mbedtls_ecp_mul(&E->G, &pR, bnD, &pS, mbedtls_psa_get_random, MBEDTLS_PSA_RANDOM_STATE)
++            == MBEDTLS_OK);
++    if(OK) {
++        PointFromMbed(R, &pR);
++    }
++
++    POINT_DELETE(pS);
++    POINT_DELETE(pR);
++    MPI_DELETE(bnD);
++
++    return !BnEqualZero(R->z);
++}
++
++LIB_EXPORT BOOL BnEccModMult2(bigPoint R, pointConst S, bigConst d, pointConst Q,
++                              bigConst u, bigCurve E)
++{
++    BOOL OK;
++    POINT_CREATE(pR);
++    POINT_CREATE(pS);
++    POINT_CREATE(pQ);
++    MPI_INITIALIZED(bnD, d);
++    MPI_INITIALIZED(bnU, u);
++    MPI_INITIALIZED(bnPrime, CurveGetPrime(AccessCurveData(E)));
++    MPI_INITIALIZED(bnA, CurveGet_a(AccessCurveData(E)));
++
++    PointToMbed(&pQ, Q);
++
++    if(S == NULL)
++        S = CurveGetG(AccessCurveData(E));
++
++    PointToMbed(&pS, S);
++
++    OK = (mbedtls_ecp_muladd(&E->G, &pR, bnD, &pS, bnU, &pQ) == MBEDTLS_OK);
++    if(OK) {
++        PointFromMbed(R, &pR);
++    }
++
++    POINT_DELETE(pS);
++    POINT_DELETE(pQ);
++    POINT_DELETE(pR);
++
++    MPI_DELETE(bnD);
++    MPI_DELETE(bnU);
++    MPI_DELETE(bnPrime);
++    MPI_DELETE(bnA);
++
++    return !BnEqualZero(R->z);
++}
++
++LIB_EXPORT BOOL BnEccAdd(bigPoint R, pointConst S, pointConst Q, bigCurve E)
++{
++    BOOL OK;
++    mbedtls_mpi_uint mp;
++    POINT_CREATE(pR);
++    POINT_CREATE(pS);
++    POINT_CREATE(pQ);
++    MPI_INITIALIZED(bnA, CurveGet_a(AccessCurveData(E)));
++    MPI_INITIALIZED(bnMod, CurveGetPrime(AccessCurveData(E)));
++
++    (void)mp;
++    PointToMbed(&pS, S);
++    PointToMbed(&pQ, Q);
++
++    pAssert(1 == 0); // cannot implement with mbedtls
++
++    if(OK) {
++        PointFromMbed(R, &pR);
++    }
++
++    POINT_DELETE(pS);
++    POINT_DELETE(pQ);
++    POINT_DELETE(pR);
++
++    MPI_DELETE(bnA);
++    MPI_DELETE(bnMod);
++
++    return !BnEqualZero(R->z);
++}
++
++#  endif  // TPM_ALG_ECC
++
++#endif  // MATH_LIB_MBED
+\ No newline at end of file
+diff --git a/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSupport.c b/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSupport.c
+new file mode 100644
+index 0000000..c1bdcf1
+--- /dev/null
++++ b/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSupport.c
+@@ -0,0 +1,46 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++#include "Tpm.h"
++#include <psa/crypto.h>
++
++#if defined(HASH_LIB_MBED) || defined(MATH_LIB_MBED) || defined(SYM_LIB_MBED)
++
++LIB_EXPORT int SupportLibInit(void)
++{
++    return psa_crypto_init() == PSA_SUCCESS;
++}
++
++#endif  // HASH_LIB_MBED || MATH_LIB_MBED || SYM_LIB_MBED
+diff --git a/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSym.c b/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSym.c
+new file mode 100644
+index 0000000..9f846f9
+--- /dev/null
++++ b/TPMCmd/tpm/src/crypt/mbed/TpmToMbedSym.c
+@@ -0,0 +1,94 @@
++/* Microsoft Reference Implementation for TPM 2.0
++ *
++ *  The copyright in this software is being made available under the BSD License,
++ *  included below. This software may be subject to other third party and
++ *  contributor rights, including patent rights, and no such rights are granted
++ *  under this license.
++ *
++ *  Copyright (c) Microsoft Corporation
++ *  Copyright (c) 2024, Arm Limited
++ *
++ *  All rights reserved.
++ *
++ *  BSD License
++ *
++ *  Redistribution and use in source and binary forms, with or without modification,
++ *  are permitted provided that the following conditions are met:
++ *
++ *  Redistributions of source code must retain the above copyright notice, this list
++ *  of conditions and the following disclaimer.
++ *
++ *  Redistributions in binary form must reproduce the above copyright notice, this
++ *  list of conditions and the following disclaimer in the documentation and/or
++ *  other materials provided with the distribution.
++ *
++ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
++ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "Tpm.h"
++
++#ifdef SYM_LIB_MBED
++#  include "TpmToMbedSym_fp.h"
++
++#if ALG_TDES
++#include <mbedtls/des.h>
++
++int TDES_set_encrypt_key(const BYTE *key, UINT16 keySizeInBits, void *keySchedule)
++{
++    BYTE key2[MBEDTLS_DES_KEY_SIZE * 2] = {};
++    BYTE key3[MBEDTLS_DES_KEY_SIZE * 3] = {};
++
++    if(keySizeInBits == 128) {
++        memcpy(key2, key, MBEDTLS_DES_KEY_SIZE * 2);
++        return mbedtls_des3_set2key_enc(keySchedule, key2);
++    } else {
++        memcpy(key3, key, MBEDTLS_DES_KEY_SIZE * 3);
++        return mbedtls_des3_set3key_enc(keySchedule, key3);
++    }
++}
++
++int TDES_set_decrypt_key(const BYTE *key, UINT16 keySizeInBits, void *keySchedule)
++{
++    BYTE key2[MBEDTLS_DES_KEY_SIZE * 2] = {};
++    BYTE key3[MBEDTLS_DES_KEY_SIZE * 3] = {};
++
++    if(keySizeInBits == 128) {
++        memcpy(key2, key, MBEDTLS_DES_KEY_SIZE * 2);
++        return mbedtls_des3_set2key_dec(keySchedule, key2);
++    } else {
++        memcpy(key3, key, MBEDTLS_DES_KEY_SIZE * 3);
++        return mbedtls_des3_set3key_dec(keySchedule, key3);
++    }
++}
++#endif
++
++int AES_encrypt(const BYTE *in, BYTE *out, void *keySchedule)
++{
++    return mbedtls_aes_crypt_ecb(keySchedule, MBEDTLS_AES_ENCRYPT, in, out);
++}
++
++int AES_decrypt(const BYTE *in, BYTE *out, void *keySchedule)
++{
++    return mbedtls_aes_crypt_ecb(keySchedule, MBEDTLS_AES_DECRYPT, in, out);
++}
++
++int CAMELLIA_encrypt(const BYTE *in, BYTE *out, void *keySchedule)
++{
++    return mbedtls_camellia_crypt_ecb(keySchedule, MBEDTLS_CAMELLIA_ENCRYPT, in, out);
++}
++
++int CAMELLIA_decrypt(const BYTE *in, BYTE *out, void *keySchedule)
++{
++    return mbedtls_camellia_crypt_ecb(keySchedule, MBEDTLS_CAMELLIA_DECRYPT, in, out);
++}
++
++#endif  // SYM_LIB_MBED
+-- 
+2.34.1
+

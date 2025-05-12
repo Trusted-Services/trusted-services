@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
  */
 
 #include "components/rpc/common/endpoint/rpc_service_interface.h"
@@ -11,8 +11,15 @@
 #include "sp_discovery.h"
 #include "sp_rxtx.h"
 #include "trace.h"
-#include "deployments/se-proxy/infra/service_proxy_factory.h"
-#include "deployments/se-proxy/se_proxy_interfaces.h"
+#include "deployments/se-proxy/env/commonsp/proxy_service_factory_list.h"
+
+#include <stddef.h>
+
+/*
+ * This must be a global variable so the communication layer (e.g. RSE_COMMS)
+ * can use this to remap message client_ids if needed.
+ */
+uint16_t own_id;
 
 static bool sp_init(uint16_t *own_sp_id);
 
@@ -22,9 +29,12 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 	struct sp_msg req_msg = { 0 };
 	struct sp_msg resp_msg = { 0 };
 	struct rpc_service_interface *rpc_iface = NULL;
-	uint16_t own_id = 0;
 	sp_result result = SP_RESULT_INTERNAL_ERROR;
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	unsigned int n_services = PROXY_SERVICE_FACTORY_LIST_LENGTH();
+	/* Two memory shares for each service, plus additional 6 extra slots. */
+	unsigned int n_shares = (n_services * 2) + 6;
+	const struct se_proxy_list_entry *service_factory_iterator = __proxy_service_factory_list;
 
 	/* Boot phase */
 	if (!sp_init(&own_id)) {
@@ -39,71 +49,38 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		goto fatal_error;
 	}
 
-	rpc_status = ts_rpc_endpoint_sp_init(&rpc_endpoint, 5, 16);
+	rpc_status = ts_rpc_endpoint_sp_init(&rpc_endpoint, n_services, n_shares);
 	if (rpc_status != RPC_SUCCESS) {
 		EMSG("Failed to initialize RPC endpoint: %d", rpc_status);
 		goto fatal_error;
 	}
+	IMSG("Created RPC endpoint for %u service and %u memory shares.", n_services, n_shares);
 
-	/* Create service proxies */
-	rpc_iface = its_proxy_create();
-	if (!rpc_iface) {
-		EMSG("Failed to create ITS proxy");
+	/* Create services */
+	if (service_factory_iterator == __proxy_service_factory_list_end) {
+		EMSG("No services to construct.");
 		goto fatal_error;
 	}
 
-	rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
-	if (rpc_status != RPC_SUCCESS) {
-		EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
-		goto fatal_error;
-	}
+	/* Iterate the proxy_service_factory_list created by the linker.
+	 * See: proxy_service_factory_list.h
+	 */
+	while (service_factory_iterator < __proxy_service_factory_list_end) {
 
-	rpc_iface = ps_proxy_create();
-	if (!rpc_iface) {
-		EMSG("Failed to create PS proxy");
-		goto fatal_error;
-	}
+		IMSG("Creating proxy service %s", service_factory_iterator->name);
 
-	rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
-	if (rpc_status != RPC_SUCCESS) {
-		EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
-		goto fatal_error;
-	}
+		rpc_iface = service_factory_iterator->fn();
+		if (!rpc_iface) {
+			EMSG("Failed to create service %s", service_factory_iterator->name);
+			goto fatal_error;
+		}
+		rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
 
-	rpc_iface = crypto_proxy_create();
-	if (!rpc_iface) {
-		EMSG("Failed to create Crypto proxy");
-		goto fatal_error;
-	}
-
-	rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
-	if (rpc_status != RPC_SUCCESS) {
-		EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
-		goto fatal_error;
-	}
-
-	rpc_iface = attest_proxy_create();
-	if (!rpc_iface) {
-		EMSG("Failed to create Attestation proxy");
-		goto fatal_error;
-	}
-
-	rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
-	if (rpc_status != RPC_SUCCESS) {
-		EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
-		goto fatal_error;
-	}
-
-	rpc_iface = fwu_proxy_create();
-	if (!rpc_iface) {
-		EMSG("Failed to create FWU proxy");
-		goto fatal_error;
-	}
-
-	rpc_status = ts_rpc_endpoint_sp_add_service(&rpc_endpoint, rpc_iface);
-	if (rpc_status != RPC_SUCCESS) {
-		EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
-		goto fatal_error;
+		if (rpc_status != RPC_SUCCESS) {
+			EMSG("Failed to add service to RPC endpoint: %d", rpc_status);
+			goto fatal_error;
+		}
+		service_factory_iterator ++;
 	}
 
 	/* End of boot phase */

@@ -1140,7 +1140,6 @@ TEST(sp_memory_management, sp_memory_retrieve_ffa_rx_release_error)
 					    .page_count = page_count };
 	uint32_t in_region_count = 1;
 	uint32_t out_region_count = 1;
-	ffa_result result = FFA_ABORTED;
 	const uint32_t expected_size = get_expected_size(in_region_count);
 	const uint32_t resp_total_length = expected_size;
 	const uint32_t resp_fragment_length = expected_size;
@@ -1198,7 +1197,6 @@ TEST(sp_memory_management, sp_memory_retrieve_in_out)
 					    .page_count = page_count };
 	uint32_t in_region_count = 1;
 	uint32_t out_region_count = 1;
-	ffa_result result = FFA_ABORTED;
 	const uint32_t expected_size = get_expected_size(in_region_count);
 	const uint32_t resp_total_length = expected_size;
 	const uint32_t resp_fragment_length = expected_size;
@@ -1349,7 +1347,6 @@ TEST(sp_memory_management, sp_memory_retrieve_dynamic_fragmented_response)
 	struct sp_memory_region regions = { 0 };
 	uint32_t in_region_count = 1;
 	uint32_t out_region_count = 1;
-	ffa_result result = FFA_ABORTED;
 	const uint32_t expected_size = get_expected_size(in_region_count);
 	const uint32_t resp_total_length = 1;
 	const uint32_t resp_fragment_length = 0;
@@ -1375,7 +1372,6 @@ TEST(sp_memory_management, sp_memory_retrieve_dynamic_in_out)
 					    .page_count = page_count };
 	uint32_t in_region_count = 1;
 	uint32_t out_region_count = 1;
-	ffa_result result = FFA_ABORTED;
 	const uint32_t expected_size = get_expected_size(in_region_count);
 	const uint32_t resp_total_length = expected_size;
 	const uint32_t resp_fragment_length = expected_size;
@@ -1457,7 +1453,6 @@ TEST(sp_memory_management, sp_memory_relinquish_endpoints_count_zero)
 TEST(sp_memory_management, sp_memory_relinquish_endpoints_flags_null)
 {
 	uint16_t endpoints = 0;
-	struct sp_memory_transaction_flags flags = { 0 };
 
 	LONGS_EQUAL(SP_RESULT_INVALID_PARAMETERS,
 		    sp_memory_relinquish(handle, &endpoints, 1, NULL));

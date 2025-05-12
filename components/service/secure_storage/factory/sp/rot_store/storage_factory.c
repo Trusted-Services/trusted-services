@@ -26,6 +26,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifndef STORAGE_CLIENT_RPC_BUF_SIZE
+#define STORAGE_CLIENT_RPC_BUF_SIZE (4096)
+#endif
+
 /* Defaults to using PSA storage partitions if no external configuration specified */
 #define MAX_CANDIDATE_UUIDS		(2)
 
@@ -76,7 +80,8 @@ struct storage_backend *storage_factory_create(
 		for (int i = 0; i < num_candidate_uuids; i++) {
 			rpc_status = rpc_caller_session_find_and_open(&new_backend->session,
 								      &new_backend->caller,
-								      candidate_uuids[i], 4096);
+								      candidate_uuids[i],
+								      STORAGE_CLIENT_RPC_BUF_SIZE);
 
 			if (rpc_status == RPC_SUCCESS) {
 				result = secure_storage_client_init(

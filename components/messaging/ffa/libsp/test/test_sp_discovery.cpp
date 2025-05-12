@@ -61,7 +61,6 @@ TEST(sp_discovery, sp_discovery_ffa_version)
 TEST(sp_discovery, sp_discovery_own_id_get_error)
 {
 	uint16_t id = 0;
-	const uint16_t expected_id = 123;
 	ffa_result result = FFA_ABORTED;
 
 	expect_ffa_id_get(&id, result);

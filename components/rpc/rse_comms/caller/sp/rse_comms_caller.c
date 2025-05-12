@@ -13,10 +13,6 @@
 #include "rpc_caller.h"
 #include "rpc_status.h"
 
-struct rse_comms_caller_context {
-	struct rse_comms_messenger rse_comms;
-};
-
 rpc_status_t open_session(void *context, const struct rpc_uuid *service_uuid, uint16_t endpoint_id)
 {
 	return RPC_SUCCESS;

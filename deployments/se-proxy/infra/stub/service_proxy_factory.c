@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,6 +13,8 @@
 #include "service/fwu/provider/fwu_provider.h"
 #include "service/secure_storage/frontend/secure_storage_provider/secure_storage_provider.h"
 #include "service/secure_storage/frontend/secure_storage_provider/secure_storage_uuid.h"
+
+#include "deployments/se-proxy/env/commonsp/proxy_service_factory_list.h"
 
 /* Stub backends */
 #include <service/crypto/backend/stub/stub_crypto_backend.h>
@@ -48,6 +50,18 @@ struct rpc_service_interface *crypto_proxy_create(void)
 	return crypto_iface;
 }
 
+struct rpc_service_interface *crypto_protobuf_proxy_create(void)
+{
+	struct crypto_provider *crypto_protobuf_provider = NULL;
+
+	crypto_protobuf_provider = crypto_protobuf_provider_factory_create();
+	if (!crypto_protobuf_provider) {
+		return NULL;
+	}
+
+	return service_provider_get_rpc_interface(&crypto_protobuf_provider->base_provider);
+}
+
 struct rpc_service_interface *ps_proxy_create(void)
 {
 	static struct mock_store ps_backend;
@@ -79,3 +93,10 @@ struct rpc_service_interface *fwu_proxy_create(void)
 
 	return fwu_provider_init(&fwu_provider, agent);
 }
+
+ADD_PROXY_SERVICE_FACTORY(its_proxy_create,     ITS_PROXY,    SE_PROXY_INTERFACE_PRIO_ITS);
+ADD_PROXY_SERVICE_FACTORY(ps_proxy_create,      PS_PROXY,     SE_PROXY_INTERFACE_PRIO_PS);
+ADD_PROXY_SERVICE_FACTORY(crypto_proxy_create,  CRYPTO_PROXY, SE_PROXY_INTERFACE_PRIO_CRYPTO);
+ADD_PROXY_SERVICE_FACTORY(crypto_protobuf_proxy_create, PSACRYPTO_PROXY_NANO, SE_PROXY_INTERFACE_PRIO_CRYPTO_NANO);
+ADD_PROXY_SERVICE_FACTORY(attest_proxy_create,  IAT_PROXY,    SE_PROXY_INTERFACE_PRIO_ATTEST);
+ADD_PROXY_SERVICE_FACTORY(fwu_proxy_create,     FWU_PROXY,    SE_PROXY_INTERFACE_PRIO_FWU);
