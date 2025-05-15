@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -746,6 +746,11 @@
 #define PSA_ALG_IS_KEY_DERIVATION(alg)                                  \
     (((alg) & PSA_ALG_CATEGORY_MASK) == PSA_ALG_CATEGORY_KEY_DERIVATION)
 
+/** An invalid algorithm identifier value. */
+/* *INDENT-OFF* (https://github.com/ARM-software/psa-arch-tests/issues/337) */
+#define PSA_ALG_NONE                            ((psa_algorithm_t)0)
+/* *INDENT-ON* */
+
 #define PSA_ALG_HASH_MASK                       ((psa_algorithm_t)0x000000ff)
 /** MD2 */
 #define PSA_ALG_MD2                             ((psa_algorithm_t)0x02000001)
@@ -1243,6 +1248,7 @@
     (((alg) & ~PSA_ALG_HASH_MASK) == PSA_ALG_RSA_PKCS1V15_SIGN_BASE)
 
 #define PSA_ALG_RSA_PSS_BASE               ((psa_algorithm_t)0x06000300)
+#define PSA_ALG_RSA_PSS_ANY_SALT_BASE      ((psa_algorithm_t)0x06001300)
 /** RSA PSS signature with hashing.
  *
  * This is the signature scheme defined by RFC 8017
@@ -1265,6 +1271,24 @@
     (PSA_ALG_RSA_PSS_BASE | ((hash_alg) & PSA_ALG_HASH_MASK))
 #define PSA_ALG_IS_RSA_PSS(alg)                                 \
     (((alg) & ~PSA_ALG_HASH_MASK) == PSA_ALG_RSA_PSS_BASE)
+
+/** RSA PSS signature with hashing with relaxed verification.
+ *
+ * This algorithm has the same behavior as #PSA_ALG_RSA_PSS when signing,
+ * but allows an arbitrary salt length (including \c 0) when verifying a
+ * signature.
+ *
+ * \param hash_alg      A hash algorithm (\c PSA_ALG_XXX value such that
+ *                      #PSA_ALG_IS_HASH(\p hash_alg) is true).
+ *                      This includes #PSA_ALG_ANY_HASH
+ *                      when specifying the algorithm in a usage policy.
+ *
+ * \return              The corresponding RSA PSS signature algorithm.
+ * \return              Unspecified if \p hash_alg is not a supported
+ *                      hash algorithm.
+ */
+#define PSA_ALG_RSA_PSS_ANY_SALT(hash_alg)                      \
+    (PSA_ALG_RSA_PSS_ANY_SALT_BASE | ((hash_alg) & PSA_ALG_HASH_MASK))
 
 #define PSA_ALG_ECDSA_BASE                      ((psa_algorithm_t)0x06000600)
 /** ECDSA signature with hashing.
@@ -1531,6 +1555,19 @@
     (((alg) & ~PSA_ALG_HASH_MASK) == PSA_ALG_TLS12_PSK_TO_MS_BASE)
 #define PSA_ALG_TLS12_PSK_TO_MS_GET_HASH(hkdf_alg)                         \
     (PSA_ALG_CATEGORY_HASH | ((hkdf_alg) & PSA_ALG_HASH_MASK))
+
+#define PSA_ALG_PBKDF2_HMAC_BASE                ((psa_algorithm_t)0x08800100)
+
+/** Whether the specified algorithm is a PBKDF2-HMAC algorithm.
+ *
+ * \param alg An algorithm identifier (value of type #psa_algorithm_t).
+ *
+ * \return 1 if \c alg is a PBKDF2-HMAC algorithm, 0 otherwise.
+ *         This macro may return either 0 or 1 if \c alg is not a supported
+ *         key derivation algorithm identifier.
+ */
+#define PSA_ALG_IS_PBKDF2_HMAC(alg)                                    \
+    (((alg) & ~PSA_ALG_HASH_MASK) == PSA_ALG_PBKDF2_HMAC_BASE)
 
 #define PSA_ALG_KEY_DERIVATION_MASK             ((psa_algorithm_t)0xfe00ffff)
 #define PSA_ALG_KEY_AGREEMENT_MASK              ((psa_algorithm_t)0xffff0000)
@@ -1921,6 +1958,24 @@
  */
 #define PSA_KEY_DERIVATION_INPUT_SECRET     ((psa_key_derivation_step_t)0x0101)
 
+/** A low-entropy secret input for password hashing / key stretching.
+ *
+ * This is usually a key of type #PSA_KEY_TYPE_PASSWORD (passed to
+ * psa_key_derivation_input_key()) or a direct input (passed to
+ * psa_key_derivation_input_bytes()) that is a password or passphrase. It can
+ * also be high-entropy secret such as a key of type #PSA_KEY_TYPE_DERIVE or
+ * the shared secret resulting from a key agreement.
+ *
+ * The secret can also be a direct input (passed to
+ * key_derivation_input_bytes()). In this case, the derivation operation
+ * may not be used to derive keys: the operation will only allow
+ * psa_key_derivation_output_bytes(),
+ * psa_key_derivation_verify_bytes(), or
+ * psa_key_derivation_verify_key(), but not
+ * psa_key_derivation_output_key().
+ */
+#define PSA_KEY_DERIVATION_INPUT_PASSWORD   ((psa_key_derivation_step_t)0x0102)
+
 /** A label for key derivation.
  *
  * This should be a direct input.
@@ -1948,6 +2003,12 @@
  * It can also be a key of type #PSA_KEY_TYPE_RAW_DATA.
  */
 #define PSA_KEY_DERIVATION_INPUT_SEED       ((psa_key_derivation_step_t)0x0204)
+
+/** A cost parameter for password hashing / key stretching.
+ *
+ * This must be a direct input, passed to psa_key_derivation_input_integer().
+ */
+#define PSA_KEY_DERIVATION_INPUT_COST       ((psa_key_derivation_step_t)0x0205)
 
 /**@}*/
 
