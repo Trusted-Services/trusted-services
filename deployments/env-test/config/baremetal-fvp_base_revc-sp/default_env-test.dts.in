@@ -13,7 +13,7 @@
 	exception-level = <1>; /* S-EL0 */
 	execution-state = <0>; /* AArch64 */
 	xlat-granule = <0>; /* 4KiB */
-	boot-order = /bits/ 16 <@EXPORT_SP_BOOT_ORDER@>;
+	boot-order = <@EXPORT_SP_BOOT_ORDER@>;
 	messaging-method = <3>; /* Direct messaging only */
 	ns-interrupts-action = <2>; /* Non-secure interrupts are signaled */
 	memory-regions {
