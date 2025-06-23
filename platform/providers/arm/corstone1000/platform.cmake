@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2021-2024, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -11,6 +11,9 @@ set(SMM_RPC_CALLER_SESSION_SHARED_MEMORY_SIZE 4*4096 CACHE STRING "RPC caller bu
 set(SMM_SP_HEAP_SIZE 80*1024 CACHE STRING "SMM gateway SP heap size")
 set(PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE 0x43C0 CACHE STRING "Size of the RSS_COMMS_PAYLOAD buffer")
 set(COMMS_MHU_MSG_SIZE 0x4500 CACHE STRING "Max message size that can be transfered via MHU")
+set(MM_COMM_BUFFER_ADDRESS "0x00000000 0x81FFF000" CACHE STRING "MM Communication buffer start address")
+set(MM_COMM_BUFFER_PAGE_COUNT 0x1 CACHE STRING "MM Communication buffer page count")
+
 
 target_compile_definitions(${TGT} PRIVATE
 	PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE=${PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE}
