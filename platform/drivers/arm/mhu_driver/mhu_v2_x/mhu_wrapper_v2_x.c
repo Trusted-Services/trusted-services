@@ -120,7 +120,7 @@ clear_and_wait_for_signal(struct mhu_v2_x_dev_t *dev)
     }
 
     num_channels = mhu_v2_x_get_num_channel_implemented(dev);
-    /* At least 1 channal needed for signalling. */
+    /* At least 1 channel needed for signalling. */
     if (num_channels < 1) {
         return MHU_ERR_GENERAL;
     }
@@ -233,7 +233,7 @@ enum mhu_error_t mhu_send_data(void *mhu_sender_dev,
     }
 
     num_channels = mhu_v2_x_get_num_channel_implemented(dev);
-    /* At least 2 channals needed for sending a message. */
+    /* At least 2 channels needed for sending a message. */
     if (num_channels < 2) {
         return MHU_ERR_GENERAL;
     }
@@ -292,7 +292,7 @@ enum mhu_error_t mhu_wait_data(void *mhu_receiver_dev)
     }
 
     num_channels = mhu_v2_x_get_num_channel_implemented(dev);
-    /* At least 1 channal needed for signalling. */
+    /* At least 1 channel needed for signalling. */
     if (num_channels < 1) {
         return MHU_ERR_GENERAL;
     }
@@ -333,7 +333,7 @@ enum mhu_error_t mhu_receive_data(void *mhu_receiver_dev,
     }
 
     num_channels = mhu_v2_x_get_num_channel_implemented(dev);
-    /* At least 1 channal needed for signalling. */
+    /* At least 1 channel needed for signalling. */
     if (num_channels < 1) {
         return MHU_ERR_GENERAL;
     }
