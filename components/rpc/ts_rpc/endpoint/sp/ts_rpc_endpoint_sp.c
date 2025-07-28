@@ -271,6 +271,7 @@ rpc_status_t ts_rpc_endpoint_sp_init(struct ts_rpc_endpoint_sp *endpoint, size_t
 					   sizeof(struct ts_rpc_shared_memory));
 	if (!endpoint->shared_memories) {
 		free(endpoint->services);
+		endpoint->services = NULL;
 		return RPC_ERROR_RESOURCE_FAILURE;
 	}
 
@@ -298,7 +299,9 @@ rpc_status_t ts_rpc_endpoint_sp_deinit(struct ts_rpc_endpoint_sp *endpoint)
 	}
 
 	free(endpoint->services);
+	endpoint->services = NULL;
 	free(endpoint->shared_memories);
+	endpoint->shared_memories = NULL;
 
 	*endpoint = (struct ts_rpc_endpoint_sp){ 0 };
 
