@@ -36,8 +36,17 @@ struct service_context *restapi_service_context_create(const char *service_url)
 		return NULL;
 	}
 
+	const size_t service_url_len = strlen(service_url);
+	const char *str_call = "call/";
+	const size_t str_call_len = strlen(str_call);
+
+	if (service_url_len + str_call_len + 1 > HTTP_CALLER_MAX_URL_LEN) {
+		EMSG("service URL is too long");
+		return NULL;
+	}
+
 	strncpy(new_context->rpc_call_url, service_url, HTTP_CALLER_MAX_URL_LEN - 1);
-	strncat(new_context->rpc_call_url, "call/", HTTP_CALLER_MAX_URL_LEN - 1);
+	strncat(new_context->rpc_call_url, str_call, HTTP_CALLER_MAX_URL_LEN - 1 - service_url_len);
 
 	new_context->service_context.context = new_context;
 	new_context->service_context.open = restapi_service_context_open;
