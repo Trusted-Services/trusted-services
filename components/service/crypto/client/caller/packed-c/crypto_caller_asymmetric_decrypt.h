@@ -29,7 +29,7 @@ static inline psa_status_t crypto_caller_asymmetric_decrypt(struct service_clien
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_asymmetric_decrypt_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_asymmetric_decrypt_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_asymmetric_decrypt_in);
 	size_t req_len = req_fixed_len;
 
 	*output_length = 0;  /* For failure case */

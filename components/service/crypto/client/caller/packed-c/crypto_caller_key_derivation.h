@@ -173,7 +173,7 @@ static inline psa_status_t crypto_caller_key_derivation_input_bytes(struct servi
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_key_derivation_input_bytes_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_input_bytes_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_input_bytes_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -264,7 +264,7 @@ static inline psa_status_t crypto_caller_key_derivation_output_bytes(struct serv
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_key_derivation_output_bytes_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_output_bytes_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_output_bytes_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -389,7 +389,7 @@ static inline psa_status_t crypto_caller_key_derivation_abort(struct service_cli
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_key_derivation_abort_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_abort_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_abort_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -430,7 +430,7 @@ static inline psa_status_t crypto_caller_key_derivation_key_agreement(struct ser
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_key_derivation_key_agreement_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_key_agreement_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_key_derivation_key_agreement_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -486,7 +486,7 @@ static inline psa_status_t crypto_caller_raw_key_agreement(struct service_client
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_raw_key_agreement_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_raw_key_agreement_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_raw_key_agreement_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.alg = alg;

@@ -103,7 +103,7 @@ static inline psa_status_t crypto_caller_aead_generate_nonce(struct service_clie
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_generate_nonce_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_generate_nonce_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_generate_nonce_in);
 	size_t req_len = req_fixed_len;
 
 	*nonce_length = 0;
@@ -169,7 +169,7 @@ static inline psa_status_t crypto_caller_aead_set_nonce(struct service_client *c
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_set_nonce_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_set_nonce_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_set_nonce_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -218,7 +218,7 @@ static inline psa_status_t crypto_caller_aead_set_lengths(struct service_client 
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_set_lengths_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_set_lengths_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_set_lengths_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -258,7 +258,7 @@ static inline psa_status_t crypto_caller_aead_update_ad(struct service_client *c
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_update_ad_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_update_ad_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_update_ad_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -310,7 +310,7 @@ static inline psa_status_t crypto_caller_aead_update(struct service_client *cont
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_update_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_update_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_update_in);
 	size_t req_len = req_fixed_len;
 
 	*output_length = 0;
@@ -391,7 +391,7 @@ static inline psa_status_t crypto_caller_aead_finish(struct service_client *cont
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_finish_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_finish_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_finish_in);
 	size_t req_len = req_fixed_len;
 
 	*aeadtext_length = 0;
@@ -482,7 +482,7 @@ static inline psa_status_t crypto_caller_aead_verify(struct service_client *cont
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_verify_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_verify_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_verify_in);
 	size_t req_len = req_fixed_len;
 
 	*plaintext_length = 0;
@@ -560,7 +560,7 @@ static inline psa_status_t crypto_caller_aead_abort(struct service_client *conte
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_aead_abort_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_aead_abort_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_aead_abort_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
