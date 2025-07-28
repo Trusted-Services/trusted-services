@@ -56,17 +56,23 @@ static rpc_status_t close_session(void *context)
 static rpc_status_t create_shared_memory(void *context, size_t size,
 					 struct rpc_caller_shared_memory *shared_memory)
 {
-	shared_memory->id = 0;
-	shared_memory->buffer = calloc(1, size);
-	shared_memory->size = size;
+	rpc_status_t status = RPC_ERROR_RESOURCE_FAILURE;
 
-	return RPC_SUCCESS;
+	shared_memory->buffer = calloc(1, size);
+	if (shared_memory->buffer != NULL) {
+		shared_memory->id = 0;
+		shared_memory->size = size;
+		status = RPC_SUCCESS;
+	}
+
+	return status;
 }
 
 static rpc_status_t release_shared_memory(void *context,
 					  struct rpc_caller_shared_memory *shared_memory)
 {
 	free(shared_memory->buffer);
+	shared_memory->buffer = NULL;
 
 	return RPC_SUCCESS;
 }
