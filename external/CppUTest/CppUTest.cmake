@@ -19,7 +19,7 @@ set(GIT_OPTIONS
 	PATCH_COMMAND
 		git stash
 		COMMAND git branch -f bf-am
-		COMMAND git am ${CMAKE_CURRENT_LIST_DIR}/0001-cpputest-cmake-fix.patch
+		COMMAND git am ${CMAKE_CURRENT_LIST_DIR}/0001-Fix-cmake-problems.patch
 		COMMAND git am ${CMAKE_CURRENT_LIST_DIR}/0002-Fix-cmake-4.0-compatibility.patch
 		COMMAND git reset bf-am
 	)

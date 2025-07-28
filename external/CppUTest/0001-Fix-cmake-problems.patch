@@ -1,5 +1,23 @@
+From fd7cafcc94598e7ea77e90fe4851a573e85e41d5 Mon Sep 17 00:00:00 2001
+From: Gyorgy Szing <gyorgy.szing@arm.com>
+Date: Mon, 28 Jul 2025 17:36:54 +0200
+Subject: [PATCH 1/2] Fix cmake problems
+
+- Only export the CppUTestExt target if it exists. This depends on build
+  configuration.
+- Change CPP_PLATFORM to be a cache variable to allow overriding the
+  value form the CMake command line.
+- Do not hardcode the extension of the winmm library on Windows.
+
+Signed-off-by: Gyorgy Szing <gyorgy.szing@arm.com>
+---
+ CMakeLists.txt                                   | 7 ++++++-
+ cmake/Modules/CppUTestConfigurationOptions.cmake | 6 +++---
+ src/CppUTest/CMakeLists.txt                      | 2 +-
+ 3 files changed, 10 insertions(+), 5 deletions(-)
+
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index b1900bb..d9ca865 100644
+index b1900bb3..d9ca865f 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -116,8 +116,13 @@ if(PkgHelpers_AVAILABLE)
@@ -18,7 +36,7 @@ index b1900bb..d9ca865 100644
      ${CMAKE_CURRENT_BINARY_DIR}/CppUTestConfigVersion.cmake
      VERSION ${CppUTest_version_major}.${CppUTest_version_minor}
 diff --git a/cmake/Modules/CppUTestConfigurationOptions.cmake b/cmake/Modules/CppUTestConfigurationOptions.cmake
-index 634482c..a00b5eb 100644
+index 634482ce..a00b5eb0 100644
 --- a/cmake/Modules/CppUTestConfigurationOptions.cmake
 +++ b/cmake/Modules/CppUTestConfigurationOptions.cmake
 @@ -1,19 +1,19 @@
@@ -45,7 +63,7 @@ index 634482c..a00b5eb 100644
  
  include("${CppUTestRootDirectory}/cmake/Modules/CppUTestWarningFlags.cmake")
 diff --git a/src/CppUTest/CMakeLists.txt b/src/CppUTest/CMakeLists.txt
-index 736777f..d9a592f 100644
+index 736777f5..d9a592f2 100644
 --- a/src/CppUTest/CMakeLists.txt
 +++ b/src/CppUTest/CMakeLists.txt
 @@ -50,7 +50,7 @@ set(CppUTest_headers
@@ -57,3 +75,6 @@ index 736777f..d9a592f 100644
  endif (WIN32)
  install(FILES ${CppUTest_headers} DESTINATION include/CppUTest)
  install(TARGETS CppUTest
+-- 
+2.34.1
+

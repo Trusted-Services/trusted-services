@@ -1,7 +1,7 @@
-From 1147a71cfa5657b13c13d10194d8a5b4c28e1709 Mon Sep 17 00:00:00 2001
+From ad0ea0ad79e9c64516543596669e46968ad89a76 Mon Sep 17 00:00:00 2001
 From: Gyorgy Szing <gyorgy.szing@arm.com>
 Date: Fri, 18 Jul 2025 12:17:46 +0200
-Subject: [PATCH 1/1] Fix cmake 4.0 compatibility
+Subject: [PATCH 2/2] Fix cmake 4.0 compatibility
 
 Cmake 4.0 dropped compatibility to cmake versions below 3.5. Update the
 required version on the cmake file as a workaround.
