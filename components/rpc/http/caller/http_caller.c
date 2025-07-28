@@ -52,9 +52,9 @@ static size_t response_callback(char *ptr, size_t size, size_t nmemb, void *user
 	size_t bytes_received = size * nmemb;
 	struct payload_buffer *buf = (struct payload_buffer *)userdata;
 
-	buf->data = realloc(buf->data, buf->size + bytes_received);
-
-	if (buf->data) {
+	void *data = realloc(buf->data, buf->size + bytes_received);
+	if (data != NULL) {
+		buf->data = data;
 		memcpy(&buf->data[buf->size], ptr, bytes_received);
 		buf->size += bytes_received;
 	} else {
