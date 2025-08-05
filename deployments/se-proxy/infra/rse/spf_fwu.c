@@ -18,6 +18,14 @@
 #include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/psa_fwu_m/interface/psa_ipc/psa_fwu_ipc.h"
 
+#ifndef IMAGE_MAPPING_ELEMENT_COUNT
+#define IMAGE_MAPPING_ELEMENT_COUNT 0
+#endif
+
+#ifndef MAX_PAYLOAD_SIZE
+#define MAX_PAYLOAD_SIZE 4096
+#endif
+
 struct rpc_service_interface *fwu_proxy_create(void)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
@@ -38,9 +46,10 @@ struct rpc_service_interface *fwu_proxy_create(void)
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
-	agent = psa_fwu_m_update_agent_init(NULL, 0, 4096);
 	if (psa_fwu_ipc_init(&rpc_session) != PSA_SUCCESS)
 		return NULL;
+	agent = psa_fwu_m_update_agent_init(img_mapping, IMAGE_MAPPING_ELEMENT_COUNT,
+					    MAX_PAYLOAD_SIZE);
 
 	return fwu_provider_init(&fwu_provider, agent);
 }

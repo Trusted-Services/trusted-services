@@ -33,4 +33,14 @@ add_components(TARGET "se-proxy"
 		"components/messaging/rse_comms/sp"
 )
 
+if (CFG_ENABLE_FWU)
+    target_sources(se-proxy PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/corstone1000_config.c
+    )
+
+    target_include_directories(se-proxy PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}
+    )
+endif()
+
 include(../../infra/rse/service_proxy_factory.cmake REQUIRED)

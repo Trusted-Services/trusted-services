@@ -41,6 +41,9 @@ struct update_agent *psa_fwu_m_update_agent_init(
  */
 void psa_fwu_m_update_agent_deinit(struct update_agent *update_agent);
 
+/* This should be defined by the platform */
+extern struct psa_fwu_m_image_mapping img_mapping[];
+
 #ifdef __cplusplus
 }
 #endif
