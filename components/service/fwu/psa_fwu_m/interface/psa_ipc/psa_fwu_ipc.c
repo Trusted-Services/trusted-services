@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2024-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -190,6 +190,10 @@ psa_status_t psa_fwu_install(void)
 	status = psa_call(caller, TFM_FIRMWARE_UPDATE_SERVICE_HANDLE,
 			  TFM_FWU_INSTALL, in_vec, 0,
 			  NULL, 0);
+
+	if ((status == PSA_SUCCESS_REBOOT) || (status == PSA_SUCCESS_RESTART))
+		status = PSA_SUCCESS;
+
 	if (status != PSA_SUCCESS)
 		EMSG("failed to psa_call: %d", status);
 
