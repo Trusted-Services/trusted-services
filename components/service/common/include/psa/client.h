@@ -96,6 +96,34 @@ inline static uint32_t psa_ptr_const_to_u32(const void *ptr)
 	return (uintptr_t)ptr;
 }
 
+static inline bool psa_ptr_would_truncate_u32(const void *ptr)
+{
+#if UINTPTR_MAX > UINT32_MAX
+	return (uintptr_t)ptr & ~((uintptr_t)UINT32_MAX);
+#else
+	(void)ptr;
+	return false;
+#endif
+}
+
+static inline psa_status_t psa_ptr_const_to_u32_checked(const void *src, uint32_t *dst)
+{
+	if (psa_ptr_would_truncate_u32(src))
+		return PSA_ERROR_INVALID_ARGUMENT;
+
+	*dst = (uint32_t)(uintptr_t)src;
+	return PSA_SUCCESS;
+}
+
+static inline psa_status_t psa_ptr_to_u32_checked(void *src, uint32_t *dst)
+{
+	if (psa_ptr_would_truncate_u32(src))
+		return PSA_ERROR_INVALID_ARGUMENT;
+
+	*dst = (uint32_t)(uintptr_t)src;
+	return PSA_SUCCESS;
+}
+
 /*************************** PSA Client API **********************************/
 
 /**
