@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -28,9 +28,10 @@
 /**
  * Protocol GUIDs defined in FWU-A specification
  */
-#define FWU_UPDATE_AGENT_CANONICAL_UUID "6823a838-1b06-470e-9774-0cce8bfb53fd"
-#define FWU_DIRECTORY_CANONICAL_UUID	"deee58d9-5147-4ad3-a290-77666e2341a5"
-#define FWU_METADATA_CANONICAL_UUID	"8a7a84a0-8387-40f6-ab41-a8b9a5a60d23"
+#define FWU_UPDATE_AGENT_CANONICAL_UUID             "6823a838-1b06-470e-9774-0cce8bfb53fd"
+#define FWU_DIRECTORY_CANONICAL_UUID                "deee58d9-5147-4ad3-a290-77666e2341a5"
+#define FWU_METADATA_CANONICAL_UUID                 "8a7a84a0-8387-40f6-ab41-a8b9a5a60d23"
+#define EFI_SYSTEM_RESOURCE_TABLE_CANONICAL_UUID    "63a222b1-6136-684f-9929-78f8b0d62180"
 
 #define FWU_OPEN_OP_TYPE_READ  (0)
 #define FWU_OPEN_OP_TYPE_WRITE (1)
@@ -39,6 +40,26 @@
  * Image directory
  */
 #define FWU_IMAGE_DIRECTORY_VERSION	(2)
+
+/**
+ * @brief Information about the ESRT v1.
+ */
+struct __attribute__((__packed__)) efi_system_resource_entry {
+		uint8_t fw_class[OSF_UUID_OCTET_LEN];
+		uint32_t fw_type;
+		uint32_t fw_version;
+		uint32_t lowest_supported_fw_version;
+		uint32_t capsule_flags;
+		uint32_t last_attempt_version;
+		uint32_t last_attempt_status;
+};
+
+struct __attribute__((__packed__)) efi_system_resource_table {
+	uint32_t fw_resource_count;
+	uint32_t fw_resource_count_max;
+	uint64_t fw_resource_version;
+	struct efi_system_resource_entry entries[];
+};
 
 struct __attribute__((__packed__)) fwu_image_info_entry {
 	uint8_t img_type_uuid[OSF_UUID_OCTET_LEN];
