@@ -6,6 +6,24 @@
 # Platform definition for the Corstone-1000 platform.
 #-------------------------------------------------------------------------------
 
+# Important: The order and index of values must match C code expectations
+set(_corstone_1000_valid_types
+    CORSTONE_1000_TYPE_CORTEX_A35_FVP
+    CORSTONE_1000_TYPE_CORTEX_A35_MPS3
+)
+set(CORSTONE_1000_TYPE "CORSTONE_1000_TYPE_CORTEX_A35_FVP" CACHE STRING
+    "Corstone-1000 platform type. Valid values are: ${_corstone_1000_valid_types}"
+)
+set_property(CACHE CORSTONE_1000_TYPE PROPERTY STRINGS ${_corstone_1000_valid_types})
+list(FIND _corstone_1000_valid_types "${CORSTONE_1000_TYPE}" CORSTONE_1000_TYPE_INT)
+if(CORSTONE_1000_TYPE_INT EQUAL -1)
+    message(FATAL_ERROR
+        "Invalid CORSTONE_1000_TYPE: ${CORSTONE_1000_TYPE}.
+         Valid values are: ${_corstone_1000_valid_types}"
+    )
+endif()
+unset(_corstone_1000_valid_types)
+
 set(SMM_GATEWAY_MAX_UEFI_VARIABLES 80 CACHE STRING "Maximum UEFI variable count")
 set(SMM_RPC_CALLER_SESSION_SHARED_MEMORY_SIZE 4*4096 CACHE STRING "RPC caller buffer size in SMMGW")
 set(SMM_SP_HEAP_SIZE 80*1024 CACHE STRING "SMM gateway SP heap size")
@@ -19,6 +37,7 @@ target_compile_definitions(${TGT} PRIVATE
 	PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE=${PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE}
 	COMMS_MHU_MSG_SIZE=${COMMS_MHU_MSG_SIZE}
 	MBEDTLS_ECP_DP_SECP521R1_ENABLED
+	CORSTONE_1000_TYPE=${CORSTONE_1000_TYPE_INT}
 )
 
 get_property(_platform_driver_dependencies TARGET ${TGT}
