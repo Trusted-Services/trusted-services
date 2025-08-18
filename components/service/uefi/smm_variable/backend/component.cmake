@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2021-2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2021-2026, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -16,6 +16,8 @@ target_sources(${TGT} PRIVATE
 	)
 
 set(UEFI_MAX_VARIABLE_SIZE "4096" CACHE STRING "Maximum size of UEFI variables")
+set(CFG_SMM_REQUIRE_SET_EXTENDED ON CACHE BOOL "Use set_extended call when saving UEFI data.")
 target_compile_definitions(${TGT} PRIVATE
 	DEFAULT_MAX_VARIABLE_SIZE=${UEFI_MAX_VARIABLE_SIZE}
+	$<$<BOOL:${CFG_SMM_REQUIRE_SET_EXTENDED}>:CFG_SMM_REQUIRE_SET_EXTENDED>
 	)

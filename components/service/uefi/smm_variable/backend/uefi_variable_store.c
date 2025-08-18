@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -747,7 +747,7 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 			EMSG("Variable index cannot fit the sync buffer");
 			return EFI_LOAD_ERROR;
 		}
-
+#ifdef CFG_SMM_REQUIRE_SET_EXTENDED
 		do {
 			psa_status = persistent_store->interface->get(
 				persistent_store->context, context->owner_id,
@@ -755,17 +755,27 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 				RPC_CALLER_SESSION_SHARED_MEMORY_SIZE,
 				context->index_sync_buffer + data_offset, &data_len);
 
-			if (psa_status != PSA_SUCCESS) {
-				EMSG("Loading variable index failed: %d", psa_status);
-				return EFI_LOAD_ERROR;
-			}
-
 			data_offset += data_len;
 
-		} while (data_len == RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
+		} while (data_len == RPC_CALLER_SESSION_SHARED_MEMORY_SIZE &&
+			 psa_status == PSA_SUCCESS);
 
-		variable_index_restore(&context->variable_index, data_offset,
+		data_len = data_offset;
+#else // CFG_SMM_REQUIRE_SET_EXTENDED
+		psa_status = persistent_store->interface->get(
+			persistent_store->context, context->owner_id,
+			context->active_variable_index_uid, 0, context->index_sync_buffer_size,
+			context->index_sync_buffer, &data_len);
+#endif // CFG_SMM_REQUIRE_SET_EXTENDED
+
+		if (psa_status != PSA_SUCCESS) {
+			EMSG("Loading variable index failed: %d", psa_status);
+			return EFI_LOAD_ERROR;
+		}
+
+		variable_index_restore(&context->variable_index, data_len,
 				       context->index_sync_buffer);
+
 	} else {
 		EMSG("Loading variable index failed, store backend is not accessible");
 		return EFI_LOAD_ERROR;
@@ -781,10 +791,10 @@ static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 	bool is_dirty = false;
 
 	/* Sync the variable index to storage if anything is dirty */
-	size_t remaining_data_len = 0;
+	size_t data_len = 0;
 
 	status = variable_index_dump(&context->variable_index, context->index_sync_buffer_size,
-				     context->index_sync_buffer, &remaining_data_len, &is_dirty);
+				     context->index_sync_buffer, &data_len, &is_dirty);
 	if (status != EFI_SUCCESS)
 		return status;
 
@@ -802,6 +812,7 @@ static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 						  SMM_VARIABLE_INDEX_STORAGE_B_UID :
 						  SMM_VARIABLE_INDEX_STORAGE_A_UID);
 
+#ifdef CFG_SMM_REQUIRE_SET_EXTENDED
 			psa_status = persistent_store->interface->remove(
 				persistent_store->context, context->owner_id, next_index_uid);
 
@@ -809,16 +820,17 @@ static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 				goto end;
 
 			/* Check if the index exists and create if not yet */
-			psa_status = persistent_store->interface->create(
-				persistent_store->context, context->owner_id, next_index_uid,
-				remaining_data_len, PSA_STORAGE_FLAG_NONE);
+			psa_status = persistent_store->interface->create(persistent_store->context,
+									 context->owner_id,
+									 next_index_uid, data_len,
+									 PSA_STORAGE_FLAG_NONE);
 
 			if (psa_status != PSA_SUCCESS)
 				goto end;
 
 			do {
-				size_t data_of_this_iteration = MIN(
-					remaining_data_len, RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
+				size_t data_of_this_iteration =
+					MIN(data_len, RPC_CALLER_SESSION_SHARED_MEMORY_SIZE);
 
 				psa_status = persistent_store->interface->set_extended(
 					persistent_store->context, context->owner_id,
@@ -829,9 +841,16 @@ static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 					goto end;
 
 				data_offset += RPC_CALLER_SESSION_SHARED_MEMORY_SIZE;
-				remaining_data_len -= data_of_this_iteration;
+				data_len -= data_of_this_iteration;
 
-			} while (remaining_data_len);
+			} while (data_len);
+#else // CFG_SMM_REQUIRE_SET_EXTENDED
+			psa_status = persistent_store->interface->set(
+				persistent_store->context, context->owner_id, next_index_uid,
+				data_len, context->index_sync_buffer, PSA_STORAGE_FLAG_NONE);
+			if (psa_status != PSA_SUCCESS)
+				goto end;
+#endif // CFG_SMM_REQUIRE_SET_EXTENDED
 
 			variable_index_confirm_write(&context->variable_index);
 			context->active_variable_index_uid = next_index_uid;
