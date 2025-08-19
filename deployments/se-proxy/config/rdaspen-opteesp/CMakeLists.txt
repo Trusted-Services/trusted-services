@@ -28,8 +28,8 @@ set(TRACE_PREFIX "SEPROXY" CACHE STRING "Trace prefix")
 
 # Setting the RSE communication carveout region parameters
 set(RSE_COMM_CARVEOUT_NAME "rse-carveout" CACHE STRING "RSE communication carveout region name")
-set(RSE_COMM_CARVEOUT_BASE "0x00000000 0xFFFFC000" CACHE STRING "RSE communication carveout physical address in DTS format")
-set(RSE_COMM_CARVEOUT_PAGE_COUNT "4" CACHE STRING "Size of the RSE communication carveout region in 4k pages")
+set(RSE_COMM_CARVEOUT_BASE "0x00000000 0xFFFE0000" CACHE STRING "RSE communication carveout physical address in DTS format")
+set(RSE_COMM_CARVEOUT_PAGE_COUNT "32" CACHE STRING "Size of the RSE communication carveout region in 4k pages")
 
 target_include_directories(
 	se-proxy PRIVATE

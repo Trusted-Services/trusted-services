@@ -7,8 +7,9 @@
 #-------------------------------------------------------------------------------
 
 set(SMM_GATEWAY_MAX_UEFI_VARIABLES 60 CACHE STRING "Maximum UEFI variable count")
-set(SMM_RPC_CALLER_SESSION_SHARED_MEMORY_SIZE 2*4096 CACHE STRING "RPC caller buffer size in SMMGW")
-set(SMM_SP_HEAP_SIZE 64*1024 CACHE STRING "SMM gateway SP heap size")
+set(SMM_RPC_CALLER_SESSION_SHARED_MEMORY_SIZE 18*4096 CACHE STRING "RPC caller buffer size in SMMGW")
+set(SMM_SP_HEAP_SIZE 256*1024 CACHE STRING "SMM gateway SP heap size")
+set(UEFI_MAX_VARIABLE_SIZE 65536 CACHE STRING "Maximum size (in bytes) of the data payload for a single UEFI variable")
 
 target_compile_definitions(${TGT} PRIVATE
 	PLAT_RSE_COMMS_PAYLOAD_MAX_SIZE=0x2080
