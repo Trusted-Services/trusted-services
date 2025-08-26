@@ -646,7 +646,7 @@ static const struct update_agent_interface interface = {
 };
 
 struct update_agent *psa_fwu_m_update_agent_init(
-	const struct psa_fwu_m_image_mapping image_mapping[], size_t image_count,
+	const struct psa_fwu_m_image_mapping *image_mapping,
 	uint32_t max_payload_size)
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
@@ -658,8 +658,11 @@ struct update_agent *psa_fwu_m_update_agent_init(
 	uint8_t esrt_image_uuid[OSF_UUID_OCTET_LEN];
 	size_t i = 0;
 
+	if (!image_mapping)
+		return NULL;
+
 	/* Allocate +1 image for the Image directory */
-	images = (struct psa_fwu_m_image *)calloc(image_count + 1, sizeof(*images));
+	images = (struct psa_fwu_m_image *)calloc(image_mapping->count + 1, sizeof(*images));
 	if (!images)
 		return NULL; /* LCOV_EXCL_LINE */
 
@@ -680,8 +683,8 @@ struct update_agent *psa_fwu_m_update_agent_init(
 		/* LCOV_EXCL_STOP */
 	}
 
-	for (i = 0; i < image_count; i++) {
-		psa_status = psa_fwu_query(image_mapping[i].component, &info);
+	for (i = 0; i < image_mapping->count; i++) {
+		psa_status = psa_fwu_query(image_mapping->images[i].component, &info);
 		if (psa_status != PSA_SUCCESS) {
 			free(images);
 			free(context);
@@ -689,8 +692,8 @@ struct update_agent *psa_fwu_m_update_agent_init(
 			return NULL;
 		}
 
-		images[i].uuid = image_mapping[i].uuid;
-		images[i].component = image_mapping[i].component;
+		images[i].uuid = image_mapping->images[i].uuid;
+		images[i].component = image_mapping->images[i].component;
 		if (info.state == PSA_FWU_TRIAL) {
 			images[i].selected_for_staging = true;
 			state = trial;
@@ -711,14 +714,15 @@ struct update_agent *psa_fwu_m_update_agent_init(
 	}
 
 	/* Insert Image directory as the last image */
-	uuid_octets_from_canonical(&images[image_count].uuid, FWU_DIRECTORY_CANONICAL_UUID);
-	images[image_count].component = 0;
-	images[image_count].selected_for_staging = false;
+	uuid_octets_from_canonical(&images[image_mapping->count].uuid,
+				   FWU_DIRECTORY_CANONICAL_UUID);
+	images[image_mapping->count].component = 0;
+	images[image_mapping->count].selected_for_staging = false;
 	images[i].read = image_directory_read;
 	images[i].write = NULL; /* Cannot write Images directory */
 
 	context->images = images;
-	context->image_count = image_count + 1;
+	context->image_count = image_mapping->count + 1;
 	context->max_payload_size = max_payload_size;
 	context->state = state;
 
