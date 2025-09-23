@@ -41,6 +41,7 @@ building and running the software stacks of these platforms is out of scope for 
 
     ./Corstone1000
     ./rd1ae
+    ./rdaspen
 
 --------------
 
