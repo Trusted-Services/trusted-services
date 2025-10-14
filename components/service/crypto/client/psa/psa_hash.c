@@ -36,14 +36,14 @@ psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
 	size_t *hash_length)
 {
 	return crypto_caller_hash_finish(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		hash, hash_size, hash_length);
 }
 
 psa_status_t psa_hash_abort(psa_hash_operation_t *operation)
 {
 	return crypto_caller_hash_abort(&psa_crypto_client_instance.base,
-		operation->handle);
+		&operation->handle);
 }
 
 psa_status_t psa_hash_verify(psa_hash_operation_t *operation,
@@ -51,7 +51,7 @@ psa_status_t psa_hash_verify(psa_hash_operation_t *operation,
 	size_t hash_length)
 {
 	return crypto_caller_hash_verify(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		hash, hash_length);
 }
 

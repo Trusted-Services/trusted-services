@@ -109,7 +109,7 @@ static inline psa_status_t crypto_caller_mac_update(
 
 static inline psa_status_t crypto_caller_mac_sign_finish(
 						 struct service_client *context,
-						 uint32_t op_handle,
+						 uint32_t *op_handle,
 						 uint8_t *mac,
 						 size_t mac_size,
 						 size_t *mac_length)
@@ -119,13 +119,13 @@ static inline psa_status_t crypto_caller_mac_sign_finish(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_MAC_SIGN_FINISH_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 		{ .base = psa_ptr_to_u32(mac), .len = mac_size },
 	};
 
@@ -139,7 +139,7 @@ static inline psa_status_t crypto_caller_mac_sign_finish(
 
 static inline psa_status_t crypto_caller_mac_verify_finish(
 					   struct service_client *context,
-					   uint32_t op_handle,
+					   uint32_t *op_handle,
 					   const uint8_t *mac,
 					   size_t mac_length)
 {
@@ -148,14 +148,14 @@ static inline psa_status_t crypto_caller_mac_verify_finish(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_MAC_VERIFY_FINISH_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 		{ .base = psa_ptr_const_to_u32(mac), .len = mac_length },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,
@@ -166,20 +166,20 @@ static inline psa_status_t crypto_caller_mac_verify_finish(
 
 static inline psa_status_t crypto_caller_mac_abort(
 					   struct service_client *context,
-					   uint32_t op_handle)
+					   uint32_t *op_handle)
 {
 	struct service_client *ipc = context;
 	struct rpc_caller_interface *caller = ipc->session->caller;
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_MAC_ABORT_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,

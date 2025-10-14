@@ -181,7 +181,7 @@ psa_status_t packedc_crypto_client::hash_update(
 }
 
 psa_status_t packedc_crypto_client::hash_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *hash, size_t hash_size, size_t *hash_length)
 {
 	return crypto_caller_hash_finish(&m_client,
@@ -189,14 +189,14 @@ psa_status_t packedc_crypto_client::hash_finish(
 }
 
 psa_status_t packedc_crypto_client::hash_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	return crypto_caller_hash_abort(&m_client,
 		op_handle);
 }
 
 psa_status_t packedc_crypto_client::hash_verify(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *hash, size_t hash_length)
 {
 	return crypto_caller_hash_verify(&m_client,
@@ -262,7 +262,7 @@ psa_status_t packedc_crypto_client::cipher_update(
 }
 
 psa_status_t packedc_crypto_client::cipher_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *output, size_t output_size, size_t *output_length)
 {
 	return crypto_caller_cipher_finish(&m_client,
@@ -270,7 +270,7 @@ psa_status_t packedc_crypto_client::cipher_finish(
 }
 
 psa_status_t packedc_crypto_client::cipher_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	return crypto_caller_cipher_abort(&m_client,
 		op_handle);
@@ -309,7 +309,7 @@ psa_status_t packedc_crypto_client::mac_update(
 }
 
 psa_status_t packedc_crypto_client::mac_sign_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *mac, size_t mac_size, size_t *mac_length)
 {
 	return crypto_caller_mac_sign_finish(&m_client,
@@ -317,7 +317,7 @@ psa_status_t packedc_crypto_client::mac_sign_finish(
 }
 
 psa_status_t packedc_crypto_client::mac_verify_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *mac, size_t mac_length)
 {
 	return crypto_caller_mac_verify_finish(&m_client,
@@ -325,7 +325,7 @@ psa_status_t packedc_crypto_client::mac_verify_finish(
 }
 
 psa_status_t packedc_crypto_client::mac_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	return crypto_caller_mac_abort(&m_client,
 		op_handle);
@@ -392,7 +392,7 @@ psa_status_t packedc_crypto_client::key_derivation_output_key(
 }
 
 psa_status_t packedc_crypto_client::key_derivation_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	return crypto_caller_key_derivation_abort(&m_client,
 		op_handle);

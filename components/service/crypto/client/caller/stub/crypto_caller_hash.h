@@ -39,7 +39,7 @@ static inline psa_status_t crypto_caller_hash_update(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_hash_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *hash,
 	size_t hash_size,
 	size_t *hash_length)
@@ -54,7 +54,7 @@ static inline psa_status_t crypto_caller_hash_finish(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_hash_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)context;
 	(void)op_handle;
@@ -63,7 +63,7 @@ static inline psa_status_t crypto_caller_hash_abort(struct service_client *conte
 }
 
 static inline psa_status_t crypto_caller_hash_verify(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *hash,
 	size_t hash_length)
 {

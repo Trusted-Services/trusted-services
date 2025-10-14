@@ -88,7 +88,7 @@ static inline psa_status_t crypto_caller_cipher_update(struct service_client *co
 }
 
 static inline psa_status_t crypto_caller_cipher_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *output,
 	size_t output_size,
 	size_t *output_length)
@@ -103,7 +103,7 @@ static inline psa_status_t crypto_caller_cipher_finish(struct service_client *co
 }
 
 static inline psa_status_t crypto_caller_cipher_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)context;
 	(void)op_handle;

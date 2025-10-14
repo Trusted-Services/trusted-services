@@ -92,7 +92,7 @@ void key_derivation_service_scenarios::hkdfDeriveKey()
 	psa_reset_key_attributes(&attributes);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->key_derivation_abort(op_handle);
+	status = m_crypto_client->key_derivation_abort(&op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
 	status = m_crypto_client->destroy_key(derived_keyid);
@@ -125,7 +125,7 @@ void key_derivation_service_scenarios::hkdfDeriveBytes()
 		derived_bytes, sizeof(derived_bytes));
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->key_derivation_abort(op_handle);
+	status = m_crypto_client->key_derivation_abort(&op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 }
 
@@ -144,7 +144,7 @@ void key_derivation_service_scenarios::deriveAbort()
 		PSA_KEY_DERIVATION_INPUT_SECRET, m_secret_keyid);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->key_derivation_abort(op_handle);
+	status = m_crypto_client->key_derivation_abort(&op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
 	/* Expect operation to have been aborted */

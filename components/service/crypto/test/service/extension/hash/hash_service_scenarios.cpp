@@ -54,7 +54,7 @@ void hash_service_scenarios::calculateHash()
 	status = m_crypto_client->hash_update(op_handle, &input[0], input.size());
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->hash_finish(op_handle, output, sizeof(output), &output_len);
+	status = m_crypto_client->hash_finish(&op_handle, output, sizeof(output), &output_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
 	UNSIGNED_LONGS_EQUAL(expected_output.size(), output_len);
@@ -97,10 +97,10 @@ void hash_service_scenarios::hashAndVerify()
 	status = m_crypto_client->hash_clone(op_handle, &clone_op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->hash_finish(op_handle, hash, sizeof(hash), &hash_len);
+	status = m_crypto_client->hash_finish(&op_handle, hash, sizeof(hash), &hash_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->hash_verify(clone_op_handle, hash, hash_len);
+	status = m_crypto_client->hash_verify(&clone_op_handle, hash, hash_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 }
 
@@ -125,7 +125,7 @@ void hash_service_scenarios::hashAbort()
 	status = m_crypto_client->hash_update(op_handle, &m_ref_input[0], update_size);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->hash_abort(op_handle);
+	status = m_crypto_client->hash_abort(&op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
 	status = m_crypto_client->hash_update(op_handle, &m_ref_input[0], update_size);

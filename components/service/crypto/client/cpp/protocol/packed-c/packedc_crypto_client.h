@@ -112,14 +112,14 @@ public:
 		const uint8_t *input, size_t input_length);
 
 	psa_status_t hash_finish(
-		uint32_t op_handle,
+		uint32_t *op_handle,
 		uint8_t *hash, size_t hash_size, size_t *hash_length);
 
 	psa_status_t hash_abort(
-		uint32_t op_handle);
+		uint32_t *op_handle);
 
 	psa_status_t hash_verify(
-		uint32_t op_handle,
+		uint32_t *op_handle,
 		const uint8_t *hash, size_t hash_length);
 
 	psa_status_t hash_clone(
@@ -153,11 +153,11 @@ public:
 		uint8_t *output, size_t output_size, size_t *output_length);
 
 	psa_status_t cipher_finish(
-		uint32_t op_handle,
+		uint32_t *op_handle,
 		uint8_t *output, size_t output_size, size_t *output_length);
 
 	psa_status_t cipher_abort(
-		uint32_t op_handle);
+		uint32_t *op_handle);
 
 	/* MAC methods */
 	size_t mac_max_update_size() const;
@@ -177,15 +177,15 @@ public:
 		const uint8_t *input, size_t input_length);
 
 	psa_status_t mac_sign_finish(
-		uint32_t op_handle,
+		uint32_t *op_handle,
 		uint8_t *mac, size_t mac_size, size_t *mac_length);
 
 	psa_status_t mac_verify_finish(
-		uint32_t op_handle,
+		uint32_t *op_handle,
 		const uint8_t *mac, size_t mac_length);
 
 	psa_status_t mac_abort(
-		uint32_t op_handle);
+		uint32_t *op_handle);
 
 	/* Key derivation methods */
 	psa_status_t key_derivation_setup(
@@ -220,7 +220,7 @@ public:
 		psa_key_id_t *key);
 
 	psa_status_t key_derivation_abort(
-		uint32_t op_handle);
+		uint32_t *op_handle);
 
 	psa_status_t key_derivation_key_agreement(
 		uint32_t op_handle,

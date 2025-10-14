@@ -381,7 +381,7 @@ static inline psa_status_t crypto_caller_aead_update(
 
 static inline psa_status_t crypto_caller_aead_finish(
 					     struct service_client *context,
-					     uint32_t op_handle,
+					     uint32_t *op_handle,
 					     uint8_t *aeadtext,
 					     size_t aeadtext_size,
 					     size_t *aeadtext_length,
@@ -394,7 +394,7 @@ static inline psa_status_t crypto_caller_aead_finish(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_AEAD_FINISH_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 
 	/* Sanitize the optional output */
@@ -407,7 +407,7 @@ static inline psa_status_t crypto_caller_aead_finish(
 			.len = sizeof(struct psa_ipc_crypto_pack_iovec) },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 		{ .base = psa_ptr_const_to_u32(tag), .len = tag_size },
 		{ .base = psa_ptr_const_to_u32(aeadtext), .len = aeadtext_size }
 	};
@@ -435,7 +435,7 @@ static inline psa_status_t crypto_caller_aead_finish(
 
 static inline psa_status_t crypto_caller_aead_verify(
 					     struct service_client *context,
-					     uint32_t op_handle,
+					     uint32_t *op_handle,
 					     uint8_t *plaintext,
 					     size_t plaintext_size,
 					     size_t *plaintext_length,
@@ -447,7 +447,7 @@ static inline psa_status_t crypto_caller_aead_verify(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_AEAD_VERIFY_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 
 	/* Sanitize the optional output */
@@ -460,7 +460,7 @@ static inline psa_status_t crypto_caller_aead_verify(
 		{ .base = psa_ptr_const_to_u32(tag), .len = tag_length },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 		{ .base = psa_ptr_const_to_u32(plaintext),
 			.len = plaintext_size },
 	};
@@ -486,14 +486,14 @@ static inline psa_status_t crypto_caller_aead_verify(
 
 static inline psa_status_t crypto_caller_aead_abort(
 					    struct service_client *context,
-					    uint32_t op_handle)
+					    uint32_t *op_handle)
 {
 	struct service_client *ipc = context;
 	struct rpc_caller_interface *caller = ipc->session->caller;
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_AEAD_ABORT_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 
 	struct psa_invec in_vec[] = {
@@ -501,7 +501,7 @@ static inline psa_status_t crypto_caller_aead_abort(
 			.len = sizeof(struct psa_ipc_crypto_pack_iovec) },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,

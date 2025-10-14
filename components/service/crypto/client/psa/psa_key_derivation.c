@@ -79,7 +79,7 @@ psa_status_t psa_key_derivation_abort(
 	psa_key_derivation_operation_t *operation)
 {
 	return crypto_caller_key_derivation_abort(&psa_crypto_client_instance.base,
-		operation->handle);
+		&operation->handle);
 }
 
 psa_status_t psa_key_derivation_key_agreement(

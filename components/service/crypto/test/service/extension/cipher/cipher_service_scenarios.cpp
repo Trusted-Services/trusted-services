@@ -109,15 +109,15 @@ void cipher_service_scenarios::encryptDecryptRoundtrip()
 	size_t finish_output_len = 0;
 	size_t finish_output_space = sizeof(ciphertext) - output_byte_count;
 
-	status = m_crypto_client->cipher_finish(op_handle,
+	status = m_crypto_client->cipher_finish(&op_handle,
 		&ciphertext[output_byte_count], finish_output_space, &finish_output_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
+	CHECK_EQUAL(0, op_handle);
 
 	output_byte_count += finish_output_len;
 
 	/* Decrypt the ciphertext */
 	uint8_t decrypted_plaintext[plaintext_size];
-	op_handle = 0;
 
 	size_t ciphertext_size = output_byte_count;
 	input_byte_count = 0;
@@ -148,7 +148,7 @@ void cipher_service_scenarios::encryptDecryptRoundtrip()
 	finish_output_len = 0;
 	finish_output_space = sizeof(decrypted_plaintext) - output_byte_count;
 
-	status = m_crypto_client->cipher_finish(op_handle,
+	status = m_crypto_client->cipher_finish(&op_handle,
 		&ciphertext[output_byte_count], finish_output_space, &finish_output_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
@@ -169,7 +169,7 @@ void cipher_service_scenarios::cipherAbort()
 	status = m_crypto_client->cipher_encrypt_setup(&op_handle, m_keyid, PSA_ALG_CTR);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->cipher_abort(op_handle);
+	status = m_crypto_client->cipher_abort(&op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
 	size_t iv_len;

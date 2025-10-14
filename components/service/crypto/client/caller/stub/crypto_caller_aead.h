@@ -172,7 +172,7 @@ static inline psa_status_t crypto_caller_aead_update(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_aead_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *aeadtext,
 	size_t aeadtext_size,
 	size_t *aeadtext_length,
@@ -193,7 +193,7 @@ static inline psa_status_t crypto_caller_aead_finish(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_aead_verify(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *plaintext,
 	size_t plaintext_size,
 	size_t *plaintext_length,
@@ -212,7 +212,7 @@ static inline psa_status_t crypto_caller_aead_verify(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_aead_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)context;
 	(void)op_handle;

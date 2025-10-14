@@ -292,7 +292,7 @@ static inline psa_status_t crypto_caller_cipher_update(struct service_client *co
 }
 
 static inline psa_status_t crypto_caller_cipher_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *output,
 	size_t output_size,
 	size_t *output_length)
@@ -303,7 +303,7 @@ static inline psa_status_t crypto_caller_cipher_finish(struct service_client *co
 	size_t req_len = req_fixed_len;
 
 	*output_length = 0;
-	req_msg.op_handle = op_handle;
+	req_msg.op_handle = *op_handle;
 
 	rpc_call_handle call_handle;
 	uint8_t *req_buf;
@@ -349,6 +349,7 @@ static inline psa_status_t crypto_caller_cipher_finish(struct service_client *co
 					/* Mandatory response parameter missing */
 					psa_status = PSA_ERROR_GENERIC_ERROR;
 				}
+				*op_handle = 0;
 			}
 		}
 
@@ -359,14 +360,14 @@ static inline psa_status_t crypto_caller_cipher_finish(struct service_client *co
 }
 
 static inline psa_status_t crypto_caller_cipher_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_cipher_abort_in req_msg;
 	const size_t req_fixed_len = sizeof(struct ts_crypto_cipher_abort_in);
 	size_t req_len = req_fixed_len;
 
-	req_msg.op_handle = op_handle;
+	req_msg.op_handle = *op_handle;
 
 	rpc_call_handle call_handle;
 	uint8_t *req_buf;
@@ -385,8 +386,10 @@ static inline psa_status_t crypto_caller_cipher_abort(struct service_client *con
 			rpc_caller_session_invoke(call_handle, TS_CRYPTO_OPCODE_CIPHER_ABORT,
 						  &resp_buf, &resp_len, &service_status);
 
-		if (context->rpc_status == RPC_SUCCESS)
+		if (context->rpc_status == RPC_SUCCESS) {
 			psa_status = service_status;
+			*op_handle = 0;
+		}
 
 		rpc_caller_session_end(call_handle);
 	}

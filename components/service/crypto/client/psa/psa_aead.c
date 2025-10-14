@@ -102,7 +102,7 @@ psa_status_t psa_aead_finish(psa_aead_operation_t *operation,
 	size_t *tag_length)
 {
 	return crypto_caller_aead_finish(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		aeadtext, aeadtext_size, aeadtext_length,
 		tag, tag_size, tag_length);
 }
@@ -115,7 +115,7 @@ psa_status_t psa_aead_verify(psa_aead_operation_t *operation,
 	size_t tag_length)
 {
 	return crypto_caller_aead_verify(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		plaintext, plaintext_size, plaintext_length,
 		tag, tag_length);
 }
@@ -123,7 +123,7 @@ psa_status_t psa_aead_verify(psa_aead_operation_t *operation,
 psa_status_t psa_aead_abort(psa_aead_operation_t *operation)
 {
 	return crypto_caller_aead_abort(&psa_crypto_client_instance.base,
-		operation->handle);
+		&operation->handle);
 }
 
 static psa_status_t multi_aead_update_ad(psa_aead_operation_t *operation,

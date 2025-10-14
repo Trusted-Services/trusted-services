@@ -122,7 +122,7 @@ static inline psa_status_t crypto_caller_hash_update(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_hash_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *hash,
 	size_t hash_size,
 	size_t *hash_length)
@@ -133,7 +133,7 @@ static inline psa_status_t crypto_caller_hash_finish(struct service_client *cont
 	size_t req_len = req_fixed_len;
 
 	*hash_length = 0;
-	req_msg.op_handle = op_handle;
+	req_msg.op_handle = *op_handle;
 
 	rpc_call_handle call_handle;
 	uint8_t *req_buf;
@@ -180,6 +180,7 @@ static inline psa_status_t crypto_caller_hash_finish(struct service_client *cont
 					/* Mandatory response parameter missing */
 					psa_status = PSA_ERROR_GENERIC_ERROR;
 				}
+				*op_handle = 0;
 			}
 		}
 
@@ -190,14 +191,14 @@ static inline psa_status_t crypto_caller_hash_finish(struct service_client *cont
 }
 
 static inline psa_status_t crypto_caller_hash_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_hash_abort_in req_msg;
 	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_abort_in);
 	size_t req_len = req_fixed_len;
 
-	req_msg.op_handle = op_handle;
+	req_msg.op_handle = *op_handle;
 
 	rpc_call_handle call_handle;
 	uint8_t *req_buf;
@@ -216,8 +217,10 @@ static inline psa_status_t crypto_caller_hash_abort(struct service_client *conte
 			rpc_caller_session_invoke(call_handle, TS_CRYPTO_OPCODE_HASH_ABORT,
 						  &resp_buf, &resp_len, &service_status);
 
-		if (context->rpc_status == RPC_SUCCESS)
+		if (context->rpc_status == RPC_SUCCESS) {
 			psa_status = service_status;
+			*op_handle = 0;
+		}
 
 		rpc_caller_session_end(call_handle);
 	}
@@ -226,7 +229,7 @@ static inline psa_status_t crypto_caller_hash_abort(struct service_client *conte
 }
 
 static inline psa_status_t crypto_caller_hash_verify(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *hash,
 	size_t hash_length)
 {
@@ -235,7 +238,7 @@ static inline psa_status_t crypto_caller_hash_verify(struct service_client *cont
 	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_verify_in);
 	size_t req_len = req_fixed_len;
 
-	req_msg.op_handle = op_handle;
+	req_msg.op_handle = *op_handle;
 
 	/* Mandatory input data parameter */
 	struct tlv_record data_record;
@@ -265,8 +268,11 @@ static inline psa_status_t crypto_caller_hash_verify(struct service_client *cont
 			rpc_caller_session_invoke(call_handle, TS_CRYPTO_OPCODE_HASH_VERIFY,
 						  &resp_buf, &resp_len, &service_status);
 
-		if (context->rpc_status == RPC_SUCCESS)
+		if (context->rpc_status == RPC_SUCCESS) {
 			psa_status = service_status;
+			if (psa_status == PSA_SUCCESS)
+				*op_handle = 0;
+		}
 
 		rpc_caller_session_end(call_handle);
 	}

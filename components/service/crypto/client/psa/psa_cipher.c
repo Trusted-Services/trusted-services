@@ -76,14 +76,14 @@ psa_status_t psa_cipher_finish(psa_cipher_operation_t *operation,
 	size_t *output_length)
 {
 	return crypto_caller_cipher_finish(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		output, output_size, output_length);
 }
 
 psa_status_t psa_cipher_abort(psa_cipher_operation_t *operation)
 {
 	return crypto_caller_cipher_abort(&psa_crypto_client_instance.base,
-		operation->handle);
+		&operation->handle);
 }
 
 static psa_status_t multi_cipher_update(psa_cipher_operation_t *operation,

@@ -170,7 +170,7 @@ static inline psa_status_t crypto_caller_cipher_update(
 
 static inline psa_status_t crypto_caller_cipher_finish(
 					       struct service_client *context,
-					       uint32_t op_handle,
+					       uint32_t *op_handle,
 					       uint8_t *output,
 					       size_t output_size,
 					       size_t *output_length)
@@ -180,13 +180,13 @@ static inline psa_status_t crypto_caller_cipher_finish(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_CIPHER_FINISH_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 		{ .base = psa_ptr_to_u32(output), .len = output_size },
 	};
 
@@ -200,20 +200,20 @@ static inline psa_status_t crypto_caller_cipher_finish(
 
 static inline psa_status_t crypto_caller_cipher_abort(
 					      struct service_client *context,
-					      uint32_t op_handle)
+					      uint32_t *op_handle)
 {
 	struct service_client *ipc = context;
 	struct rpc_caller_interface *caller = ipc->session->caller;
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_CIPHER_ABORT_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,

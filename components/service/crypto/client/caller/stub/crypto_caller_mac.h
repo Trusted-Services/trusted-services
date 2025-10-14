@@ -55,7 +55,7 @@ static inline psa_status_t crypto_caller_mac_update(struct service_client *conte
 }
 
 static inline psa_status_t crypto_caller_mac_sign_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *mac,
 	size_t mac_size,
 	size_t *mac_length)
@@ -70,7 +70,7 @@ static inline psa_status_t crypto_caller_mac_sign_finish(struct service_client *
 }
 
 static inline psa_status_t crypto_caller_mac_verify_finish(struct service_client *context,
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *mac,
 	size_t mac_length)
 {
@@ -83,7 +83,7 @@ static inline psa_status_t crypto_caller_mac_verify_finish(struct service_client
 }
 
 static inline psa_status_t crypto_caller_mac_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)context;
 	(void)op_handle;

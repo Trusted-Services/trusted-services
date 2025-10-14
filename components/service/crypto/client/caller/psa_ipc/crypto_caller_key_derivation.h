@@ -205,20 +205,20 @@ static inline psa_status_t crypto_caller_key_derivation_output_key(
 
 static inline psa_status_t crypto_caller_key_derivation_abort(
 					      struct service_client *context,
-					      uint32_t op_handle)
+					      uint32_t *op_handle)
 {
 	struct service_client *ipc = context;
 	struct rpc_caller_interface *caller = ipc->session->caller;
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_KEY_DERIVATION_ABORT_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,

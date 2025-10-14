@@ -54,7 +54,7 @@ psa_status_t psa_mac_sign_finish(psa_mac_operation_t *operation,
 	size_t *mac_length)
 {
 	return crypto_caller_mac_sign_finish(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		mac, mac_size, mac_length);
 }
 
@@ -63,14 +63,14 @@ psa_status_t psa_mac_verify_finish(psa_mac_operation_t *operation,
 	size_t mac_length)
 {
 	return crypto_caller_mac_verify_finish(&psa_crypto_client_instance.base,
-		operation->handle,
+		&operation->handle,
 		mac, mac_length);
 }
 
 psa_status_t psa_mac_abort(psa_mac_operation_t *operation)
 {
 	return crypto_caller_mac_abort(&psa_crypto_client_instance.base,
-		operation->handle);
+		&operation->handle);
 }
 
 static psa_status_t multi_mac_update(psa_mac_operation_t *operation,

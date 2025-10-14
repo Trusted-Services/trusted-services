@@ -841,7 +841,7 @@ psa_status_t protobuf_crypto_client::hash_update(uint32_t op_handle,
 	return PSA_ERROR_NOT_SUPPORTED;
 }
 
-psa_status_t protobuf_crypto_client::hash_finish(uint32_t op_handle,
+psa_status_t protobuf_crypto_client::hash_finish(uint32_t *op_handle,
 							uint8_t *hash, size_t hash_size, size_t *hash_length)
 {
 	(void)op_handle;
@@ -853,7 +853,7 @@ psa_status_t protobuf_crypto_client::hash_finish(uint32_t op_handle,
 }
 
 psa_status_t protobuf_crypto_client::hash_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)op_handle;
 
@@ -861,7 +861,7 @@ psa_status_t protobuf_crypto_client::hash_abort(
 }
 
 psa_status_t protobuf_crypto_client::hash_verify(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *hash, size_t hash_length)
 {
 	(void)op_handle;
@@ -950,7 +950,7 @@ psa_status_t protobuf_crypto_client::cipher_update(
 }
 
 psa_status_t protobuf_crypto_client::cipher_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *output, size_t output_size, size_t *output_length)
 {
 	(void)op_handle;
@@ -962,7 +962,7 @@ psa_status_t protobuf_crypto_client::cipher_finish(
 }
 
 psa_status_t protobuf_crypto_client::cipher_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)op_handle;
 
@@ -1011,7 +1011,7 @@ psa_status_t protobuf_crypto_client::mac_update(
 }
 
 psa_status_t protobuf_crypto_client::mac_sign_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	uint8_t *mac, size_t mac_size, size_t *mac_length)
 {
 	(void)op_handle;
@@ -1023,7 +1023,7 @@ psa_status_t protobuf_crypto_client::mac_sign_finish(
 }
 
 psa_status_t protobuf_crypto_client::mac_verify_finish(
-	uint32_t op_handle,
+	uint32_t *op_handle,
 	const uint8_t *mac, size_t mac_length)
 {
 	(void)op_handle;
@@ -1034,7 +1034,7 @@ psa_status_t protobuf_crypto_client::mac_verify_finish(
 }
 
 psa_status_t protobuf_crypto_client::mac_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)op_handle;
 
@@ -1121,7 +1121,7 @@ psa_status_t protobuf_crypto_client::key_derivation_output_key(
 }
 
 psa_status_t protobuf_crypto_client::key_derivation_abort(
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)op_handle;
 

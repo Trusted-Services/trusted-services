@@ -102,7 +102,7 @@ static inline psa_status_t crypto_caller_key_derivation_output_key(struct servic
 }
 
 static inline psa_status_t crypto_caller_key_derivation_abort(struct service_client *context,
-	uint32_t op_handle)
+	uint32_t *op_handle)
 {
 	(void)context;
 	(void)op_handle;

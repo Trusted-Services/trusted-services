@@ -96,11 +96,11 @@ void mac_service_scenarios::signAndVerify()
 	size_t mac_len;
 	uint8_t mac[PSA_MAC_MAX_SIZE];
 
-	status = m_crypto_client->mac_sign_finish(op_handle, mac, sizeof(mac), &mac_len);
+	status = m_crypto_client->mac_sign_finish(&op_handle, mac, sizeof(mac), &mac_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
+	CHECK_EQUAL(0, op_handle);
 
 	/* Verify MAC */
-	op_handle = 0;
 	input_byte_count = 0;
 
 	status = m_crypto_client->mac_verify_setup(&op_handle, m_keyid, PSA_ALG_CMAC);
@@ -118,7 +118,7 @@ void mac_service_scenarios::signAndVerify()
 		input_byte_count += update_len;
 	}
 
-	status = m_crypto_client->mac_verify_finish(op_handle, mac, mac_len);
+	status = m_crypto_client->mac_verify_finish(&op_handle, mac, mac_len);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 }
 
@@ -132,12 +132,12 @@ void mac_service_scenarios::macAbort()
 	status = m_crypto_client->mac_sign_setup(&op_handle, m_keyid, PSA_ALG_CMAC);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
-	status = m_crypto_client->mac_abort(op_handle);
+	status = m_crypto_client->mac_abort(&op_handle);
 	CHECK_EQUAL(PSA_SUCCESS, status);
 
 	size_t mac_len;
 	uint8_t mac[PSA_MAC_MAX_SIZE];
 
-	status = m_crypto_client->mac_sign_finish(op_handle, mac, sizeof(mac), &mac_len);
+	status = m_crypto_client->mac_sign_finish(&op_handle, mac, sizeof(mac), &mac_len);
 	CHECK_EQUAL(PSA_ERROR_BAD_STATE, status);
 }

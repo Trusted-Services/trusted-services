@@ -79,7 +79,7 @@ static inline psa_status_t crypto_caller_hash_update(
 
 static inline psa_status_t crypto_caller_hash_finish(
 					     struct service_client *context,
-					     uint32_t op_handle,
+					     uint32_t *op_handle,
 					     uint8_t *hash,
 					     size_t hash_size,
 					     size_t *hash_length)
@@ -89,13 +89,13 @@ static inline psa_status_t crypto_caller_hash_finish(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_HASH_FINISH_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 		{ .base = psa_ptr_to_u32(hash), .len = hash_size},
 	};
 
@@ -109,20 +109,20 @@ static inline psa_status_t crypto_caller_hash_finish(
 
 static inline psa_status_t crypto_caller_hash_abort(
 					    struct service_client *context,
-					    uint32_t op_handle)
+					    uint32_t *op_handle)
 {
 	struct service_client *ipc = context;
 	struct rpc_caller_interface *caller = ipc->session->caller;
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_HASH_ABORT_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,
@@ -133,7 +133,7 @@ static inline psa_status_t crypto_caller_hash_abort(
 
 static inline psa_status_t crypto_caller_hash_verify(
 					     struct service_client *context,
-					     uint32_t op_handle,
+					     uint32_t *op_handle,
 					     const uint8_t *hash,
 					     size_t hash_length)
 {
@@ -142,14 +142,14 @@ static inline psa_status_t crypto_caller_hash_verify(
 	psa_status_t status;
 	struct psa_ipc_crypto_pack_iovec iov = {
 		.function_id = TFM_CRYPTO_HASH_VERIFY_SID,
-		.op_handle = op_handle,
+		.op_handle = *op_handle,
 	};
 	struct psa_invec in_vec[] = {
 		{ .base = psa_ptr_to_u32(&iov), .len = iov_size },
 		{ .base = psa_ptr_const_to_u32(hash), .len = hash_length},
 	};
 	struct psa_outvec out_vec[] = {
-		{ .base = psa_ptr_to_u32(&op_handle), .len = sizeof(uint32_t) },
+		{ .base = psa_ptr_to_u32(op_handle), .len = sizeof(uint32_t) },
 	};
 
 	status = psa_call(caller, TFM_CRYPTO_HANDLE, PSA_IPC_CALL, in_vec,
