@@ -720,7 +720,7 @@ static efi_status_t load_variable_index(struct uefi_variable_store *context)
 
 	if (persistent_store) {
 		size_t data_len = 0;
-		size_t data_offset = 0;
+		__maybe_unused size_t data_offset = 0;
 		struct psa_storage_info_t variable_index_info = { 0 };
 
 		psa_status = get_active_variable_uid(context, &context->active_variable_index_uid,
@@ -803,7 +803,7 @@ static efi_status_t sync_variable_index(struct uefi_variable_store *context)
 			context->persistent_store.storage_backend;
 
 		if (persistent_store) {
-			size_t data_offset = 0;
+			__maybe_unused size_t data_offset = 0;
 			uint64_t next_index_uid = 0;
 
 			/* Write the older one */

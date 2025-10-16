@@ -1,0 +1,21 @@
+#
+# Copyright (c) 2025, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+elements:
+- file: components/service/uefi/smm_variable/backend/uefi_variable_store.c
+  type: include
+- file: components/service/uefi/smm_variable/backend/uefi_variable_store.c
+  type: function
+  name: load_variable_index
+  options: [remove_static]
+- file: components/service/uefi/smm_variable/backend/uefi_variable_store.c
+  type: function
+  name: sync_variable_index
+  options: [remove_static]
+- file: components/service/uefi/smm_variable/backend/uefi_variable_store.c
+  type: function
+  name: psa_to_efi_storage_status
+  options: [remove_static]

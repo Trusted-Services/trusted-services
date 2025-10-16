@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2023, 2025, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -57,3 +57,4 @@ include(${TS_ROOT}/components/rpc/common/tests.cmake)
 include(${TS_ROOT}/components/rpc/mm_communicate/endpoint/sp/tests.cmake)
 include(${TS_ROOT}/components/service/uefi/smm_variable/frontend/mm_communicate/tests.cmake)
 include(${TS_ROOT}/components/service/block_storage/block_store/encrypted/unit/tests.cmake)
+include(${TS_ROOT}/components/service/uefi/smm_variable/backend/tests.cmake)
