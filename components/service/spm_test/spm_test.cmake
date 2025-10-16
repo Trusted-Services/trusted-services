@@ -76,7 +76,6 @@ export_sp(
 	SP_BIN_UUID_CANON ${SP_BIN_UUID_CANON}
 	SP_BOOT_ORDER ${SP_BOOT_ORDER}
 	SP_NAME "spm-test${SP_NUMBER}"
-	MK_IN ${TS_ROOT}/environments/opteesp/sp.mk.in
 	DTS_IN ${TS_ROOT}/deployments/spm-test${SP_NUMBER}/opteesp/default_spm_test${SP_NUMBER}.dts.in
 	JSON_IN ${TS_ROOT}/environments/opteesp/sp_pkg.json.in
 )
