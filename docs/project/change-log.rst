@@ -4,6 +4,65 @@ Change Log & Release Notes
 This document contains a summary of the new features, changes, fixes and known issues in each release of Trusted
 Services.
 
+
+Version v1.3.0
+--------------
+
+Feature Highlights
+^^^^^^^^^^^^^^^^^^
+
+- PSA Crypto: Enable support for AEAD block cyphers that require input data to be processed in whole block-sized chunks.
+- Enhance fTPM build scripts to support the memory-protection settings.
+- Implement support for the FFA_YIELD ABI, including the necessary updates in libsp, TS, and OP-TEE SPMC tests. The
+  feature depends on OP-TEE SPMC version 4.7.0 or newer.
+- Add support for FF-A notification handling in libsp.
+- Add Security Assessment page of the Block Storage SP to the documentation.
+- Modify the CMake scripts to honor the CMAKE_COMPILE_WARNING_AS_ERROR configuration option, allowing integrators to
+  temporarily turn off treating compilation warnings as errors.
+- Corstone1000: add Event Provider proxy service to support delivery of boot confirmation events from the normal world
+  to the Secure Enclave
+- FWU Proxy: allow the RSE or SE to send success reboot status to the FWU agent. Success reboot is handled the same as
+  success.
+- FWU Proxy: add support for exposing ESRT v1 to the FWU client. Introduces a new virtual FWU image ID that represents a
+  read-only image; when accessed, the ESRT data is returned as the response.
+- Add support for the RD-Aspen platform. RD-Aspen is an Arm reference design that combines a high-performance
+  Cortex-A720AE based compute subsystem with a Cortex-R82AE based Safety Island and a Runtime Security Engine (RSE) to
+  enable safety- and security-critical automotive and industrial applications.
+
+Deprecations
+^^^^^^^^^^^^
+
+None.
+
+Updated external components
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- MbedTLS v3.6.0 -> v3.6.5.
+
+Breaking changes
+^^^^^^^^^^^^^^^^
+
+- The representation of boot-order property in the SP manifest file has been updated to match new version of the
+  manifest binding documentation. This change broke compatibility to OP-TEE SPMC before 4.7.0.
+- The FFA_YIELD support requires OP-TEE v4.7.0+
+
+Resolved issues
+^^^^^^^^^^^^^^^
+
+None.
+
+Known limitations
+^^^^^^^^^^^^^^^^^
+
+- fTPM SP:
+
+    - The implementation is experimental. The end-to-end integration is lacking, some
+      components are not published yet.
+    - Missing support of hardware time source.
+    - Missing support for boot measurements (event log) made by earlier boot stages.
+    - Locality 4 command handling is not implemented yet.
+
+
 Version v1.2.0
 --------------
 
