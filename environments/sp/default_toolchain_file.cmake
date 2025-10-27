@@ -20,9 +20,9 @@ set(CMAKE_SYSTEM_PROCESSOR arm)
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 
 set(TS_DEBUG_INFO_FLAGS "-fdiagnostics-show-option -gdwarf-2" CACHE STRING "Compiler flags to add debug information.")
-set(TS_MANDATORY_AARCH_FLAGS "-fpie -mstrict-align -march=armv8-a+crc -fdata-sections -ffunction-sections" CACHE STRING "Compiler flags configuring architecture specific ")
+set(TS_MANDATORY_AARCH_FLAGS "-fpie -mstrict-align -march=armv8-a+crc -fdata-sections -ffunction-sections -flto" CACHE STRING "Compiler flags configuring architecture specific ")
 set(TS_WARNING_FLAGS "-Wall" CACHE STRING "Compiler flags affecting generating warning messages.")
-set(TS_MANDATORY_LINKER_FLAGS "-Wl,-pie -Wl,--no-dynamic-linker -Wl,--sort-section=alignment -zmax-page-size=4096" CACHE STRING "Linker flags needed for correct builds.")
+set(TS_MANDATORY_LINKER_FLAGS "-Wl,-pie -Wl,--no-dynamic-linker -Wl,--sort-section=alignment -zmax-page-size=4096 -flto -Wl,-u,memcpy -Wl,-u,memset" CACHE STRING "Linker flags needed for correct builds.")
 
 # Allow defining the "warning as error behavior" using an environment variable. But prioritize command line
 # definition if present.
