@@ -19,10 +19,12 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
 set(TS_DEBUG_INFO_FLAGS "-fdiagnostics-show-option -gdwarf-2" CACHE STRING "Compiler flags to add debug information.")
-set(TS_MANDATORY_AARCH_FLAGS "-fpic -mstrict-align -march=armv8-a+crc -fdata-sections -ffunction-sections -flto" CACHE STRING "Compiler flags configuring architecture specific ")
+set(TS_MANDATORY_AARCH_FLAGS "-fpic -mstrict-align -march=armv8-a+crc -fdata-sections -ffunction-sections" CACHE STRING "Compiler flags configuring architecture specific ")
 set(TS_WARNING_FLAGS "-Wall" CACHE STRING "Compiler flags affecting generating warning messages.")
-set(TS_MANDATORY_LINKER_FLAGS "-pie -Wl,--as-needed -Wl,--sort-section=alignment -zmax-page-size=4096 -flto -Wl,-u,memcpy -Wl,-u,memset"
+set(TS_MANDATORY_LINKER_FLAGS "-pie -Wl,--as-needed -Wl,--sort-section=alignment -zmax-page-size=4096"
 	CACHE STRING "Linker flags needed for correct builds.")
+
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION True CACHE BOOL "Enable Link Time Optimization.")
 
 # Allow defining the "warning as error behavior" using an environment variable. But prioritize command line
 # definition if present.
