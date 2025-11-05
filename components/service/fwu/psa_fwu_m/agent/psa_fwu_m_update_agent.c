@@ -192,13 +192,13 @@ int image_directory_read(struct psa_fwu_m_update_agent *agent, struct psa_fwu_m_
 
 	for (i = 0; i < image_count; i++) {
 		struct fwu_image_info_entry *entry = &directory->img_info_entry[i];
-		struct psa_fwu_m_image *image = &agent->images[i];
+		struct psa_fwu_m_image *img = &agent->images[i];
 
-		psa_status = psa_fwu_query(image->component, &component_info);
+		psa_status = psa_fwu_query(img->component, &component_info);
 		if (psa_status != PSA_SUCCESS)
 			return psa_status_to_fwu_status(psa_status);
 
-		memcpy(entry->img_type_uuid, image->uuid.octets, sizeof(entry->img_type_uuid));
+		memcpy(entry->img_type_uuid, img->uuid.octets, sizeof(entry->img_type_uuid));
 		entry->client_permissions = 0x1; /* Only write is supported by the API */
 		entry->img_max_size = component_info.max_size;
 		entry->lowest_accepted_version = 0; /* This information is not available */
