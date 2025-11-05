@@ -62,7 +62,7 @@ get_composite_desc(struct ffa_mem_transaction_buffer *buffer)
 
 #if CFG_FFA_VERSION >= FFA_VERSION_1_1
 static struct ffa_mem_access_desc *get_mem_access_desc_by_offset(
-	struct ffa_mem_transaction_buffer *buffer, uint32_t offset)
+	struct ffa_mem_transaction_buffer *buffer, size_t offset)
 {
 	void *ptr = NULL;
 
@@ -89,7 +89,7 @@ struct ffa_mem_access_desc *get_mem_access_desc(struct ffa_mem_transaction_buffe
 	access_desc = &transaction->mem_access_desc[descriptor_index];
 #elif CFG_FFA_VERSION >= FFA_VERSION_1_1
 	mem_desc_offset = transaction->mem_access_desc_offset;
-	mem_desc_offset += transaction->mem_access_desc_size * descriptor_index;
+	mem_desc_offset += (size_t)transaction->mem_access_desc_size * descriptor_index;
 	access_desc = get_mem_access_desc_by_offset(buffer, mem_desc_offset);
 #endif /* CFG_FFA_VERSION */
 
@@ -211,7 +211,7 @@ uint32_t ffa_add_mem_access_desc(struct ffa_mem_transaction_buffer *buffer, uint
 	access_desc = &transaction->mem_access_desc[index];
 #elif CFG_FFA_VERSION >= FFA_VERSION_1_1
 	mem_desc_offset = transaction->mem_access_desc_offset;
-	mem_desc_offset += transaction->mem_access_desc_size * index;
+	mem_desc_offset += (size_t)transaction->mem_access_desc_size * index;
 	access_desc = get_mem_access_desc_by_offset(buffer, mem_desc_offset);
 #endif
 	access_perm_desc = &access_desc->mem_access_perm_desc;

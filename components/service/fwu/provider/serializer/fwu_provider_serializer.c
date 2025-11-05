@@ -68,7 +68,7 @@ rpc_status_t fwu_deserialize_begin_staging_req(const struct rpc_buffer *req_buf,
 		*partial_update_count = recv_msg->partial_update_count;
 
 		memcpy(update_guid, recv_msg->update_guid,
-		       UUID_OCTETS_LEN * recv_msg->partial_update_count);
+		       UUID_OCTETS_LEN * (size_t)recv_msg->partial_update_count);
 
 		rpc_status = RPC_SUCCESS;
 	}
