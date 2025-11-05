@@ -292,7 +292,7 @@ static rpc_status_t asymmetric_sign_handler(void *context, struct rpc_request *r
 	const struct crypto_provider_serializer *serializer = get_crypto_serializer(context, req);
 
 	psa_key_id_t key_id = PSA_KEY_ID_NULL;
-	psa_algorithm_t alg;
+	psa_algorithm_t alg = PSA_ALG_NONE;
 	size_t hash_len = PSA_HASH_MAX_SIZE;
 	uint8_t hash_buffer[PSA_HASH_MAX_SIZE];
 
@@ -331,7 +331,7 @@ static rpc_status_t asymmetric_verify_handler(void *context, struct rpc_request 
 	const struct crypto_provider_serializer *serializer = get_crypto_serializer(context, req);
 
 	psa_key_id_t key_id = PSA_KEY_ID_NULL;
-	psa_algorithm_t alg;
+	psa_algorithm_t alg = PSA_ALG_NONE;
 	size_t hash_len = PSA_HASH_MAX_SIZE;
 	uint8_t hash_buffer[PSA_HASH_MAX_SIZE];
 	size_t sig_len = PSA_SIGNATURE_MAX_SIZE;
@@ -366,7 +366,7 @@ static rpc_status_t asymmetric_decrypt_handler(void *context, struct rpc_request
 		size_t max_param_size = serializer->max_deserialised_parameter_size(req_buf);
 
 		psa_key_id_t key_id = PSA_KEY_ID_NULL;
-		psa_algorithm_t alg;
+		psa_algorithm_t alg = PSA_ALG_NONE;
 		size_t ciphertext_len = max_param_size;
 		uint8_t *ciphertext_buffer = malloc(ciphertext_len);
 		size_t salt_len = max_param_size;
@@ -442,7 +442,7 @@ static rpc_status_t asymmetric_encrypt_handler(void *context, struct rpc_request
 		size_t max_param_size = serializer->max_deserialised_parameter_size(req_buf);
 
 		psa_key_id_t key_id = PSA_KEY_ID_NULL;
-		psa_algorithm_t alg;
+		psa_algorithm_t alg = PSA_ALG_NONE;
 		size_t plaintext_len = max_param_size;
 		uint8_t *plaintext_buffer = malloc(plaintext_len);
 		size_t salt_len = max_param_size;
@@ -515,7 +515,7 @@ static rpc_status_t generate_random_handler(void *context, struct rpc_request *r
 	struct rpc_buffer *req_buf = &req->request;
 	const struct crypto_provider_serializer *serializer = get_crypto_serializer(context, req);
 
-	size_t output_size;
+	size_t output_size = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_generate_random_req(req_buf, &output_size);

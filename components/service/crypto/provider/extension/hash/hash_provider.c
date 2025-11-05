@@ -69,14 +69,14 @@ static rpc_status_t hash_setup_handler(void *context, struct rpc_request *req)
 	const struct hash_provider_serializer *serializer = get_serializer(context, req);
 	struct hash_provider *this_instance = (struct hash_provider*)context;
 
-	psa_algorithm_t alg;
+	psa_algorithm_t alg = PSA_ALG_NONE;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_hash_setup_req(req_buf, &alg);
 
 	if (rpc_status == RPC_SUCCESS) {
 
-		uint32_t op_handle;
+		uint32_t op_handle = 0;
 
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
@@ -117,9 +117,9 @@ static rpc_status_t hash_update_handler(void *context, struct rpc_request *req)
 	const struct hash_provider_serializer *serializer = get_serializer(context, req);
 	struct hash_provider *this_instance = (struct hash_provider*)context;
 
-	uint32_t op_handle;
-	const uint8_t *data;
-	size_t data_len;
+	uint32_t op_handle = 0;
+	const uint8_t *data = NULL;
+	size_t data_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_hash_update_req(req_buf, &op_handle, &data, &data_len);
@@ -151,7 +151,7 @@ static rpc_status_t hash_finish_handler(void *context, struct rpc_request *req)
 	const struct hash_provider_serializer *serializer = get_serializer(context, req);
 	struct hash_provider *this_instance = (struct hash_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_hash_finish_req(req_buf, &op_handle);
@@ -194,7 +194,7 @@ static rpc_status_t hash_abort_handler(void *context, struct rpc_request *req)
 	const struct hash_provider_serializer *serializer = get_serializer(context, req);
 	struct hash_provider *this_instance = (struct hash_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_hash_abort_req(req_buf, &op_handle);
@@ -230,9 +230,9 @@ static rpc_status_t hash_verify_handler(void *context, struct rpc_request *req)
 	const struct hash_provider_serializer *serializer = get_serializer(context, req);
 	struct hash_provider *this_instance = (struct hash_provider*)context;
 
-	uint32_t op_handle;
-	const uint8_t *hash;
-	size_t hash_len;
+	uint32_t op_handle = 0;
+	const uint8_t *hash = NULL;
+	size_t hash_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_hash_verify_req(req_buf, &op_handle, &hash, &hash_len);
@@ -267,7 +267,7 @@ static rpc_status_t hash_clone_handler(void *context, struct rpc_request *req)
 	const struct hash_provider_serializer *serializer = get_serializer(context, req);
 	struct hash_provider *this_instance = (struct hash_provider*)context;
 
-	uint32_t source_op_handle;
+	uint32_t source_op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_hash_clone_req(req_buf, &source_op_handle);
