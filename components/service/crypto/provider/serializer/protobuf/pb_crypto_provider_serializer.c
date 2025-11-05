@@ -115,6 +115,9 @@ static rpc_status_t serialize_export_key_resp(struct rpc_buffer *resp_buf, const
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
 	ts_crypto_ExportKeyOut resp_msg = ts_crypto_ExportKeyOut_init_default;
 	pb_bytes_array_t *key_buffer = pb_malloc_byte_array(data_length);
+	if (key_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 
 	memcpy(&key_buffer->bytes, data, data_length);
 	resp_msg.data = pb_out_byte_array(key_buffer);
@@ -160,6 +163,9 @@ static rpc_status_t serialize_export_public_key_resp(struct rpc_buffer *resp_buf
 	ts_crypto_ExportPublicKeyOut resp_msg = ts_crypto_ExportPublicKeyOut_init_default;
 
 	pb_bytes_array_t *key_buffer = pb_malloc_byte_array(data_length);
+	if (key_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	resp_msg.data = pb_out_byte_array(key_buffer);
 	memcpy(&key_buffer->bytes, data, data_length);
 
@@ -188,6 +194,9 @@ static rpc_status_t deserialize_import_key_req(const struct rpc_buffer *req_buf,
 	ts_crypto_ImportKeyIn recv_msg = ts_crypto_ImportKeyIn_init_default;
 
 	pb_bytes_array_t *key_buffer = pb_malloc_byte_array(*data_length);
+	if (key_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.data = pb_in_byte_array(key_buffer);
 
 	pb_istream_t istream =
@@ -285,6 +294,9 @@ static rpc_status_t deserialize_asymmetric_sign_req(const struct rpc_buffer *req
 	ts_crypto_SignHashIn recv_msg = ts_crypto_SignHashIn_init_default;
 
 	pb_bytes_array_t *hash_buffer = pb_malloc_byte_array(*hash_len);
+	if (hash_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.hash = pb_in_byte_array(hash_buffer);
 
 	pb_istream_t istream =
@@ -313,6 +325,9 @@ static rpc_status_t serialize_asymmetric_sign_resp(struct rpc_buffer *resp_buf, 
 	ts_crypto_SignHashOut resp_msg = ts_crypto_SignHashOut_init_default;
 
 	pb_bytes_array_t *sig_buffer = pb_malloc_byte_array(sig_len);
+	if (sig_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	resp_msg.signature = pb_out_byte_array(sig_buffer);
 	memcpy(&sig_buffer->bytes, sig, sig_len);
 
@@ -341,9 +356,16 @@ static rpc_status_t deserialize_asymmetric_verify_req(const struct rpc_buffer *r
 	ts_crypto_VerifyHashIn recv_msg = ts_crypto_VerifyHashIn_init_default;
 
 	pb_bytes_array_t *hash_buffer = pb_malloc_byte_array(*hash_len);
+	if (hash_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.hash = pb_in_byte_array(hash_buffer);
 
 	pb_bytes_array_t *sig_buffer = pb_malloc_byte_array(*sig_len);
+	if (sig_buffer == NULL) {
+		free(hash_buffer);
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.signature = pb_in_byte_array(sig_buffer);
 
 	pb_istream_t istream =
@@ -378,9 +400,16 @@ static rpc_status_t deserialize_asymmetric_decrypt_req(const struct rpc_buffer *
 	ts_crypto_AsymmetricDecryptIn recv_msg = ts_crypto_AsymmetricDecryptIn_init_default;
 
 	pb_bytes_array_t *ciphertext_buffer = pb_malloc_byte_array(*ciphertext_len);
+	if (ciphertext_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.ciphertext = pb_in_byte_array(ciphertext_buffer);
 
 	pb_bytes_array_t *salt_buffer = pb_malloc_byte_array(*salt_len);
+	if (salt_buffer == NULL) {
+		free(ciphertext_buffer);
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.salt = pb_in_byte_array(salt_buffer);
 
 	pb_istream_t istream =
@@ -419,6 +448,9 @@ static rpc_status_t serialize_asymmetric_decrypt_resp(struct rpc_buffer *resp_bu
 	ts_crypto_AsymmetricDecryptOut resp_msg = ts_crypto_AsymmetricDecryptOut_init_default;
 
 	pb_bytes_array_t *plaintext_buffer = pb_malloc_byte_array(plaintext_len);
+	if (plaintext_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	resp_msg.plaintext = pb_out_byte_array(plaintext_buffer);
 	memcpy(&plaintext_buffer->bytes, plaintext, plaintext_len);
 
@@ -448,9 +480,16 @@ static rpc_status_t deserialize_asymmetric_encrypt_req(const struct rpc_buffer *
 	ts_crypto_AsymmetricEncryptIn recv_msg = ts_crypto_AsymmetricEncryptIn_init_default;
 
 	pb_bytes_array_t *plaintext_buffer = pb_malloc_byte_array(*plaintext_len);
+	if (plaintext_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.plaintext = pb_in_byte_array(plaintext_buffer);
 
 	pb_bytes_array_t *salt_buffer = pb_malloc_byte_array(*salt_len);
+	if (salt_buffer == NULL) {
+		free(plaintext_buffer);
+		return RPC_ERROR_INTERNAL;
+	}
 	recv_msg.salt = pb_in_byte_array(salt_buffer);
 
 	pb_istream_t istream =
@@ -489,6 +528,9 @@ static rpc_status_t serialize_asymmetric_encrypt_resp(struct rpc_buffer *resp_bu
 	ts_crypto_AsymmetricEncryptOut resp_msg = ts_crypto_AsymmetricEncryptOut_init_default;
 
 	pb_bytes_array_t *ciphertext_buffer = pb_malloc_byte_array(ciphertext_len);
+	if (ciphertext_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	resp_msg.ciphertext = pb_out_byte_array(ciphertext_buffer);
 	memcpy(&ciphertext_buffer->bytes, ciphertext, ciphertext_len);
 
@@ -534,6 +576,9 @@ static rpc_status_t serialize_generate_random_resp(struct rpc_buffer *resp_buf,
 	ts_crypto_GenerateRandomOut resp_msg = ts_crypto_GenerateRandomOut_init_default;
 
 	pb_bytes_array_t *output_buffer = pb_malloc_byte_array(output_len);
+	if (output_buffer == NULL) {
+		return RPC_ERROR_INTERNAL;
+	}
 	resp_msg.random_bytes = pb_out_byte_array(output_buffer);
 	memcpy(&output_buffer->bytes, output, output_len);
 
