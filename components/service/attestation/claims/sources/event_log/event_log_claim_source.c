@@ -112,7 +112,7 @@ static bool event_log_iterator_next(struct claim_iterator *iter)
 	size_t record_len;
 
 	if (header == iter->begin_pos) {
-		/* The first record must in TSG EVENT-1 format */
+		/* The first record must be in TCG EVENT-1 format */
 		record_len = tcg_event1_record_size(header, iter->end_pos);
 		if (!record_len) return false;      /* Problem in record */
 	}

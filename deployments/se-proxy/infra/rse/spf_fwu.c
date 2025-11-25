@@ -17,6 +17,11 @@
 #include "service/fwu/provider/fwu_provider.h"
 #include "service/fwu/common/update_agent_interface.h"
 #include "service/fwu/psa_fwu_m/interface/psa_ipc/psa_fwu_ipc.h"
+#include <protocols/service/fwu/fwu_proto.h>
+
+#define MAX_PAYLOAD_SIZE 4096
+
+static void define_esrt_image_mapping(void);
 
 struct rpc_service_interface *fwu_proxy_create(void)
 {
@@ -38,11 +43,29 @@ struct rpc_service_interface *fwu_proxy_create(void)
 	if (rpc_status != RPC_SUCCESS)
 		return NULL;
 
-	agent = psa_fwu_m_update_agent_init(NULL, 0, 4096);
 	if (psa_fwu_ipc_init(&rpc_session) != PSA_SUCCESS)
 		return NULL;
 
+	define_esrt_image_mapping();
+	agent = psa_fwu_m_update_agent_init(&img_mapping, MAX_PAYLOAD_SIZE);
+
 	return fwu_provider_init(&fwu_provider, agent);
+}
+
+/* Every platform needs to define esrt image mapping,
+ * if ESRT image UUID is to be used to extract ESRT data
+ */
+static void define_esrt_image_mapping(void)
+{
+	/*
+	 * The index to access the ESRT image in the psa_fwu_m_image_mapping structure
+	 * collection. The ESRT image is always accessed at the end of the collection.
+	 */
+	size_t esrt_index = img_mapping.count - 1;
+
+	uuid_octets_from_canonical(&img_mapping.images[esrt_index].uuid,
+				   EFI_SYSTEM_RESOURCE_TABLE_CANONICAL_UUID);
+	img_mapping.images[esrt_index].component = img_mapping.count;
 }
 
 ADD_PROXY_SERVICE_FACTORY(fwu_proxy_create, FWU_PROXY, SE_PROXY_INTERFACE_PRIO_FWU);

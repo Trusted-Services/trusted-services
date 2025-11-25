@@ -51,6 +51,7 @@ target_link_options(${TGT} PRIVATE
 	-Wl,--hash-style=sysv
 	-Wl,--as-needed
 	-Wl,--gc-sections
+	-Wl,--Map $<TARGET_FILE:${TGT}>.map
 )
 
 compiler_set_linker_script(TARGET ${TGT} FILE ${CMAKE_CURRENT_LIST_DIR}/sp.ld.S DEF ARM64=1 SP_STACK_SIZE=${SP_STACK_SIZE})

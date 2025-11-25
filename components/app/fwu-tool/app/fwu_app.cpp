@@ -36,7 +36,9 @@ fwu_app::fwu_app()
 
 fwu_app::~fwu_app()
 {
-	update_agent_deinit(m_update_agent);
+	if (m_update_agent)
+		update_agent_deinit(m_update_agent);
+
 	banked_fw_store_deinit(&m_fw_store);
 
 	fwu_deconfigure();

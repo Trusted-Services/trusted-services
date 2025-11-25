@@ -177,6 +177,22 @@ TEST(sp_messaging, sp_msg_wait)
 	ffa_and_sp_msg_equal(&ffa_msg, &req);
 }
 
+TEST(sp_messaging, sp_yield_ffa_error)
+{
+	ffa_result result = FFA_ABORTED;
+
+	expect_ffa_yield(result);
+
+	LONGS_EQUAL(SP_RESULT_FFA(result), sp_yield());
+}
+
+TEST(sp_messaging, sp_yield)
+{
+	expect_ffa_yield(FFA_OK);
+
+	LONGS_EQUAL(SP_RESULT_OK, sp_yield());
+}
+
 #if FFA_DIRECT_MSG_ROUTING_EXTENSION
 TEST(sp_messaging, sp_msg_wait_deny_rc_failure)
 {

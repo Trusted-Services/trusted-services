@@ -115,13 +115,25 @@ uint32_t image_version_to_uint(psa_fwu_image_version_t version)
 	return result;
 }
 
+/* image_directory_read
+ * This function is used for two purposes:
+ * -> Send the details of firmware images to update client when read request is
+ *    made for FWU_DIRECTORY_CANONICAL_UUID
+ * -> Send ESRT data to update client when read request is
+ *    made for EFI_SYSTEM_RESOURCE_TABLE_CANONICAL_UUID
+ */
 int image_directory_read(struct psa_fwu_m_update_agent *agent, struct psa_fwu_m_image *image,
 			 uint8_t *buf, size_t buf_size, size_t *read_len, size_t *total_len)
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	psa_fwu_component_info_t component_info = { 0 };
 	struct fwu_image_directory *directory = NULL;
-	size_t image_count = agent->image_count - 1; /* Do not return Image directory */
+	uint8_t esrt_image_uuid[OSF_UUID_OCTET_LEN];
+	/* Do not return Image directory
+	 * If update client uses ESRT UUID for ESRT data, then ESRT image UUID
+	 * is considered as a separate image included in this count
+	 */
+	size_t image_count = agent->image_count - 1;
 	size_t image_info_size = 0;
 	size_t i = 0;
 
@@ -136,11 +148,39 @@ int image_directory_read(struct psa_fwu_m_update_agent *agent, struct psa_fwu_m_
 		return FWU_STATUS_DENIED; /* LCOV_EXCL_LINE */
 
 	/*
-	 * If the directory structure doesn't fit into the buffer return SUCCESS with total_len set
+	 * If the data to be read doesn't fit into the buffer return SUCCESS with total_len set
 	 * and read_len = 0.
 	 */
 	if (*total_len > buf_size)
 		return FWU_STATUS_SUCCESS;
+
+	/* Query ESRT data from Secure Enclave and Copy the ESRT entries
+	 * from component_info.impl.candidate_digest to buf in case of ESRT image UUID.
+	 * This is needed because Secure Enclave fills component_info.impl.candidate_digest
+	 *  with ESRT data which needs to be transferred to normal world buffer
+	 */
+	uuid_octets_from_canonical((struct uuid_octets *)&esrt_image_uuid,
+				   EFI_SYSTEM_RESOURCE_TABLE_CANONICAL_UUID);
+	if (!memcmp(&esrt_image_uuid, &image->uuid, sizeof(esrt_image_uuid))) {
+		/* Query ESRT data */
+		psa_status = psa_fwu_query(image->component, &component_info);
+		if (psa_status != PSA_SUCCESS)
+			return psa_status_to_fwu_status(psa_status);
+
+		struct efi_system_resource_table *esrt =
+			(struct efi_system_resource_table *)component_info.impl.candidate_digest;
+		size_t esrt_size_recv = (esrt->fw_resource_count *
+			sizeof(struct efi_system_resource_entry))
+		+ sizeof(struct efi_system_resource_table);
+		if  (esrt_size_recv > TFM_FWU_MAX_DIGEST_SIZE)
+			return FWU_STATUS_OUT_OF_BOUNDS;
+
+		/* Copy the ESRT entries to the buf */
+		memcpy(buf, &component_info.impl.candidate_digest, esrt_size_recv);
+		*total_len = esrt_size_recv;
+		*read_len = *total_len;
+		return FWU_STATUS_SUCCESS;
+	}
 
 	directory = (struct fwu_image_directory *)buf;
 	directory->directory_version = FWU_IMAGE_DIRECTORY_VERSION;
@@ -152,13 +192,13 @@ int image_directory_read(struct psa_fwu_m_update_agent *agent, struct psa_fwu_m_
 
 	for (i = 0; i < image_count; i++) {
 		struct fwu_image_info_entry *entry = &directory->img_info_entry[i];
-		struct psa_fwu_m_image *image = &agent->images[i];
+		struct psa_fwu_m_image *img = &agent->images[i];
 
-		psa_status = psa_fwu_query(image->component, &component_info);
+		psa_status = psa_fwu_query(img->component, &component_info);
 		if (psa_status != PSA_SUCCESS)
 			return psa_status_to_fwu_status(psa_status);
 
-		memcpy(entry->img_type_uuid, image->uuid.octets, sizeof(entry->img_type_uuid));
+		memcpy(entry->img_type_uuid, img->uuid.octets, sizeof(entry->img_type_uuid));
 		entry->client_permissions = 0x1; /* Only write is supported by the API */
 		entry->img_max_size = component_info.max_size;
 		entry->lowest_accepted_version = 0; /* This information is not available */
@@ -606,7 +646,7 @@ static const struct update_agent_interface interface = {
 };
 
 struct update_agent *psa_fwu_m_update_agent_init(
-	const struct psa_fwu_m_image_mapping image_mapping[], size_t image_count,
+	const struct psa_fwu_m_image_mapping *image_mapping,
 	uint32_t max_payload_size)
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
@@ -615,10 +655,14 @@ struct update_agent *psa_fwu_m_update_agent_init(
 	struct psa_fwu_m_image *images = NULL;
 	enum psa_fwu_m_state state = regular;
 	struct update_agent *agent = NULL;
+	uint8_t esrt_image_uuid[OSF_UUID_OCTET_LEN];
 	size_t i = 0;
 
+	if (!image_mapping)
+		return NULL;
+
 	/* Allocate +1 image for the Image directory */
-	images = (struct psa_fwu_m_image *)calloc(image_count + 1, sizeof(*images));
+	images = (struct psa_fwu_m_image *)calloc(image_mapping->count + 1, sizeof(*images));
 	if (!images)
 		return NULL; /* LCOV_EXCL_LINE */
 
@@ -639,8 +683,8 @@ struct update_agent *psa_fwu_m_update_agent_init(
 		/* LCOV_EXCL_STOP */
 	}
 
-	for (i = 0; i < image_count; i++) {
-		psa_status = psa_fwu_query(image_mapping[i].component, &info);
+	for (i = 0; i < image_mapping->count; i++) {
+		psa_status = psa_fwu_query(image_mapping->images[i].component, &info);
 		if (psa_status != PSA_SUCCESS) {
 			free(images);
 			free(context);
@@ -648,8 +692,8 @@ struct update_agent *psa_fwu_m_update_agent_init(
 			return NULL;
 		}
 
-		images[i].uuid = image_mapping[i].uuid;
-		images[i].component = image_mapping[i].component;
+		images[i].uuid = image_mapping->images[i].uuid;
+		images[i].component = image_mapping->images[i].component;
 		if (info.state == PSA_FWU_TRIAL) {
 			images[i].selected_for_staging = true;
 			state = trial;
@@ -657,19 +701,28 @@ struct update_agent *psa_fwu_m_update_agent_init(
 			images[i].selected_for_staging = false;
 		}
 
-		images[i].read = NULL; /* Cannot read images */
-		images[i].write = image_write;
+		uuid_octets_from_canonical((struct uuid_octets *)&esrt_image_uuid,
+					   EFI_SYSTEM_RESOURCE_TABLE_CANONICAL_UUID);
+		if (!memcmp(&esrt_image_uuid, &images[i].uuid, sizeof(esrt_image_uuid))) {
+			images[i].read = image_directory_read;
+			images[i].write = NULL;
+			images[i].selected_for_staging = false;
+		} else {
+			images[i].read = NULL; /* Cannot read images */
+			images[i].write = image_write;
+		}
 	}
 
 	/* Insert Image directory as the last image */
-	uuid_octets_from_canonical(&images[image_count].uuid, FWU_DIRECTORY_CANONICAL_UUID);
-	images[image_count].component = 0;
-	images[image_count].selected_for_staging = false;
+	uuid_octets_from_canonical(&images[image_mapping->count].uuid,
+				   FWU_DIRECTORY_CANONICAL_UUID);
+	images[image_mapping->count].component = 0;
+	images[image_mapping->count].selected_for_staging = false;
 	images[i].read = image_directory_read;
 	images[i].write = NULL; /* Cannot write Images directory */
 
 	context->images = images;
-	context->image_count = image_count + 1;
+	context->image_count = image_mapping->count + 1;
 	context->max_payload_size = max_payload_size;
 	context->state = state;
 

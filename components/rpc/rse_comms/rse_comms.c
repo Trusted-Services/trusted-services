@@ -121,7 +121,8 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 						out_len, req, &req_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Serialize msg failed: %d", psa_status);
-		return psa_status;
+		return_val = psa_status;
+		goto out;
 	}
 
 	DMSG("Sending rse_comms message");
@@ -134,7 +135,8 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 	rpc_status = rse_comms_caller_invoke(rpc_handle, 0, (uint8_t **)&reply, &resp_len);
 	if (rpc_status != RPC_SUCCESS) {
 		EMSG("Invoke failed: %d", rpc_status);
-		return PSA_ERROR_GENERIC_ERROR;
+		return_val = PSA_ERROR_GENERIC_ERROR;
+		goto out;
 	}
 
 	DMSG("Received rse_comms reply");
@@ -147,14 +149,16 @@ psa_status_t __psa_call(struct rpc_caller_interface *caller, psa_handle_t handle
 						    resp_len);
 	if (psa_status != PSA_SUCCESS) {
 		EMSG("Protocol deserialize reply failed: %d", psa_status);
-		return psa_status;
+		return_val = psa_status;
+		goto out;
 	}
 
+	seq_num++;
+
+out:
 	DMSG("Return_val=%d", return_val);
 
 	rse_comms_caller_end(rpc_handle);
-
-	seq_num++;
 
 	return return_val;
 }

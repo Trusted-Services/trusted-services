@@ -29,7 +29,7 @@ static inline psa_status_t crypto_caller_asym_verify_common(struct service_clien
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_verify_hash_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_verify_hash_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_verify_hash_in);
 	size_t req_len = req_fixed_len +
 		tlv_required_space(hash_length) + tlv_required_space(signature_length);
 

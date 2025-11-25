@@ -251,17 +251,18 @@ bool generate_random_number(size_t length)
 {
 	psa_status_t status = PSA_ERROR_GENERIC_ERROR;
 	uint8_t *buffer = (uint8_t *)malloc(length);
+	if (buffer != NULL) {
+		if (m_verbose)
+			printf("Generating random bytes length: %lu", length);
 
-	if (m_verbose)
-		printf("Generating random bytes length: %lu", length);
+		status = psa_generate_random(buffer, length);
 
-	status = psa_generate_random(buffer, length);
+		print_status(status);
 
-	print_status(status);
-
-	if (m_verbose && (status == PSA_SUCCESS)) {
-		printf("\tRandom bytes: ");
-		print_byte_array(buffer, length);
+		if (m_verbose && (status == PSA_SUCCESS)) {
+			printf("\tRandom bytes: ");
+			print_byte_array(buffer, length);
+		}
 	}
 
 	return (status != PSA_SUCCESS);

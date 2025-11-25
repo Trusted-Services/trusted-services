@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright (c) 2020-2022, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2020-2025, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -17,13 +17,33 @@ endif()
 set(CMAKE_CROSSCOMPILING True)
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
-set(CMAKE_POSITION_INDEPENDENT_CODE True)
 
 set(TS_DEBUG_INFO_FLAGS "-fdiagnostics-show-option -gdwarf-2" CACHE STRING "Compiler flags to add debug information.")
-set(TS_MANDATORY_AARCH_FLAGS "-fpic -mstrict-align -march=armv8-a+crc" CACHE STRING "Compiler flags configuring architecture specific ")
-set(TS_WARNING_FLAGS "-Wall -Werror" CACHE STRING "Compiler flags affecting generating warning messages.")
+set(TS_MANDATORY_AARCH_FLAGS "-fpic -mstrict-align -march=armv8-a+crc -fdata-sections -ffunction-sections" CACHE STRING "Compiler flags configuring architecture specific ")
+set(TS_WARNING_FLAGS "-Wall" CACHE STRING "Compiler flags affecting generating warning messages.")
 set(TS_MANDATORY_LINKER_FLAGS "-pie -Wl,--as-needed -Wl,--sort-section=alignment -zmax-page-size=4096"
 	CACHE STRING "Linker flags needed for correct builds.")
+
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION True CACHE BOOL "Enable Link Time Optimization.")
+
+# Allow defining the "warning as error behavior" using an environment variable. But prioritize command line
+# definition if present.
+# If a cache variable is not present
+if(NOT DEFINED CACHE{CMAKE_COMPILE_WARNING_AS_ERROR})
+	# And an environment variable is, copy its value to the cache
+	if (DEFINED ENV{CMAKE_COMPILE_WARNING_AS_ERROR})
+		set(CMAKE_COMPILE_WARNING_AS_ERROR $ENV{CMAKE_COMPILE_WARNING_AS_ERROR} CACHE Bool "If compilation warnings should be treated as errors.")
+	endif()
+endif()
+
+# By default warnings should be treated as errors.
+set(CMAKE_COMPILE_WARNING_AS_ERROR On CACHE BOOL "If compilation warnings should be treated as errors.")
+
+# Cmake v3.24 + shall set the warning flag automatically, but does not when processing our deployments. As a workaround
+# set -Werror manually always as setting it twice shall have no ill effect.
+if (CMAKE_COMPILE_WARNING_AS_ERROR)
+	string(APPEND TS_WARNING_FLAGS " -Werror")
+endif()
 
 # branch-protection enables bti/pac while compile force-bti tells the linker to
 # warn if some object files lack the .note.gnu.property section with the BTI

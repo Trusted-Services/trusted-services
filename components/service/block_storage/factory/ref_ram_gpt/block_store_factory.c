@@ -19,6 +19,7 @@
 #include <media/disk/disk_images/ref_partition.h>
 #include <media/disk/formatter/disk_formatter.h>
 #include "block_store_factory.h"
+#include <trace.h>
 
 struct block_store_assembly
 {
@@ -51,8 +52,11 @@ struct block_store *ref_ram_gpt_block_store_factory_create(void)
 
 		volume_index_init();
 
-		/* Check assumptions about generated ref_partition data */
-		assert(!(ref_partition_data_length % REF_PARTITION_BLOCK_SIZE));
+		/* Reference partition must be multiple of the block size */
+		if (ref_partition_data_length % REF_PARTITION_BLOCK_SIZE) {
+			EMSG("Reference partition size is not multiple of the block size");
+			return NULL;
+		}
 
 		/* Initialise a ram_block_store to mimic the secure flash used
 		 * to provide underlying storage.

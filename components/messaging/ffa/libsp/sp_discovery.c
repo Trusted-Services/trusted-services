@@ -52,8 +52,8 @@ static void unpack_ffa_info(const struct ffa_partition_information *ffa_info,
 	sp_info->supports_indirect_requests =
 		props & FFA_PARTITION_SUPPORTS_INDIRECT_REQUESTS;
 #if CFG_FFA_VERSION >= FFA_VERSION_1_1
-	sp_info->partition_id_type =
-		(props >> FFA_PARTITION_PART_ID_SHIFT) & FFA_PARTITION_PART_ID_MASK;
+	sp_info->partition_id_type = (enum sp_partition_id_type)(
+		(props >> FFA_PARTITION_PART_ID_SHIFT) & FFA_PARTITION_PART_ID_MASK);
 	sp_info->inform_vm_create = props & FFA_PARTITION_INFORM_VM_CREATE;
 	sp_info->inform_vm_destroy = props & FFA_PARTITION_INFORM_VM_DESTROY;
 	if (props & FFA_PARTITION_AARCH64_EXECUTION_STATE)

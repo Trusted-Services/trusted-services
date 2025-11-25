@@ -40,6 +40,13 @@ struct sp_msg {
 sp_result sp_msg_wait(struct sp_msg *msg);
 
 /**
+ * @brief      Yield execution.
+ *
+ * @return     The SP API result
+ */
+sp_result sp_yield(void);
+
+/**
  * @brief      Sends a request message and waits for the response message
  *             which it returns then.
  *

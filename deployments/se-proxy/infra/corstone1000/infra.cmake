@@ -14,6 +14,12 @@ set(CFG_ENABLE_CRYPTO        On)
 set(CFG_ENABLE_CRYPTO_NANO   On)
 set(CFG_ENABLE_IAT           On)
 set(CFG_ENABLE_FWU           On)
+
+target_sources(se-proxy PRIVATE
+	${CMAKE_CURRENT_LIST_DIR}/spf_event_handler.c
+	${CMAKE_CURRENT_LIST_DIR}/corstone1000_event_handling.c
+)
+
 #-------------------------------------------------------------------------------
 # Infrastructure components
 #
@@ -26,5 +32,15 @@ add_components(TARGET "se-proxy"
 		"components/rpc/rse_comms"
 		"components/messaging/rse_comms/sp"
 )
+
+if (CFG_ENABLE_FWU)
+    target_sources(se-proxy PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/corstone1000_config.c
+    )
+
+    target_include_directories(se-proxy PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}
+    )
+endif()
 
 include(../../infra/rse/service_proxy_factory.cmake REQUIRED)

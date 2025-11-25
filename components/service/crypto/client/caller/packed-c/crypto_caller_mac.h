@@ -98,7 +98,7 @@ static inline psa_status_t crypto_caller_mac_update(struct service_client *conte
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_mac_update_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_mac_update_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_mac_update_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -148,7 +148,7 @@ static inline psa_status_t crypto_caller_mac_sign_finish(struct service_client *
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_mac_sign_finish_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_mac_sign_finish_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_mac_sign_finish_in);
 	size_t req_len = req_fixed_len;
 
 	*mac_length = 0;
@@ -215,7 +215,7 @@ static inline psa_status_t crypto_caller_mac_verify_finish(struct service_client
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_mac_verify_finish_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_mac_verify_finish_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_mac_verify_finish_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -262,7 +262,7 @@ static inline psa_status_t crypto_caller_mac_abort(struct service_client *contex
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_mac_abort_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_mac_abort_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_mac_abort_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;

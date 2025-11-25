@@ -69,15 +69,15 @@ static rpc_status_t mac_setup_handler(void *context, struct rpc_request *req)
 	const struct mac_provider_serializer *serializer = get_serializer(context, req);
 	struct mac_provider *this_instance = (struct mac_provider*)context;
 
-	psa_key_id_t key_id;
-	psa_algorithm_t alg;
+	psa_key_id_t key_id = PSA_KEY_ID_NULL;
+	psa_algorithm_t alg = PSA_ALG_NONE;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_mac_setup_req(req_buf, &key_id, &alg);
 
 	if (rpc_status == RPC_SUCCESS) {
 
-		uint32_t op_handle;
+		uint32_t op_handle = 0;
 
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
@@ -122,9 +122,9 @@ static rpc_status_t mac_update_handler(void *context, struct rpc_request *req)
 	const struct mac_provider_serializer *serializer = get_serializer(context, req);
 	struct mac_provider *this_instance = (struct mac_provider*)context;
 
-	uint32_t op_handle;
-	const uint8_t *data;
-	size_t data_len;
+	uint32_t op_handle = 0;
+	const uint8_t *data = NULL;
+	size_t data_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_mac_update_req(req_buf, &op_handle, &data, &data_len);
@@ -156,7 +156,7 @@ static rpc_status_t mac_sign_finish_handler(void *context, struct rpc_request *r
 	const struct mac_provider_serializer *serializer = get_serializer(context, req);
 	struct mac_provider *this_instance = (struct mac_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_mac_sign_finish_req(req_buf, &op_handle);
@@ -199,9 +199,9 @@ static rpc_status_t mac_verify_finish_handler(void *context, struct rpc_request 
 	const struct mac_provider_serializer *serializer = get_serializer(context, req);
 	struct mac_provider *this_instance = (struct mac_provider*)context;
 
-	uint32_t op_handle;
-	const uint8_t *mac;
-	size_t mac_len;
+	uint32_t op_handle = 0;
+	const uint8_t *mac = NULL;
+	size_t mac_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_mac_verify_finish_req(req_buf,
@@ -239,7 +239,7 @@ static rpc_status_t mac_abort_handler(void *context, struct rpc_request *req)
 	const struct mac_provider_serializer *serializer = get_serializer(context, req);
 	struct mac_provider *this_instance = (struct mac_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_mac_abort_req(req_buf, &op_handle);

@@ -40,6 +40,15 @@ extern "C" {
 #define TFM_CRYPTO_VERSION                                         (1U)
 #define TFM_CRYPTO_HANDLE                                          (0x40000100U)
 
+/******** TFM_PLATFORM_SERVICE *******/
+#define TFM_PLATFORM_API_ID_IOCTL         (1013)
+#define TFM_PLATFORM_SERVICE_HANDLE       (0x40000105U)
+
+/**
+ * \brief Define a progressive numerical value for each SID which can be used
+ *        when dispatching the requests to the service
+ */
+
 /******** TFM_SP_PLATFORM ********/
 #define TFM_SP_PLATFORM_SYSTEM_RESET_SID                           (0x00000040U)
 #define TFM_SP_PLATFORM_SYSTEM_RESET_VERSION                       (1U)

@@ -214,6 +214,10 @@ psa_status_t sfs_flash_block_store_adapter_init(
 	info->block_size = (uint16_t)(partition_info.block_size * context->blocks_per_flash_block);
 	info->num_blocks = (uint16_t)(partition_info.num_blocks / context->blocks_per_flash_block);
 
+	/* SFS needs at least 2 blocks */
+	if (!info->sector_size || !info->block_size || info->num_blocks < 2)
+		return PSA_ERROR_INSUFFICIENT_STORAGE;
+
 	/* sfs specific configuration */
 	info->max_file_size = (uint16_t)info->block_size;
 	info->max_num_files = (uint16_t)max_num_files;

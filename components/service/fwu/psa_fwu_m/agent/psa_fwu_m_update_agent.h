@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Arm Limited. All rights reserved.
+ * Copyright (c) 2024-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,21 +17,23 @@ extern "C" {
 #endif
 
 struct psa_fwu_m_image_mapping {
-	struct uuid_octets uuid;
-	psa_fwu_component_t component;
+	size_t count;
+	struct {
+		struct uuid_octets uuid;
+		psa_fwu_component_t component;
+	} images[];
 };
 
 /**
  * \brief Initialise the PSA FWU M update_agent
  *
  * \param[in]  image_mapping    Component mapping array
- * \param[in]  image_count      Component mapping count
  * \param[in]  max_payload_size The maximum number of bytes that a payload can contain
  *
  * \return  The update_agent
  */
 struct update_agent *psa_fwu_m_update_agent_init(
-	const struct psa_fwu_m_image_mapping image_mapping[], size_t image_count,
+	const struct psa_fwu_m_image_mapping *image_mapping,
 	uint32_t max_payload_size);
 
 /**
@@ -40,6 +42,9 @@ struct update_agent *psa_fwu_m_update_agent_init(
  * \param[in]  update_agent    The subject update_agent
  */
 void psa_fwu_m_update_agent_deinit(struct update_agent *update_agent);
+
+/* This should be defined by the platform */
+extern struct psa_fwu_m_image_mapping img_mapping;
 
 #ifdef __cplusplus
 }

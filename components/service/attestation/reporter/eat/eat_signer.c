@@ -69,7 +69,7 @@ static bool alloc_output_buf(struct q_useful_buf *buf, size_t input_len)
         buf->len = required_space;
     }
 
-    return space;
+    return (space != NULL);
 }
 
 static int t_cose_to_psa_status(enum t_cose_err_t t_cose_status)

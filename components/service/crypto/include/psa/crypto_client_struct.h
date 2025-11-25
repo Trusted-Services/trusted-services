@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -38,7 +38,6 @@ struct psa_client_key_attributes_s
     uint32_t alg;
     uint32_t alg2;
     uint32_t id;
-    int32_t owner_id;
 };
 
 #define PSA_CLIENT_KEY_ATTRIBUTES_INIT {0}

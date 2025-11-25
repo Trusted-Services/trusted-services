@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) 2025, Arm Limited and Contributors. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+@DTS_TAG@
+
+@DTS_NODE@ {
+	compatible = "arm,ffa-manifest-1.0";
+	ffa-version = <@CFG_FFA_VERSION@>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <@EXPORT_SP_UUID_DT@>;
+	description = "SE Proxy";
+	execution-ctx-count = <1>;
+	exception-level = <1>; /* S-EL0 */
+	execution-state = <0>; /* AArch64 */
+	xlat-granule = <0>; /* 4KiB */
+	boot-order = <@EXPORT_SP_BOOT_ORDER@>;
+	messaging-method = <3>; /* Direct messaging only */
+	ns-interrupts-action = <2>; /* Non-secure interrupts are signaled */
+	elf-format = <1>;
+
+	device-regions {
+		compatible = "arm,ffa-manifest-device-regions";
+		mhu-sender {
+			base-address = <0x00000000 0x40680000>;
+			pages-count = <16>;
+			attributes = <0x3>; /* read-write */
+		};
+		mhu-receiver {
+			base-address = <0x00000000 0x406B0000>;
+			pages-count = <16>;
+			attributes = <0x3>; /* read-write */
+		};
+
+		@RSE_COMM_CARVEOUT_NAME@ {
+			base-address = <@RSE_COMM_CARVEOUT_BASE@>;
+			physical-address = <@RSE_COMM_CARVEOUT_BASE@>;
+			pages-count = <@RSE_COMM_CARVEOUT_PAGE_COUNT@>;
+			attributes = <0x3>;  /* read-write */
+		};
+	};
+};

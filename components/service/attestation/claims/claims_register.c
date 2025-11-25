@@ -27,8 +27,7 @@ static void query_collection_by_category(struct claim *collection,
 
 void claims_register_init(void)
 {
-    instance.num_sources = 0;
-    memset(instance.sources, 0, sizeof(instance.sources));
+    memset(&instance, 0, sizeof(instance));
 }
 
 void claims_register_deinit(void)

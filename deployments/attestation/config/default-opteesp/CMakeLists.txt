@@ -92,7 +92,6 @@ export_sp(
 	SP_BIN_UUID_CANON ${SP_BIN_UUID_CANON}
 	SP_BOOT_ORDER ${SP_BOOT_ORDER}
 	SP_NAME "attestation"
-	MK_IN ${TS_ROOT}/environments/opteesp/sp.mk.in
 	DTS_IN ${CMAKE_CURRENT_LIST_DIR}/default_attestation.dts.in
 	JSON_IN ${TS_ROOT}/environments/opteesp/sp_pkg.json.in
 )

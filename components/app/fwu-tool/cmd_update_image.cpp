@@ -37,7 +37,7 @@ int cmd_update_image(fwu_app &app, const std::string &img_type_uuid,
 	}
 
 	/* Read file contents into buffer */
-	if (fread(img_buf, 1, img_size, fp)) {
+	if (fread(img_buf, 1, img_size, fp) < 0) {
 		fclose(fp);
 		free(img_buf);
 		printf("Error: failed to read image file\n");

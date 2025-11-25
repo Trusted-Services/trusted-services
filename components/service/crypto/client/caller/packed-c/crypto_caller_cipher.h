@@ -101,7 +101,7 @@ static inline psa_status_t crypto_caller_cipher_generate_iv(struct service_clien
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_cipher_generate_iv_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_cipher_generate_iv_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_cipher_generate_iv_in);
 	size_t req_len = req_fixed_len;
 
 	*iv_length = 0;
@@ -169,7 +169,7 @@ static inline psa_status_t crypto_caller_cipher_set_iv(struct service_client *co
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_cipher_set_iv_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_cipher_set_iv_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_cipher_set_iv_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -221,7 +221,7 @@ static inline psa_status_t crypto_caller_cipher_update(struct service_client *co
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_cipher_update_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_cipher_update_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_cipher_update_in);
 	size_t req_len = req_fixed_len;
 
 	*output_length = 0;
@@ -299,7 +299,7 @@ static inline psa_status_t crypto_caller_cipher_finish(struct service_client *co
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_cipher_finish_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_cipher_finish_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_cipher_finish_in);
 	size_t req_len = req_fixed_len;
 
 	*output_length = 0;
@@ -363,7 +363,7 @@ static inline psa_status_t crypto_caller_cipher_abort(struct service_client *con
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_cipher_abort_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_cipher_abort_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_cipher_abort_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;

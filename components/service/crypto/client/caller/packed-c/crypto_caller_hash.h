@@ -79,7 +79,7 @@ static inline psa_status_t crypto_caller_hash_update(struct service_client *cont
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_hash_update_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_hash_update_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_update_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -129,7 +129,7 @@ static inline psa_status_t crypto_caller_hash_finish(struct service_client *cont
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_hash_finish_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_hash_finish_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_finish_in);
 	size_t req_len = req_fixed_len;
 
 	*hash_length = 0;
@@ -194,7 +194,7 @@ static inline psa_status_t crypto_caller_hash_abort(struct service_client *conte
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_hash_abort_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_hash_abort_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_abort_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -232,7 +232,7 @@ static inline psa_status_t crypto_caller_hash_verify(struct service_client *cont
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_hash_verify_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_hash_verify_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_verify_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.op_handle = op_handle;
@@ -280,7 +280,7 @@ static inline psa_status_t crypto_caller_hash_clone(struct service_client *conte
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_hash_clone_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_hash_clone_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_hash_clone_in);
 	size_t req_len = req_fixed_len;
 
 	req_msg.source_op_handle = source_op_handle;

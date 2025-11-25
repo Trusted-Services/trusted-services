@@ -299,6 +299,22 @@ ffa_result ffa_msg_wait(struct ffa_direct_msg *msg)
 	return FFA_OK;
 }
 
+ffa_result ffa_yield(void)
+{
+	struct ffa_params result = {0};
+
+	ffa_svc(FFA_YIELD, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		&result);
+
+	if (result.a0 == FFA_ERROR)
+		return ffa_get_errorcode(&result);
+
+	assert(result.a0 == FFA_RUN);
+
+	return FFA_OK;
+}
+
 static ffa_result ffa_msg_send_direct_req(uint32_t function_id, uint32_t resp_id,
 					  uint16_t source, uint16_t dest,
 					  uint64_t a0, uint64_t a1, uint64_t a2,
@@ -628,5 +644,91 @@ ffa_result ffa_console_log_64(const char *message, size_t length)
 		return ffa_get_errorcode(&result);
 
 	assert(result.a0 == FFA_SUCCESS_32);
+	return FFA_OK;
+}
+
+/* Notification interfaces */
+ffa_result ffa_notification_bind(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t notification_bitmap)
+{
+	struct ffa_params result = {0};
+	uint32_t notification_bitmap_hi = 0;
+	uint32_t notification_bitmap_lo = 0;
+
+	reg_pair_from_64(notification_bitmap, &notification_bitmap_hi, &notification_bitmap_lo);
+
+	ffa_svc(FFA_NOTIFICATION_BIND, SHIFT_U32(sender, FFA_NOTIF_SOURCE_ID_SHIFT) | receiver,
+		flags, notification_bitmap_lo, notification_bitmap_hi, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		FFA_PARAM_MBZ, &result);
+
+	if (result.a0 == FFA_ERROR)
+		return ffa_get_errorcode(&result);
+
+	assert(result.a0 == FFA_SUCCESS_32);
+	return FFA_OK;
+}
+
+ffa_result ffa_notification_unbind(uint16_t sender, uint16_t receiver, uint64_t notification_bitmap)
+{
+	struct ffa_params result = {0};
+	uint32_t notification_bitmap_hi = 0;
+	uint32_t notification_bitmap_lo = 0;
+
+	reg_pair_from_64(notification_bitmap, &notification_bitmap_hi, &notification_bitmap_lo);
+
+	ffa_svc(FFA_NOTIFICATION_UNBIND, SHIFT_U32(sender, FFA_NOTIF_SOURCE_ID_SHIFT) | receiver,
+		FFA_PARAM_MBZ, notification_bitmap_lo, notification_bitmap_hi, FFA_PARAM_MBZ,
+		FFA_PARAM_MBZ, FFA_PARAM_MBZ, &result);
+
+	if (result.a0 == FFA_ERROR)
+		return ffa_get_errorcode(&result);
+
+	assert(result.a0 == FFA_SUCCESS_32);
+	return FFA_OK;
+}
+
+ffa_result ffa_notification_set(uint16_t sender, uint16_t receiver, uint32_t flags,
+				uint64_t notification_bitmap)
+{
+	struct ffa_params result = {0};
+	uint32_t notification_bitmap_hi = 0;
+	uint32_t notification_bitmap_lo = 0;
+
+	if (!(flags & FFA_NOTIF_SET_FLAGS_PER_VCPU_NOTIFICATIONS) &&
+	    (flags && FFA_NOTIF_SET_FLAGS_RECEIVER_VCPU_MASK))
+		return FFA_INVALID_PARAMETERS;
+
+	reg_pair_from_64(notification_bitmap, &notification_bitmap_hi, &notification_bitmap_lo);
+
+	ffa_svc(FFA_NOTIFICATION_SET, SHIFT_U32(sender, FFA_NOTIF_SOURCE_ID_SHIFT) | receiver,
+		flags, notification_bitmap_lo, notification_bitmap_hi, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		FFA_PARAM_MBZ, &result);
+
+	if (result.a0 == FFA_ERROR)
+		return ffa_get_errorcode(&result);
+
+	assert(result.a0 == FFA_SUCCESS_32);
+	return FFA_OK;
+}
+
+ffa_result ffa_notification_get(uint16_t sender, uint16_t receiver, uint32_t flags,
+				uint64_t *sp_notification_bitmap, uint64_t *vm_notification_bitmap,
+				uint64_t *framework_notification_bitmap)
+{
+	struct ffa_params result = {0};
+
+	ffa_svc(FFA_NOTIFICATION_GET, SHIFT_U32(sender, FFA_NOTIF_SOURCE_ID_SHIFT) | receiver,
+		flags, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ, FFA_PARAM_MBZ,
+		&result);
+
+	if (result.a0 == FFA_ERROR)
+		return ffa_get_errorcode(&result);
+
+	assert(result.a0 == FFA_SUCCESS_32);
+
+	*sp_notification_bitmap = reg_pair_to_64(result.a3, result.a2);
+	*vm_notification_bitmap = reg_pair_to_64(result.a5, result.a4);
+	*framework_notification_bitmap = reg_pair_to_64(result.a7, result.a6);
+
 	return FFA_OK;
 }

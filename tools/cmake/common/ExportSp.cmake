@@ -73,11 +73,6 @@ function (export_sp)
 		message(FATAL_ERROR "export_sp: mandatory parameter DTS_IN not defined!")
 	endif()
 
-	if (DEFINED EXPORT_MK_IN)
-		configure_file(${EXPORT_MK_IN} ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_SP_NAME}.mk @ONLY NEWLINE_STYLE UNIX)
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_SP_NAME}.mk DESTINATION ${TS_ENV}/lib/make)
-	endif()
-
 	# In the SP manifest DT the UUID format is four uint32 numbers (little-endian)
 	# Create a litte endian 4 digit octests representation.
 	uuid_canon_to_le_words(UUID ${EXPORT_SP_FFA_UUID_CANON} RES _le_words)

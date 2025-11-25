@@ -64,7 +64,7 @@ int platform_trng_create(struct platform_trng_driver *driver, int instance)
         return PSA_STATUS_HARDWARE_FAILURE;
 
     /*
-     * A device region has been provided, possibly from an external configuation.
+     * A device region has been provided, possibly from an external configuration.
      * Check that it's a sensible size to defend against a bogus configuration.
      */
     new_instance = malloc(sizeof(struct tztrng_instance));

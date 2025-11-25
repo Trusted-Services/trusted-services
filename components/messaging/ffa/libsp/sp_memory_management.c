@@ -194,9 +194,9 @@ static void parse_mem_flags(uint32_t raw,
 		(raw & FFA_MEM_TRANSACTION_FLAGS_OPERATION_TIME_SLICING);
 	flags->zero_memory_after_relinquish =
 		(raw & FFA_MEM_TRANSACTION_FLAGS_ZERO_MEMORY_AFTER_RELINQIUSH);
-	flags->transaction_type =
+	flags->transaction_type = (enum sp_memory_transaction_type) (
 		(raw >> FFA_MEM_TRANSACTION_FLAGS_TYPE_SHIFT) &
-		FFA_MEM_TRANSACTION_FLAGS_TYPE_MASK;
+		FFA_MEM_TRANSACTION_FLAGS_TYPE_MASK);
 
 	if (raw & FFA_MEM_TRANSACTION_FLAGS_ALIGNMENT_HINT_VALID) {
 		uint32_t hint = 0;

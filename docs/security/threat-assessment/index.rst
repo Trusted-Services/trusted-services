@@ -11,6 +11,7 @@ This section captures the threat assessment of the Secure Partitions in the proj
     crypto-service-threat-assessment
     smmgw-threat-assessment
     attestation-service-threat-assessment
+    block-storage-assessment
 
 
 

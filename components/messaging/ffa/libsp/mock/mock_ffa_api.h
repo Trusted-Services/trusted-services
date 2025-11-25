@@ -36,6 +36,8 @@ void expect_ffa_id_get(const uint16_t *id, ffa_result result);
 
 void expect_ffa_msg_wait(const struct ffa_direct_msg *msg, ffa_result result);
 
+void expect_ffa_yield(ffa_result result);
+
 void expect_ffa_msg_send_direct_req_32(uint16_t source, uint16_t dest,
 				       uint32_t a0, uint32_t a1, uint32_t a2,
 				       uint32_t a3, uint32_t a4,
@@ -109,5 +111,18 @@ void expect_ffa_console_log_32(const char *message, size_t length,
 
 void expect_ffa_console_log_64(const char *message, size_t length,
 			       ffa_result result);
+
+void expect_ffa_notification_bind(uint16_t sender, uint16_t receiver, uint32_t flags,
+				  uint64_t notification_bitmap, ffa_result result);
+
+void expect_ffa_notification_unbind(uint16_t sender, uint16_t receiver,
+				    uint64_t notification_bitmap, ffa_result result);
+
+void expect_ffa_notification_set(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t notification_bitmap, ffa_result result);
+
+void expect_ffa_notification_get(uint16_t sender, uint16_t receiver, uint32_t flags,
+				 uint64_t *sp_notification_bitmap, uint64_t *vm_notification_bitmap,
+				 uint64_t *framework_notification_bitmap, ffa_result result);
 
 #endif /* FFA_LIBSP_TEST_MOCK_FFA_API_H_ */

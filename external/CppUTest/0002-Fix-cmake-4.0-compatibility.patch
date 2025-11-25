@@ -1,0 +1,29 @@
+From ad0ea0ad79e9c64516543596669e46968ad89a76 Mon Sep 17 00:00:00 2001
+From: Gyorgy Szing <gyorgy.szing@arm.com>
+Date: Fri, 18 Jul 2025 12:17:46 +0200
+Subject: [PATCH 2/2] Fix cmake 4.0 compatibility
+
+Cmake 4.0 dropped compatibility to cmake versions below 3.5. Update the
+required version on the cmake file as a workaround.
+
+Signed-off-by: Gyorgy Szing <gyorgy.szing@arm.com>
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d9ca865f..b30e7d77 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -4,7 +4,7 @@ set(CppUTest_version_major 3)
+ set(CppUTest_version_minor 8)
+ 
+ # 2.6.3 is needed for ctest support
+-cmake_minimum_required(VERSION 2.8.7)
++cmake_minimum_required(VERSION 3.8...3.31)
+ 
+ # Check for functions before setting a lot of stuff
+ include(CheckFunctionExists)
+-- 
+2.34.1
+

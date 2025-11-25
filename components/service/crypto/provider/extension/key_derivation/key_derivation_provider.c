@@ -79,14 +79,14 @@ static rpc_status_t key_derivation_setup_handler(void *context, struct rpc_reque
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	psa_algorithm_t alg;
+	psa_algorithm_t alg = PSA_ALG_NONE;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_setup_req(req_buf, &alg);
 
 	if (rpc_status == RPC_SUCCESS) {
 
-		uint32_t op_handle;
+		uint32_t op_handle = 0;
 
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
@@ -127,7 +127,7 @@ static rpc_status_t key_derivation_get_capacity_handler(void *context, struct rp
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_get_capacity_req(req_buf, &op_handle);
@@ -169,8 +169,8 @@ static rpc_status_t key_derivation_set_capacity_handler(void *context, struct rp
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
-	size_t capacity;
+	uint32_t op_handle = 0;
+	size_t capacity = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_set_capacity_req(req_buf,
@@ -204,10 +204,10 @@ static rpc_status_t key_derivation_input_bytes_handler(void *context, struct rpc
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
-	psa_key_derivation_step_t step;
-	const uint8_t *data;
-	size_t data_len;
+	uint32_t op_handle = 0;
+	psa_key_derivation_step_t step = (psa_key_derivation_step_t)0;
+	const uint8_t *data = NULL;
+	size_t data_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_input_bytes_req(req_buf,
@@ -241,9 +241,9 @@ static rpc_status_t key_derivation_input_key_handler(void *context, struct rpc_r
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
-	psa_key_derivation_step_t step;
-	psa_key_id_t key_id;
+	uint32_t op_handle = 0;
+	psa_key_derivation_step_t step = (psa_key_derivation_step_t)0;
+	psa_key_id_t key_id = PSA_KEY_ID_NULL;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_input_key_req(req_buf,
@@ -285,8 +285,8 @@ static rpc_status_t key_derivation_output_bytes_handler(void *context, struct rp
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
-	size_t output_len;
+	uint32_t op_handle = 0;
+	size_t output_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_output_bytes_req(req_buf,
@@ -338,7 +338,7 @@ static rpc_status_t key_derivation_output_key_handler(void *context, struct rpc_
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 	psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
 
 	if (serializer)
@@ -387,7 +387,7 @@ static rpc_status_t key_derivation_abort_handler(void *context, struct rpc_reque
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_abort_req(req_buf, &op_handle);
@@ -423,11 +423,11 @@ static rpc_status_t key_derivation_key_agreement_handler(void *context, struct r
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 	struct key_derivation_provider *this_instance = (struct key_derivation_provider*)context;
 
-	uint32_t op_handle;
-	psa_key_derivation_step_t step;
-	psa_key_id_t private_key_id;
-	const uint8_t *peer_key;
-	size_t peer_key_len;
+	uint32_t op_handle = 0;
+	psa_key_derivation_step_t step = (psa_key_derivation_step_t)0;
+	psa_key_id_t private_key_id = PSA_KEY_ID_NULL;
+	const uint8_t *peer_key = NULL;
+	size_t peer_key_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_key_agreement_req(req_buf,
@@ -463,10 +463,10 @@ static rpc_status_t key_derivation_raw_key_agreement_handler(void *context, stru
 	struct rpc_buffer *req_buf = &req->request;
 	const struct key_derivation_provider_serializer *serializer = get_serializer(context, req);
 
-	psa_algorithm_t alg;
-	psa_key_id_t private_key_id;
-	const uint8_t *peer_key;
-	size_t peer_key_len;
+	psa_algorithm_t alg = PSA_ALG_NONE;
+	psa_key_id_t private_key_id = PSA_KEY_ID_NULL;
+	const uint8_t *peer_key = NULL;
+	size_t peer_key_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_key_derivation_raw_key_agreement_req(req_buf,

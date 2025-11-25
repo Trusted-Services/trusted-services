@@ -89,7 +89,7 @@ struct rpc_service_interface *fwu_proxy_create(void)
 	static struct update_agent *agent;
 	static struct fwu_provider fwu_provider = { 0 };
 
-	agent = psa_fwu_m_update_agent_init(NULL, 0, 4096);
+	agent = psa_fwu_m_update_agent_init(NULL, 4096);
 
 	return fwu_provider_init(&fwu_provider, agent);
 }

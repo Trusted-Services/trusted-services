@@ -42,6 +42,10 @@ struct block_store *client_block_store_factory_create(const char *sn)
 
 		if (!product) {
 
+			if (assembly->rpc_session != NULL) {
+				service_context_close(assembly->service_context, assembly->rpc_session);
+				assembly->rpc_session = NULL;
+			}
 			/* Something went wrong! */
 			free(assembly);
 		}

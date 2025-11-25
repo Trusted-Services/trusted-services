@@ -71,15 +71,15 @@ static rpc_status_t cipher_setup_handler(void *context, struct rpc_request *req)
 	const struct cipher_provider_serializer *serializer = get_serializer(context, req);
 	struct cipher_provider *this_instance = (struct cipher_provider*)context;
 
-	psa_key_id_t key_id;
-	psa_algorithm_t alg;
+	psa_key_id_t key_id = PSA_KEY_ID_NULL;
+	psa_algorithm_t alg = PSA_ALG_NONE;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_cipher_setup_req(req_buf, &key_id, &alg);
 
 	if (rpc_status == RPC_SUCCESS) {
 
-		uint32_t op_handle;
+		uint32_t op_handle = 0;
 
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
@@ -125,7 +125,7 @@ static rpc_status_t cipher_generate_iv_handler(void *context, struct rpc_request
 	const struct cipher_provider_serializer *serializer = get_serializer(context, req);
 	struct cipher_provider *this_instance = (struct cipher_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_cipher_generate_iv_req(req_buf, &op_handle);
@@ -166,9 +166,9 @@ static rpc_status_t cipher_set_iv_handler(void *context, struct rpc_request *req
 	const struct cipher_provider_serializer *serializer = get_serializer(context, req);
 	struct cipher_provider *this_instance = (struct cipher_provider*)context;
 
-	uint32_t op_handle;
-	const uint8_t *iv;
-	size_t iv_len;
+	uint32_t op_handle = 0;
+	const uint8_t *iv = NULL;
+	size_t iv_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_cipher_set_iv_req(req_buf, &op_handle,
@@ -201,9 +201,9 @@ static rpc_status_t cipher_update_handler(void *context, struct rpc_request *req
 	const struct cipher_provider_serializer *serializer = get_serializer(context, req);
 	struct cipher_provider *this_instance = (struct cipher_provider*)context;
 
-	uint32_t op_handle;
-	const uint8_t *input;
-	size_t input_len;
+	uint32_t op_handle = 0;
+	const uint8_t *input = NULL;
+	size_t input_len = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_cipher_update_req(req_buf, &op_handle,
@@ -258,7 +258,7 @@ static rpc_status_t cipher_finish_handler(void *context, struct rpc_request *req
 	const struct cipher_provider_serializer *serializer = get_serializer(context, req);
 	struct cipher_provider *this_instance = (struct cipher_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_cipher_finish_req(req_buf, &op_handle);
@@ -301,7 +301,7 @@ static rpc_status_t cipher_abort_handler(void *context, struct rpc_request *req)
 	const struct cipher_provider_serializer *serializer = get_serializer(context, req);
 	struct cipher_provider *this_instance = (struct cipher_provider*)context;
 
-	uint32_t op_handle;
+	uint32_t op_handle = 0;
 
 	if (serializer)
 		rpc_status = serializer->deserialize_cipher_abort_req(req_buf, &op_handle);

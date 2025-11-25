@@ -17,6 +17,7 @@ target_sources(${TGT} PRIVATE
 	"${CMAKE_CURRENT_LIST_DIR}/mock_sp_discovery.cpp"
 	"${CMAKE_CURRENT_LIST_DIR}/mock_sp_memory_management.cpp"
 	"${CMAKE_CURRENT_LIST_DIR}/mock_sp_messaging.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/mock_sp_notification.cpp"
 	"${CMAKE_CURRENT_LIST_DIR}/mock_sp_rxtx.cpp"
 	)
 

@@ -124,6 +124,12 @@ TEST(mock_ffa_api, ffa_msg_wait)
 	MEMCMP_EQUAL(&expected_msg, &msg, sizeof(expected_msg));
 }
 
+TEST(mock_ffa_api, ffa_yield)
+{
+	expect_ffa_yield(result);
+	LONGS_EQUAL(result, ffa_yield());
+}
+
 TEST(mock_ffa_api, ffa_msg_send_direct_req_32)
 {
 	const uint16_t source = 0x1122;
@@ -381,4 +387,57 @@ TEST(mock_ffa_api, ffa_console_log_64)
 
 	expect_ffa_console_log_64(message, length, result);
 	LONGS_EQUAL(result, ffa_console_log_64(message, length));
+}
+
+TEST(mock_ffa_api, ffa_notification_bind)
+{
+	const uint16_t sender = 1;
+	const uint16_t receiver = 2;
+	const uint32_t flags = 0xAAAA;
+	const uint64_t notification_bitmap = 0x55555555;
+
+	expect_ffa_notification_bind(sender, receiver, flags, notification_bitmap, result);
+	LONGS_EQUAL(result, ffa_notification_bind(sender, receiver, flags, notification_bitmap));
+}
+
+TEST(mock_ffa_api, ffa_notification_unbind)
+{
+	const uint16_t sender = 1;
+	const uint16_t receiver = 2;
+	const uint64_t notification_bitmap = 0x55555555;
+
+	expect_ffa_notification_unbind(sender, receiver, notification_bitmap, result);
+	LONGS_EQUAL(result, ffa_notification_unbind(sender, receiver, notification_bitmap));
+}
+
+TEST(mock_ffa_api, ffa_notification_set)
+{
+	const uint16_t sender = 1;
+	const uint16_t receiver = 2;
+	const uint32_t flags = 0xAAAA;
+	const uint64_t notification_bitmap = 0x55555555;
+
+	expect_ffa_notification_set(sender, receiver, flags, notification_bitmap, result);
+	LONGS_EQUAL(result, ffa_notification_set(sender, receiver, flags, notification_bitmap));
+}
+
+TEST(mock_ffa_api, ffa_notification_get)
+{
+	const uint16_t sender = 1;
+	const uint16_t receiver = 2;
+	const uint32_t flags = 0xAAAA;
+	uint64_t expected_notification_bitmap = 0x55555555;
+	uint64_t sp_notification_bitmap = 0;
+	uint64_t vm_notification_bitmap = 0;
+	uint64_t framework_notification_bitmap = 0;
+
+	expect_ffa_notification_get(sender, receiver, flags, &expected_notification_bitmap,
+				    &expected_notification_bitmap, &expected_notification_bitmap,
+				    result);
+	LONGS_EQUAL(result,
+		    ffa_notification_get(sender, receiver, flags, &sp_notification_bitmap,
+					 &vm_notification_bitmap, &framework_notification_bitmap));
+	LONGS_EQUAL(sp_notification_bitmap, expected_notification_bitmap);
+	LONGS_EQUAL(vm_notification_bitmap, expected_notification_bitmap);
+	LONGS_EQUAL(framework_notification_bitmap, expected_notification_bitmap);
 }

@@ -29,7 +29,7 @@ static inline psa_status_t crypto_caller_import_key(struct service_client *conte
 {
 	psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 	struct ts_crypto_import_key_in req_msg;
-	size_t req_fixed_len = sizeof(struct ts_crypto_import_key_in);
+	const size_t req_fixed_len = sizeof(struct ts_crypto_import_key_in);
 	size_t req_len = req_fixed_len + tlv_required_space(data_length);
 
 	/* Set default outputs for failure case */

@@ -75,6 +75,10 @@ static bool find_next(const char *sn, size_t from, size_t len, char separator, s
 static bool sn_parse(const char *sn, struct sn_parsed_fields *fields)
 {
 	size_t sn_len = strlen(sn);
+	const char *str_urn = "urn";
+	const size_t str_urn_len = strlen(str_urn);
+	const char *str_sn = "sn";
+	const size_t str_sn_len = strlen(str_sn);
 	size_t field_pos = 0;
 
 	fields->authority_pos = 0;
@@ -86,13 +90,18 @@ static bool sn_parse(const char *sn, struct sn_parsed_fields *fields)
 	fields->instance_pos = 0;
 	fields->instance_len = 0;
 
-	/* Absorb urn: if present */
-	if (memcmp("urn", &sn[field_pos], strlen("urn")) == 0) {
-		if (!find_next(sn, field_pos, sn_len, ':', &field_pos)) return false;
+	if (sn_len >= str_urn_len) {
+		/* Absorb urn: if present */
+		if (memcmp(str_urn, &sn[field_pos], str_urn_len) == 0) {
+			if (!find_next(sn, field_pos, sn_len, ':', &field_pos)) return false;
+		}
 	}
 
 	/* Check it is a service name */
-	if (memcmp("sn", &sn[field_pos], strlen("sn")) != 0) {
+	if (sn_len - field_pos < str_sn_len) {
+		return false;
+	}
+	if (memcmp(str_sn, &sn[field_pos], str_sn_len) != 0) {
 		/* Not a service name */
 		 return false;
 	}
