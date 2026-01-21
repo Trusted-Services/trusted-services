@@ -39,6 +39,8 @@ void attestation_service_context::do_init()
 {
 	struct claim_source *claim_source;
 	struct config_blob event_log_blob;
+	const struct mock_event_log_info *event_log_info = mock_event_log_list_get_default();
+
 
 	/* The crypto service is used for token signing */
 	open_crypto_session();
@@ -50,8 +52,8 @@ void attestation_service_context::do_init()
 	 */
 	config_ramstore_init();
 
-	event_log_blob.data = mock_event_log_start();
-	event_log_blob.data_len = mock_event_log_size();
+	event_log_blob.data = event_log_info->data;
+	event_log_blob.data_len = event_log_info->data_length;
 
 	config_store_add(CONFIG_CLASSIFIER_BLOB,
 		"EVENT_LOG", 0, &event_log_blob, sizeof(event_log_blob));

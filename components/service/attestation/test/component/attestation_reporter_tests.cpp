@@ -32,6 +32,8 @@ TEST_GROUP(AttestationReporterTests)
 
         report = NULL;
         report_len = 0;
+        const struct mock_event_log_info *event_log_info = mock_event_log_list_get_default();
+
 
         open_crypto_session();
         local_attest_key_mngr_init(LOCAL_ATTEST_KEY_MNGR_VOLATILE_IAK);
@@ -44,7 +46,7 @@ TEST_GROUP(AttestationReporterTests)
 
         /* Boot measurement claim source */
         claim_source = event_log_claim_source_init(&event_log_claim_source,
-            mock_event_log_start(), mock_event_log_size());
+            event_log_info->data, event_log_info->data_length);
         claims_register_add_claim_source(CLAIM_CATEGORY_BOOT_MEASUREMENT, claim_source);
 
         /* Boot seed claim source */
@@ -113,6 +115,8 @@ TEST(AttestationReporterTests, createReport)
          1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,
         17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
     };
+
+    const struct mock_event_log_info *event_log_info = mock_event_log_list_get_at(mock_event_log_list_length() - 1);
 
     /* Retrieve the IAK id */
     psa_key_id_t iak_id;
@@ -223,11 +227,11 @@ TEST(AttestationReporterTests, createReport)
 
         if (QCBORDecode_GetAndResetError(&decode_ctx) == QCBOR_SUCCESS) {
 
-            CHECK_TRUE(sw_component_count < mock_event_Log_measurement_count());
+            CHECK_TRUE(sw_component_count < event_log_info->n_measurements);
 
             UsefulBufC property;
             const struct mock_event_log_measurement *measurement =
-                mock_event_Log_measurement(sw_component_count);
+                mock_event_log_measurement(event_log_info, sw_component_count);
 
             /* Check measurement id */
              QCBORDecode_GetTextStringInMapN(&decode_ctx,
