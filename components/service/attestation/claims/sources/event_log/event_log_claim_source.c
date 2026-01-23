@@ -213,27 +213,38 @@ static size_t tcg_event2_header_size(const void *header, const void *limit)
 	/* Return the length of the variable length header.  Returns zero if there's
 	 * a problem.
 	 */
-	size_t header_len = 0;
+	uint32_t digest_count = 0;
+	const uint8_t *pos = header;
+
+	// Sanity check.
+	if (header > limit)
+		return 0;
 
 	/* Ensure that the header is within the limit of the event log */
-	if (((const uint8_t*)limit - sizeof(event2_header_t)) >= (const uint8_t*)header) {
+	if (((uintptr_t)limit - (uintptr_t)header < sizeof(event2_header_t)))
+		return 0;
 
-		uint32_t digest_count = load_u32_le(header, offsetof(event2_header_t, digests.count));
-		header_len = sizeof(event2_header_t);
+	digest_count = load_u32_le(pos, offsetof(event2_header_t, digests.count));
+	pos += sizeof(event2_header_t);
 
-		/* Add the variable length space used for digests */
-		for (unsigned int i = 0; i < digest_count; ++i) {
+	/* Add the variable length space used for digests */
+	for (unsigned int i = 0; i < digest_count; ++i) {
+		// Ensure buffer is big enough to hold next algorithm id
+		if ((uintptr_t)limit - (uintptr_t)pos < 2)
+			return 0;
 
-			uint16_t algorithm_id =
-				load_u16_le(header, offsetof(event2_header_t, digests.digests[i].algorithm_id));
-			size_t digest_size =
-				tcg_event2_digest_size(algorithm_id);
+		uint16_t algorithm_id =	load_u16_le(pos, 0);
+		size_t digest_size = tcg_event2_digest_size(algorithm_id);
 
-			if (digest_size) header_len += sizeof(tpmt_ha) + digest_size;
-		}
+		// Look for overflow of pos.
+		if ((uintptr_t)limit - (uintptr_t)pos < 2 + digest_size)
+			return 0;
+
+		pos += 2 + digest_size;
+
 	}
 
-	return header_len;
+	return (uintptr_t)pos - (uintptr_t)header;
 }
 
 static void tcg_event2_extract_digest(const void *header,
