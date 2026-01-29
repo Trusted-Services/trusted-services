@@ -15,9 +15,17 @@
 #include "rse_comms_platform_api.h"
 
 struct rse_comms_platform {
+	struct platform_mhu_driver *rx_dev;
+	struct platform_mhu_driver *tx_dev;
+};
+
+struct rse_comms_platform_shared {
 	struct platform_mhu_driver rx_dev;
 	struct platform_mhu_driver tx_dev;
+	unsigned int refcount;
 };
+
+static struct rse_comms_platform_shared shared_mhu;
 
 struct rse_comms_platform *rse_comms_platform_init(void)
 {
@@ -30,18 +38,30 @@ struct rse_comms_platform *rse_comms_platform_init(void)
 		return NULL;
 	}
 
-	ret = platform_mhu_create(&rse_comms_plat->rx_dev, "mhu-receiver", true);
-	if (ret < 0)
-		goto free_plat;
+	if (shared_mhu.refcount == 0) {
+		ret = platform_mhu_create(&shared_mhu.rx_dev, "mhu-receiver", true);
+		if (ret < 0)
+			goto free_plat;
 
-	ret = platform_mhu_create(&rse_comms_plat->tx_dev, "mhu-sender", false);
-	if (ret < 0)
-		goto free_rx_dev;
+		ret = platform_mhu_create(&shared_mhu.tx_dev, "mhu-sender", false);
+		if (ret < 0)
+			goto free_shared_rx_dev;
+
+		IMSG("rse_comms: initialized shared MHU platform");
+	}
+
+	/*
+	 * it is safe to have a shared pointer as per design a trusted service
+	 * is NOT multi-threaded
+	 */
+	shared_mhu.refcount++;
+	rse_comms_plat->rx_dev = &shared_mhu.rx_dev;
+	rse_comms_plat->tx_dev = &shared_mhu.tx_dev;
 
 	return rse_comms_plat;
 
-free_rx_dev:
-	platform_mhu_destroy(&rse_comms_plat->rx_dev);
+free_shared_rx_dev:
+	platform_mhu_destroy(&shared_mhu.rx_dev);
 free_plat:
 	free(rse_comms_plat);
 
@@ -53,8 +73,17 @@ int rse_comms_platform_deinit(struct rse_comms_platform *rse_comms_plat)
 	if (!rse_comms_plat)
 		return -1;
 
-	platform_mhu_destroy(&rse_comms_plat->rx_dev);
-	platform_mhu_destroy(&rse_comms_plat->tx_dev);
+	if (shared_mhu.refcount == 0) {
+		free(rse_comms_plat);
+		return -1;
+	}
+
+	shared_mhu.refcount--;
+	if (shared_mhu.refcount == 0) {
+		platform_mhu_destroy(&shared_mhu.rx_dev);
+		platform_mhu_destroy(&shared_mhu.tx_dev);
+		IMSG("rse_comms: deinitialized shared MHU platform");
+	}
 
 	free(rse_comms_plat);
 
@@ -71,8 +100,8 @@ int rse_comms_platform_invoke(struct rse_comms_platform *rse_comms_plat, uint8_t
 	if (!rse_comms_plat || !resp_buf || !req_buf)
 		return -1;
 
-	rx_dev = &rse_comms_plat->rx_dev;
-	tx_dev = &rse_comms_plat->tx_dev;
+	rx_dev = rse_comms_plat->rx_dev;
+	tx_dev = rse_comms_plat->tx_dev;
 
 	if (!tx_dev->iface || !tx_dev->iface->send)
 		return -1;
