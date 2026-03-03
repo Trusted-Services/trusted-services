@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -42,11 +42,7 @@ void sp_main(union ffa_boot_info *boot_info)
 	}
 
 	IMSG("Start discovering logging service");
-	if (log_factory_create()) {
-		IMSG("Logging service discovery successful");
-	} else {
-		EMSG("Logging service discovery failed, falling back to console log");
-	}
+	log_factory_create();
 
 	result = sp_discovery_own_id_get(&own_id);
 	if (result != SP_RESULT_OK) {

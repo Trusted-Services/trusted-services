@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
  */
 
 #ifndef LOG_FACTORY_H
@@ -17,7 +17,7 @@ extern "C" {
 
 struct logger;
 
-struct log_backend *log_factory_create(void);
+void log_factory_create(void);
 struct log_backend *log_factory_get_backend_instance(void);
 void log_factory_destroy(struct logger *backend);
 

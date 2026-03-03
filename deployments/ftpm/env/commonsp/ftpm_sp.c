@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2024-2026, Arm Limited and Contributors. All rights reserved.
  */
 
 #include "common/trace/include/trace.h"
@@ -52,11 +52,7 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 	}
 
 	IMSG("Start discovering logging service");
-	if (log_factory_create()) {
-		IMSG("Logging service discovery successful");
-	} else {
-		EMSG("Logging service discovery failed, falling back to console log");
-	}
+	log_factory_create();
 
 	sp_res = sp_discovery_own_id_get(&own_id);
 	if (sp_res != SP_RESULT_OK) {

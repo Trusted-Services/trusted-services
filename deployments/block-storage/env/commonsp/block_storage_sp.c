@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited and Contributors. All rights reserved.
  */
 
 #include "common/crc32/crc32.h"
@@ -140,11 +140,7 @@ static bool sp_init(uint16_t *own_id)
 	}
 
 	IMSG("Start discovering logging service");
-	if (log_factory_create()) {
-		IMSG("Logging service discovery successful");
-	} else {
-		EMSG("Logging service discovery failed, falling back to console log");
-	}
+	log_factory_create();
 
 	sp_res = sp_discovery_own_id_get(own_id);
 	if (sp_res != SP_RESULT_OK) {

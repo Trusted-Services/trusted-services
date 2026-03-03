@@ -18,6 +18,7 @@
 #include "protocols/rpc/common/packed-c/status.h"
 #include "service/log/client/log_client.h"
 #include "sp_discovery.h"
+#include "trace.h"
 
 /**
  * A log factory that creates log backends that is used
@@ -38,35 +39,43 @@ static const struct rpc_uuid logging_service_uuid = { .uuid = TS_LOG_SERVICE_UUI
 /*
  * Log factory create that is included in the code for other SP's
  */
-struct log_backend *log_factory_create(void)
+void log_factory_create(void)
 {
 	struct logger *new_backend = &backend_instance;
-	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	rpc_status_t sp_init_status = RPC_ERROR_INTERNAL;
+	rpc_status_t session_open_status = RPC_ERROR_INTERNAL;
 	log_status_t log_status = LOG_STATUS_GENERIC_ERROR;
 
-	if (new_backend->in_use)
-		return NULL;
+	if (new_backend->in_use) {
+		log_status == LOG_STATUS_SUCCESS;
+		goto end;
+	}
 
-	rpc_status = ts_rpc_caller_sp_init(&new_backend->caller);
-	if (rpc_status != RPC_SUCCESS)
-		return NULL;
+	sp_init_status = ts_rpc_caller_sp_init(&new_backend->caller);
+	if (sp_init_status != RPC_SUCCESS){
+		DMSG("Failed to initialize SP: %d", sp_init_status);
+		goto end;
+	}
 
-	rpc_status = rpc_caller_session_find_and_open(&new_backend->session, &new_backend->caller,
+	session_open_status = rpc_caller_session_find_and_open(&new_backend->session, &new_backend->caller,
 						      &logging_service_uuid, 4096);
-	if (rpc_status != RPC_SUCCESS) {
-		(void)ts_rpc_caller_sp_deinit(&new_backend->caller);
-		return NULL;
+	if (session_open_status != RPC_SUCCESS) {
+		DMSG("Failed to open session: %d", session_open_status);
+		goto end;
 	}
 
 	log_status = log_client_init(&new_backend->client, &new_backend->session);
+	new_backend->in_use = (log_status == LOG_STATUS_SUCCESS);
+
+end:
 	if (log_status != LOG_STATUS_SUCCESS) {
-		(void)ts_rpc_caller_sp_deinit(&new_backend->caller);
-		return NULL;
+		if (sp_init_status == RPC_SUCCESS)
+			(void)ts_rpc_caller_sp_deinit(&new_backend->caller);
+
+		EMSG("Logging service discovery failed, falling back to console log: %d", log_status);
+	} else {
+		IMSG("Logging service discovery successful");
 	}
-
-	new_backend->in_use = true;
-
-	return log_factory_get_backend_instance();
 }
 
 /*
