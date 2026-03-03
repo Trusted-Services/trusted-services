@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -518,10 +518,10 @@ rpc_status_t ts_rpc_caller_sp_deinit(struct rpc_caller_interface *rpc_caller)
 	if (!rpc_caller || !rpc_caller->context)
 		return RPC_ERROR_INVALID_VALUE;
 
-	if (!this_context->has_opened_session) {
+	if (this_context->has_opened_session) {
 		status = rpc_caller_close_session(rpc_caller);
 		if (status != RPC_SUCCESS) {
-			EMSG("failed to close session");
+			EMSG("failed to close session: %i", status);
 			return RPC_ERROR_INTERNAL;
 		}
 	}
