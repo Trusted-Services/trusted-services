@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
  */
 
 #ifndef LOG_CLIENT_H
@@ -33,10 +33,9 @@ struct log_client {
  * @param[in]  context	Instance data
  * @param[in]  rpc_caller RPC caller instance
  *
- *
- * @return	Pointer to inialized log backend or NULL on failure
+ * @return	The log error status code
  */
-struct log_backend *log_client_init(struct log_client *context, struct rpc_caller_session *session);
+log_status_t log_client_init(struct log_client *context, struct rpc_caller_session *session);
 
 /**
  * @brief	  Deinitialize a log client

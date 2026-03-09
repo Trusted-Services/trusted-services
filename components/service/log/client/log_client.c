@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
  */
 
 #include "log_client.h"
@@ -37,6 +37,23 @@ static void log_client_trace_puts(const char *str)
 
 	/* log message using FFA CONSOLE LOG */
 	trace_puts(str);
+}
+
+static log_status_t psa_status_to_log_status(psa_status_t psa_status)
+{
+	log_status_t log_status;
+	switch (psa_status) {
+		case PSA_SUCCESS:
+			log_status = LOG_STATUS_SUCCESS;
+			break;
+		case PSA_ERROR_INVALID_ARGUMENT:
+			log_status = LOG_STATUS_INVALID_PARAMETER;
+			break;
+		default:
+			log_status = LOG_STATUS_GENERIC_ERROR;
+			break;
+	}
+	return log_status;
 }
 
 /*
@@ -95,9 +112,11 @@ log_status_t log_client_puts(void *context, const char *msg)
 /*
  * Client initialization function.
  */
-struct log_backend *log_client_init(struct log_client *context, struct rpc_caller_session *session)
+log_status_t log_client_init(struct log_client *context, struct rpc_caller_session *session)
 {
-	service_client_init(&context->client, session);
+	psa_status_t psa_status = service_client_init(&context->client, session);
+	if (psa_status != PSA_SUCCESS)
+		return psa_status_to_log_status(psa_status);
 
 	static const struct log_backend_interface interface = { log_client_puts };
 
@@ -106,5 +125,5 @@ struct log_backend *log_client_init(struct log_client *context, struct rpc_calle
 
 	trace_puts_interface = &log_client_trace_puts;
 
-	return &context->backend;
+	return LOG_STATUS_SUCCESS;
 }

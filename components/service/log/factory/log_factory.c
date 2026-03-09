@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright (c) 2023, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
  */
 
 #include "service/log/factory/log_factory.h"
@@ -41,8 +41,8 @@ static const struct rpc_uuid logging_service_uuid = { .uuid = TS_LOG_SERVICE_UUI
 struct log_backend *log_factory_create(void)
 {
 	struct logger *new_backend = &backend_instance;
-	struct log_backend *result = NULL;
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
+	log_status_t log_status = LOG_STATUS_GENERIC_ERROR;
 
 	if (new_backend->in_use)
 		return NULL;
@@ -58,15 +58,15 @@ struct log_backend *log_factory_create(void)
 		return NULL;
 	}
 
-	result = log_client_init(&new_backend->client, &new_backend->session);
-	if (!result) {
+	log_status = log_client_init(&new_backend->client, &new_backend->session);
+	if (log_status != LOG_STATUS_SUCCESS) {
 		(void)ts_rpc_caller_sp_deinit(&new_backend->caller);
 		return NULL;
 	}
 
-	new_backend->in_use = (result != NULL);
+	new_backend->in_use = true;
 
-	return result;
+	return log_factory_get_backend_instance();
 }
 
 /*
