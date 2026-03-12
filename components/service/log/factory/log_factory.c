@@ -47,7 +47,7 @@ void log_factory_create(void)
 	log_status_t log_status = LOG_STATUS_GENERIC_ERROR;
 
 	if (new_backend->in_use) {
-		log_status == LOG_STATUS_SUCCESS;
+		log_status = LOG_STATUS_SUCCESS;
 		goto end;
 	}
 
