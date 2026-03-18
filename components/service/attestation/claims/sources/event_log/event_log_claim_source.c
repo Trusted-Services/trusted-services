@@ -10,7 +10,7 @@
 #include <config/interface/config_store.h>
 #include <config/interface/config_blob.h>
 #include "event_log_claim_source.h"
-#include "tcg.h"
+#include "components/common/event_log/tcg.h"
 
 static bool event_log_claim_source_get_claim(void *context, struct claim *claim);
 static void create_event_log_iterator(const struct claim_collection_variant *variant,

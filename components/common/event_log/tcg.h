@@ -58,6 +58,7 @@
  * Ref. Table 9 - Definition of (UINT16) TPM_ALG_ID Constants
  * Trusted Platform Module Library. Part 2: Structures
  */
+#define TPM_ALG_SHA1		0x0004
 #define TPM_ALG_SHA256		0x000B
 #define TPM_ALG_SHA384		0x000C
 #define TPM_ALG_SHA512		0x000D
@@ -223,16 +224,6 @@ typedef struct {
 	 */
 	uint8_t		vendor_info[];	/* [vendorInfoSize] */
 } id_event_struct_data_t;
-
-typedef struct {
-	id_event_struct_header_t	struct_header;
-	id_event_struct_data_t		struct_data;
-} id_event_struct_t;
-
-typedef struct {
-	tcg_pcr_event_t			header;
-	id_event_struct_header_t	struct_header;
-} id_event_headers_t;
 
 /* TPMT_HA Structure */
 typedef struct {
