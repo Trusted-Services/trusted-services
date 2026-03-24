@@ -76,6 +76,8 @@ add_components(
 		"components/service/attestation/claims/sources/event_log"
 		"components/service/attestation/claims/sources/event_log/mock"
 		"components/service/attestation/claims/sources/event_log/test"
+		"components/common/event_log"
+		"components/common/event_log/test"
 		"components/service/attestation/reporter/local"
 		"components/service/attestation/reporter/eat"
 		"components/service/attestation/reporter/dump/raw"

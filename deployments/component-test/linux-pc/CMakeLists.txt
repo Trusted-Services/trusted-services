@@ -71,8 +71,9 @@ set(TRACE_PREFIX "TEST" CACHE STRING "Trace prefix")
 add_components(
 	TARGET "component-test"
 	BASE_DIR ${TS_ROOT}
-    COMPONENTS
-        "components/service/crypto/backend/mbedcrypto/trng_adapter/linux"
+	COMPONENTS
+		"components/service/crypto/backend/mbedcrypto/trng_adapter/linux"
+		"environments/linux-pc"
 )
 
 #-------------------------------------------------------------------------------
