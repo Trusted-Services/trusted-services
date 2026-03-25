@@ -67,6 +67,7 @@ target_include_directories(component-test PRIVATE "${TOP_LEVEL_INCLUDE_DIRS}")
 #  Components that are specific to deployment in the linux-pc environment.
 #
 #-------------------------------------------------------------------------------
+set(TRACE_PREFIX "TEST" CACHE STRING "Trace prefix")
 add_components(
 	TARGET "component-test"
 	BASE_DIR ${TS_ROOT}

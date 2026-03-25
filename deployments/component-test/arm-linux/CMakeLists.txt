@@ -32,6 +32,7 @@ target_link_libraries(component-test PRIVATE ${CppUTest_LIBRARIES})
 #  Components that are specific to deployment in the arm-linux environment.
 #
 #-------------------------------------------------------------------------------
+set(TRACE_PREFIX "TEST" CACHE STRING "Trace prefix")
 add_components(
 	TARGET "component-test"
 	BASE_DIR ${TS_ROOT}
