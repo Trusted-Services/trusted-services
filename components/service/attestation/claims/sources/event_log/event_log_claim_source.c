@@ -11,26 +11,12 @@
 #include <config/interface/config_blob.h>
 #include "event_log_claim_source.h"
 #include "components/common/event_log/tcg.h"
+#include "components/common/event_log/event_log_parser.h"
+
 
 static bool event_log_claim_source_get_claim(void *context, struct claim *claim);
 static void create_event_log_iterator(const struct claim_collection_variant *variant,
 								struct claim_iterator *iter);
-
-static void event_log_iterator_first(struct claim_iterator *iter);
-static bool event_log_iterator_next(struct claim_iterator *iter);
-static bool event_log_iterator_is_done(struct claim_iterator *iter);
-static bool event_log_iterator_current(struct claim_iterator *iter, struct claim *claim);
-
-static size_t tcg_event2_digest_size(uint16_t algorithm_id);
-static size_t tcg_event2_header_size(const void *header, const void *limit);
-static size_t tcg_event1_record_size(const void *header, const void *limit);
-static void tcg_event2_extract_digest(const void *header,
-									struct measurement_claim_variant *measurement);
-static void tcg_event2_extract_measurement_id(const void *event_data,
-									struct measurement_claim_variant *measurement,
-									const void *limit);
-
-
 
 struct claim_source *event_log_claim_source_init(struct event_log_claim_source *instance,
 	const uint8_t *event_log, size_t event_log_len)
@@ -86,6 +72,77 @@ static bool event_log_claim_source_get_claim(void *context, struct claim *claim)
 	return is_available;
 }
 
+static void event_log_iterator_first(struct claim_iterator *iter)
+{
+	iter->cur_pos = iter->begin_pos;
+}
+
+static bool event_log_iterator_next(struct claim_iterator *iter)
+{
+	struct evl_context evl_context = {
+		.begin = iter->begin_pos,
+		.end = iter->end_pos,
+		.pos = iter->cur_pos
+	};
+
+	(void)event_log_parser_next(&evl_context);
+
+	iter->cur_pos = evl_context.pos;
+
+	return event_log_parser_is_done(&evl_context);
+}
+
+static bool event_log_iterator_is_done(struct claim_iterator *iter)
+{
+	struct evl_context evl_context = {
+		.begin = iter->begin_pos,
+		.end = iter->end_pos,
+		.pos = iter->cur_pos
+	};
+	return event_log_parser_is_done(&evl_context);
+}
+
+static bool event_log_iterator_current(struct claim_iterator *iter, struct claim *claim)
+{
+	bool success = false;
+	struct evl_context evl_context = {
+		.begin = iter->begin_pos,
+		.end = iter->end_pos,
+		.pos = iter->cur_pos
+	};
+
+	struct evl_record_data data = {0};
+
+	if (!event_log_parser_get(&evl_context, &data)) {
+		if (data.data_type == rct_pcr_record && data.data.pcr_record.header.event_type == EV_POST_CODE) {
+			claim->category = CLAIM_CATEGORY_BOOT_MEASUREMENT;
+			claim->subject_id = CLAIM_SUBJECT_ID_SW_COMPONENT;
+			claim->variant_id = CLAIM_VARIANT_ID_MEASUREMENT;
+			if (event_log_parser_get_measurement_digest(&data, TPM_ALG_SHA256,
+				&claim->variant.measurement.digest.bytes,
+				&claim->variant.measurement.digest.len)) {
+					goto error;
+				}
+			if (event_log_parser_get_measurement_id(&data,
+							  &claim->variant.measurement.id.string)) {
+				goto error;
+			}
+		} else {
+			/* Unsupported event type */
+			claim->category = CLAIM_CATEGORY_NONE;
+			claim->subject_id = CLAIM_SUBJECT_ID_NONE;
+			claim->variant_id = CLAIM_VARIANT_ID_UNSUPPORTED;
+		}
+		success = true;
+	}
+
+	return success;
+
+error:
+	memset(claim, 0, sizeof(*claim));
+	return false;
+}
+
 static void create_event_log_iterator(const struct claim_collection_variant *variant,
 								struct claim_iterator *iter)
 {
@@ -99,201 +156,4 @@ static void create_event_log_iterator(const struct claim_collection_variant *var
 	iter->begin_pos = variant->begin_pos;
 	iter->end_pos = variant->end_pos;
 	iter->cur_pos = variant->begin_pos;
-}
-
-static void event_log_iterator_first(struct claim_iterator *iter)
-{
-	iter->cur_pos = iter->begin_pos;
-}
-
-static bool event_log_iterator_next(struct claim_iterator *iter)
-{
-	const void *header = iter->cur_pos;
-	size_t record_len;
-
-	if (header == iter->begin_pos) {
-		/* The first record must be in TCG EVENT-1 format */
-		record_len = tcg_event1_record_size(header, iter->end_pos);
-		if (!record_len) return false;      /* Problem in record */
-	}
-	else {
-		/* All subsequent records are assumed to be in variable
-		 * length TCG_PCR_EVENT2 format.
-		 */
-		record_len = tcg_event2_header_size(header, iter->end_pos);
-		if (!record_len) return false;      /* Problem in header */
-
-		/* Add the variable length space used for event data */
-		const void *event_data = ((const uint8_t*)iter->cur_pos + record_len);
-		record_len += sizeof(event2_data_t);
-		record_len += load_u32_le(event_data, offsetof(event2_data_t, event_size));
-	}
-
-	/* Advance iterator to start of next record */
-	iter->cur_pos = (const uint8_t*)iter->cur_pos + record_len;
-
-	return !event_log_iterator_is_done(iter);
-}
-
-static bool event_log_iterator_is_done(struct claim_iterator *iter)
-{
-	return (iter->cur_pos >= iter->end_pos) || (iter->cur_pos < iter->begin_pos);
-}
-
-static bool event_log_iterator_current(struct claim_iterator *iter, struct claim *claim)
-{
-	bool success = false;
-
-	if (!event_log_iterator_is_done(iter)) {
-
-		uint32_t event_type = EV_NO_ACTION;
-		const void *event_data = NULL;
-		const void *header = iter->cur_pos;
-		claim->raw_data = (const uint8_t*)header;
-
-		if (header != iter->begin_pos) {
-			/* Initial TSG EVENT-1 record is not supported */
-			size_t header_len = tcg_event2_header_size(header, iter->end_pos);
-			if (!header_len) return false;      /* Problem in header */
-
-			event_type = load_u32_le(header, offsetof(event2_header_t, event_type));
-			event_data = (const uint8_t*)header + header_len;
-		}
-
-		switch (event_type)
-		{
-			case EV_POST_CODE:
-				/* A measurement claim */
-				claim->category = CLAIM_CATEGORY_BOOT_MEASUREMENT;
-				claim->subject_id = CLAIM_SUBJECT_ID_SW_COMPONENT;
-				claim->variant_id = CLAIM_VARIANT_ID_MEASUREMENT;
-				tcg_event2_extract_digest(header, &claim->variant.measurement);
-				tcg_event2_extract_measurement_id(event_data, &claim->variant.measurement,
-										iter->end_pos);
-				break;
-
-			default:
-				/* Unsupported event type */
-				claim->category = CLAIM_CATEGORY_NONE;
-				claim->subject_id = CLAIM_SUBJECT_ID_NONE;
-				claim->variant_id = CLAIM_VARIANT_ID_UNSUPPORTED;
-				break;
-		}
-
-		success = true;
-	}
-
-	return success;
-}
-
-static size_t tcg_event2_digest_size(uint16_t algorithm_id)
-{
-	size_t size = 0;
-
-	switch (algorithm_id)
-	{
-		case TPM_ALG_SHA256:
-			size = SHA256_DIGEST_SIZE;
-			break;
-		case TPM_ALG_SHA384:
-			size = SHA384_DIGEST_SIZE;
-			break;
-		case TPM_ALG_SHA512:
-			size = SHA512_DIGEST_SIZE;
-			break;
-		default:
-			break;
-	}
-
-	return size;
-}
-
-static size_t tcg_event2_header_size(const void *header, const void *limit)
-{
-	/* Return the length of the variable length header.  Returns zero if there's
-	 * a problem.
-	 */
-	uint32_t digest_count = 0;
-	const uint8_t *pos = header;
-
-	// Sanity check.
-	if (header > limit)
-		return 0;
-
-	/* Ensure that the header is within the limit of the event log */
-	if (((uintptr_t)limit - (uintptr_t)header < sizeof(event2_header_t)))
-		return 0;
-
-	digest_count = load_u32_le(pos, offsetof(event2_header_t, digests.count));
-	pos += sizeof(event2_header_t);
-
-	/* Add the variable length space used for digests */
-	for (unsigned int i = 0; i < digest_count; ++i) {
-		// Ensure buffer is big enough to hold next algorithm id
-		if ((uintptr_t)limit - (uintptr_t)pos < 2)
-			return 0;
-
-		uint16_t algorithm_id =	load_u16_le(pos, 0);
-		size_t digest_size = tcg_event2_digest_size(algorithm_id);
-
-		// Look for overflow of pos.
-		if ((uintptr_t)limit - (uintptr_t)pos < 2 + digest_size)
-			return 0;
-
-		pos += 2 + digest_size;
-
-	}
-
-	return (uintptr_t)pos - (uintptr_t)header;
-}
-
-static void tcg_event2_extract_digest(const void *header,
-									struct measurement_claim_variant *measurement)
-{
-	uint32_t digest_count = load_u32_le(header, offsetof(event2_header_t, digests.count));
-
-	measurement->digest.len = 0;
-	measurement->digest.bytes = NULL;
-
-	if (digest_count > 0) {
-
-		uint16_t algorithm_id =
-			load_u16_le(header, offsetof(event2_header_t, digests.digests[0].algorithm_id));
-		size_t digest_size =
-			tcg_event2_digest_size(algorithm_id);
-
-		if (digest_size) {
-
-			measurement->digest.len =
-				digest_size;
-			measurement->digest.bytes =
-				(const uint8_t*)header + offsetof(event2_header_t, digests.digests[0].digest);
-		}
-	}
-}
-
-static size_t tcg_event1_record_size(const void *header, const void *limit)
-{
-	(void)limit;
-
-	size_t record_len = load_u32_le(header, offsetof(tcg_pcr_event_t, event_size));
-	record_len += sizeof(tcg_pcr_event_t);
-	return record_len;
-}
-
-static void tcg_event2_extract_measurement_id(const void *event_data,
-									struct measurement_claim_variant *measurement,
-									const void *limit)
-{
-	measurement->id.string = NULL;
-
-	if (((const uint8_t*)limit - sizeof(event2_data_t)) >= (const uint8_t*)event_data) {
-
-		size_t id_size =  load_u32_le(event_data, offsetof(event2_data_t, event_size));
-
-		if (id_size) {
-
-			measurement->id.string = (const char*)event_data + offsetof(event2_data_t, event);
-		}
-	}
 }
