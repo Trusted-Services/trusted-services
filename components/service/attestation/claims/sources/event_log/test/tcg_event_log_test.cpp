@@ -5,6 +5,7 @@
  */
 
 #include <stdint.h>
+#include "service/attestation/claims/claim.h"
 #include <service/attestation/claims/sources/event_log/event_log_claim_source.h>
 #include <service/attestation/claims/sources/event_log/mock/mock_event_log.h>
 #include <CppUTest/TestHarness.h>

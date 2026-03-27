@@ -4,22 +4,23 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stddef.h>
-#include <string.h>
-#include <common/endian/le.h>
-#include <config/interface/config_store.h>
-#include <config/interface/config_blob.h>
 #include "event_log_claim_source.h"
-#include "components/common/event_log/tcg.h"
 #include "components/common/event_log/event_log_parser.h"
+#include "components/common/event_log/tcg.h"
+#include "config/interface/config_blob.h"
+#include "config/interface/config_store.h"
+#include "service/attestation/claims/claim.h"
 
+#include <stddef.h>
+#include <stdbool.h>
+#include <string.h>
 
 static bool event_log_claim_source_get_claim(void *context, struct claim *claim);
 static void create_event_log_iterator(const struct claim_collection_variant *variant,
-								struct claim_iterator *iter);
+				      struct claim_iterator *iter);
 
 struct claim_source *event_log_claim_source_init(struct event_log_claim_source *instance,
-	const uint8_t *event_log, size_t event_log_len)
+						 const uint8_t *event_log, size_t event_log_len)
 {
 	instance->base.get_claim = event_log_claim_source_get_claim;
 	instance->base.context = instance;
@@ -30,18 +31,16 @@ struct claim_source *event_log_claim_source_init(struct event_log_claim_source *
 	return &instance->base;
 }
 
-struct claim_source *event_log_claim_source_init_from_config(
-	struct event_log_claim_source *instance)
+struct claim_source *
+event_log_claim_source_init_from_config(struct event_log_claim_source *instance)
 {
 	struct claim_source *claim_source = NULL;
 	struct config_blob config_blob;
 
-	if (config_store_query(CONFIG_CLASSIFIER_BLOB,
-		"EVENT_LOG", 0,
-		&config_blob, sizeof(config_blob))) {
-
+	if (config_store_query(CONFIG_CLASSIFIER_BLOB, "EVENT_LOG", 0,
+			       &config_blob, sizeof(config_blob))) {
 		claim_source = event_log_claim_source_init(instance,
-			config_blob.data, config_blob.data_len);
+							   config_blob.data, config_blob.data_len);
 	}
 
 	return claim_source;
@@ -50,14 +49,13 @@ struct claim_source *event_log_claim_source_init_from_config(
 static bool event_log_claim_source_get_claim(void *context, struct claim *claim)
 {
 	bool is_available = false;
-	struct event_log_claim_source *instance = (struct event_log_claim_source*)context;
+	struct event_log_claim_source *instance = (struct event_log_claim_source *)context;
 
 	/* The claim returned from a event_log_claim_source is always a claim collection,
 	 * realized by the associated event log.  The event log may contain 0..*
 	 * claims.
 	 */
 	if (instance->event_log && instance->event_log_len) {
-
 		claim->subject_id = CLAIM_SUBJECT_ID_NONE;
 		claim->variant_id = CLAIM_VARIANT_ID_COLLECTION;
 		claim->raw_data = instance->event_log;
@@ -114,7 +112,8 @@ static bool event_log_iterator_current(struct claim_iterator *iter, struct claim
 	struct evl_record_data data = {0};
 
 	if (!event_log_parser_get(&evl_context, &data)) {
-		if (data.data_type == rct_pcr_record && data.data.pcr_record.header.event_type == EV_POST_CODE) {
+		if (data.data_type == rct_pcr_record &&
+		    data.data.pcr_record.header.event_type == EV_POST_CODE) {
 			claim->category = CLAIM_CATEGORY_BOOT_MEASUREMENT;
 			claim->subject_id = CLAIM_SUBJECT_ID_SW_COMPONENT;
 			claim->variant_id = CLAIM_VARIANT_ID_MEASUREMENT;
@@ -144,7 +143,7 @@ error:
 }
 
 static void create_event_log_iterator(const struct claim_collection_variant *variant,
-								struct claim_iterator *iter)
+				      struct claim_iterator *iter)
 {
 	/* Assign concrete methods */
 	iter->first = event_log_iterator_first;
