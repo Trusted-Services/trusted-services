@@ -11,3 +11,9 @@ endif()
 target_sources(${TGT} PRIVATE
 	"${CMAKE_CURRENT_LIST_DIR}/event_log_parser.c"
 	)
+
+	add_components(TARGET ${TGT}
+	BASE_DIR ${TS_ROOT}
+	COMPONENTS
+		"components/common/endian"
+	)

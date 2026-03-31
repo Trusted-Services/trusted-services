@@ -10,4 +10,5 @@ endif()
 
 target_sources(${TGT} PRIVATE
 	"${CMAKE_CURRENT_LIST_DIR}/le.c"
+	"${CMAKE_CURRENT_LIST_DIR}/be.c"
 	)
