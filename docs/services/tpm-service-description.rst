@@ -59,6 +59,8 @@ This is responsible for:
   * Startup and runtime initialization of the TPM.
   * Command execution: the memory buffer from the CRB which contains the incoming command is passed
     to the library using ``ExecuteCommand()``, writing the response back to the same memory buffer.
+  * Replaying an Event Log captured in the format specified in the `TCG PC Client Platform
+    Firmware Profile Specification`_ to the TPM PCR registers.
 
 The platform, crypto library and build system related modifications for ms-tpm-20-ref are
 implemented in patch files found at ``external/ms_tpm/*.patch``. Summary of the modifications:
@@ -73,19 +75,36 @@ implemented in patch files found at ``external/ms_tpm/*.patch``. Summary of the 
     * Non-volatile storage using PSA Storage API.
     * Get entropy using Mbed TLS.
 
+Event Log support
+'''''''''''''''''
+
+The event log processing code makes the following assumptions:
+
+  * PCR registers can be written with empty password authentication.
+  * The service operates at a locality that permits writing to all PCR registers.
+  * All PCR banks referenced in the log are enabled.
+
+If any of the above assumptions are not met, some PCR updates may have no effect or the replay process may fail with an
+error.
+
+When the service is deployed to an S-EL0 SP, the Event Log is expected to be provided as a boot argument and will be
+stored into the Config Store. If the event Log boot argument is not provided, the SP will silently skip the replay. If
+the Event Log is present but parsing fails the SP will enter a fatal error state.
+
 Limitations
 -----------
 
   * Handling of Locality 4 commands is not implemented.
   * Hardware clock usage is not implemented, a software counter is used instead that's incremented
     on each query.
-  * Handling of early boot measurements (from BL1 and BL2) is not implemented.
 
 --------------
 
 .. _`TPM specification`: https://trustedcomputinggroup.org/resource/tpm-library-specification/
 .. _`DEN0138`: https://developer.arm.com/documentation/den0138/latest
 .. _`ms-tpm-20-ref`: https://github.com/microsoft/ms-tpm-20-ref
+.. _`TCG PC Client Platform Firmware Profile Specification` : https://trustedcomputinggroup.org/resource/pc-client-specific-platform-firmware-profile-specification
+
 
 *Copyright (c) 2025, Arm Limited and Contributors. All rights reserved.*
 

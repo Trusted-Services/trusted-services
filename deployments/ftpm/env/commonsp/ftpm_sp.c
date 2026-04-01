@@ -22,6 +22,10 @@
 #include "sp_messaging.h"
 #include "sp_rxtx.h"
 
+#include "components/common/event_log/event_log_parser.h"
+#include "components/config/interface/config_blob.h"
+#include "components/config/interface/config_store.h"
+
 #include "ftpm_sp.h"
 
 #define CONFIG_NAME_TPM_CRB_NS_REGION "tpm-crb-ns"
@@ -29,6 +33,24 @@
 
 static uint8_t tx_buffer[4096] __aligned(4096);
 static uint8_t rx_buffer[4096] __aligned(4096);
+
+static int init_event_log(union ffa_boot_info *boot_info)
+{
+	struct config_blob config_blob;
+
+	if (config_store_query(CONFIG_CLASSIFIER_BLOB, "EVENT_LOG", 0,
+			       &config_blob, sizeof(config_blob))) {
+		if (ms_tpm_backend_replay_eventlog(config_blob.data, config_blob.data_len)) {
+			EMSG("Replaying the event log failed.");
+			return SP_RESULT_INTERNAL_ERROR;
+		}
+	} else {
+		IMSG("Event log missing from config store.");
+		return SP_RESULT_NOT_FOUND;
+	}
+
+	return SP_RESULT_OK;
+}
 
 void __noreturn sp_main(union ffa_boot_info *boot_info)
 {
@@ -109,6 +131,12 @@ void __noreturn sp_main(union ffa_boot_info *boot_info)
 		EMSG("ms_tpm backend init failed");
 		goto fatal_error;
 	}
+
+#if CFG_REPLAY_EVENT_LOG
+	if (SP_RESULT_INTERNAL_ERROR == init_event_log(boot_info)) {
+		goto fatal_error;
+	}
+#endif
 
 	service_iface = tpm_provider_init(&service_provider,
 					  (uint8_t *)tpm_crb_ns_region.base_addr,

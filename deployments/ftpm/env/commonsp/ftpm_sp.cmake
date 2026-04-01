@@ -22,8 +22,15 @@ add_components(TARGET "ftpm"
 		"components/rpc/tpm_crb_ffa/endpoint/sp"
 		"components/service/log/factory"
 		"components/service/log/client"
+		"components/common/event_log"
 )
 
 target_sources(ftpm PRIVATE
 	${CMAKE_CURRENT_LIST_DIR}/ftpm_sp.c
 )
+
+set(CFG_REPLAY_EVENT_LOG True CACHE BOOL "Replay TPM Event Log into PCR registers.")
+
+if(CFG_REPLAY_EVENT_LOG)
+	set_property(SOURCE ${CMAKE_CURRENT_LIST_DIR}/ftpm_sp.c APPEND PROPERTY COMPILE_DEFINITIONS PRIVATE CFG_REPLAY_EVENT_LOG=1)
+endif()
