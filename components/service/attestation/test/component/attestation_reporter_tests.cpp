@@ -35,6 +35,7 @@ TEST_GROUP(AttestationReporterTests)
         const struct mock_event_log_info *event_log_info = mock_event_log_list_get_default();
 
 
+	service_locator_init();
         open_crypto_session();
         local_attest_key_mngr_init(LOCAL_ATTEST_KEY_MNGR_VOLATILE_IAK);
 

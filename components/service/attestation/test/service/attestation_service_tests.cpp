@@ -10,6 +10,7 @@
 #include <protocols/rpc/common/packed-c/encoding.h>
 #include <service_locator.h>
 #include <psa/initial_attestation.h>
+#include <service/crypto/client/psa/psa_crypto_client.h>
 #include <CppUTest/TestHarness.h>
 
 /*
@@ -33,6 +34,8 @@ TEST_GROUP(AttestationServiceTests)
         CHECK_TRUE(m_rpc_session);
 
         psa_iat_client_init(m_rpc_session);
+
+	open_crypto_session();
     }
 
     void teardown()
@@ -48,10 +51,38 @@ TEST_GROUP(AttestationServiceTests)
 		service_context_relinquish(m_attest_service_context);
 		m_attest_service_context = NULL;
 	}
+	close_crypto_session();
+    }
+
+    void open_crypto_session()
+    {
+        m_crypto_service_context = service_locator_query("sn:trustedfirmware.org:crypto:0");
+        if (m_crypto_service_context) {
+            m_crypto_session = service_context_open(m_crypto_service_context);
+            if (m_crypto_session) {
+                psa_crypto_client_init(m_crypto_session);
+                psa_crypto_init();
+            }
+        }
+    }
+
+    void close_crypto_session()
+    {
+        psa_crypto_client_deinit();
+
+        if (m_crypto_service_context && m_crypto_session) {
+            service_context_close(m_crypto_service_context, m_crypto_session);
+            m_crypto_session = NULL;
+
+            service_context_relinquish(m_crypto_service_context);
+            m_crypto_service_context = NULL;
+        }
     }
 
     struct rpc_caller_session *m_rpc_session;
     struct service_context *m_attest_service_context;
+    struct service_context *m_crypto_service_context;
+    struct rpc_caller_session *m_crypto_session;
 };
 
 TEST(AttestationServiceTests, checkTokenSize)
