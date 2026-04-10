@@ -280,6 +280,7 @@ static psa_status_t file_block_store_erase(void *context, uint32_t client_id,
 }
 
 struct block_store *file_block_store_init(struct file_block_store *this_instance,
+					  const struct uuid_octets *disk_guid,
 					  const char *filename, size_t block_size)
 {
 	struct block_store *block_store = NULL;
@@ -318,8 +319,8 @@ struct block_store *file_block_store_init(struct file_block_store *this_instance
 	}
 
 	if (this_instance->file_handle)
-		block_store = block_device_init(&this_instance->base_block_device, NULL, num_blocks,
-						block_size);
+		block_store = block_device_init(&this_instance->base_block_device, disk_guid,
+						num_blocks, block_size);
 
 	return block_store;
 }

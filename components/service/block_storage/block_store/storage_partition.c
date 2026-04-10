@@ -17,7 +17,11 @@ void storage_partition_init(
 {
 	memset(partition, 0, sizeof(struct storage_partition));
 
-	if (partition_guid) partition->partition_guid = *partition_guid;
+	if (partition_guid)
+		partition->partition_guid = *partition_guid;
+	else
+		memset(&partition->partition_guid, 0xff, sizeof(partition->partition_guid));
+
 	partition->block_size = block_size;
 	partition->num_blocks = num_blocks;
 

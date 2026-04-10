@@ -21,7 +21,7 @@ TEST_GROUP(FileBlockStoreTests)
 		memset(m_disk_guid.octets, 0, sizeof(m_disk_guid.octets));
 
 		struct block_store *block_store =
-			file_block_store_init(&m_file_block_store, m_filename.c_str(), BLOCK_SIZE);
+			file_block_store_init(&m_file_block_store, &m_disk_guid, m_filename.c_str(), BLOCK_SIZE);
 
 		CHECK_TRUE(block_store);
 
@@ -146,13 +146,16 @@ TEST(FileBlockStoreTests, initWithExistingDiskImage)
 
 	/* Re-initialise and open */
 	struct block_store *block_store =
-		file_block_store_init(&m_file_block_store, m_filename.c_str(), BLOCK_SIZE);
+		file_block_store_init(&m_file_block_store, &m_disk_guid, m_filename.c_str(), BLOCK_SIZE);
 
 	CHECK_TRUE(block_store);
 
-	psa_status_t status =
-		block_store_open(block_store, CLIENT_ID, &m_disk_guid, &m_partition_handle);
+	psa_status_t status = file_block_store_configure(&m_file_block_store, &m_disk_guid,
+								 NUM_BLOCKS, BLOCK_SIZE);
+	LONGS_EQUAL(PSA_SUCCESS, status);
 
+	status =
+		block_store_open(block_store, CLIENT_ID, &m_disk_guid, &m_partition_handle);
 	LONGS_EQUAL(PSA_SUCCESS, status);
 
 	/* Expect disk partition size to reflect existing disk file */

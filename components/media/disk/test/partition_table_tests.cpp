@@ -25,13 +25,13 @@ TEST_GROUP(PartitionTableTests)
 		size_t block_size = PLAT_PARTITION_BLOCK_SIZE;
 		size_t num_blocks = ref_partition_data_length / block_size;
 
+		memset(m_partition_guid.octets, 0, sizeof(m_partition_guid.octets));
+
 		m_block_store = ram_block_store_init(&m_ram_block_store,
-			NULL,
+			&m_partition_guid,
 			num_blocks, block_size);
 
 		CHECK_TRUE(m_block_store);
-
-		memset(m_partition_guid.octets, 0, sizeof(m_partition_guid.octets));
 
 		m_volume = NULL;
 

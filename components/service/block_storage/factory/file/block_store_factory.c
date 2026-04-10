@@ -63,8 +63,9 @@ struct block_store *file_block_store_factory_create(void)
 			file_block_store_factory_set_filename("secure-flash.img");
 
 		/* Initialise a file_block_store to provide underlying storage */
-		struct block_store *secure_flash = file_block_store_init(
-			&assembly->file_block_store, disk_img_filename, FILE_BLOCK_SIZE);
+		struct block_store *secure_flash =
+			file_block_store_init(&assembly->file_block_store, &disk_guid,
+					      disk_img_filename, FILE_BLOCK_SIZE);
 
 		if (secure_flash) {
 			/* Secure flash successfully initialized so create a block_volume

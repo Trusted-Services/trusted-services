@@ -41,6 +41,7 @@ struct file_block_store {
  * \return Pointer to block_store or NULL on failure
  */
 struct block_store *file_block_store_init(struct file_block_store *file_block_store,
+					  const struct uuid_octets *disk_guid,
 					  const char *filename, size_t block_size);
 
 /**
