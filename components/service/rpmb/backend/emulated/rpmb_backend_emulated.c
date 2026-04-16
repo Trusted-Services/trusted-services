@@ -34,8 +34,8 @@ static uint16_t u16_from_rpmb_field(const uint8_t *rpmb_field)
 	return (rpmb_field[0] << 8) | rpmb_field[1];
 }
 
-static psa_status_t rpmb_backend_emulated_get_dev_info(
-	void *context, uint32_t dev_id, struct rpmb_dev_info *dev_info)
+static psa_status_t
+rpmb_backend_emulated_get_dev_info(void *context, uint32_t dev_id, struct rpmb_dev_info *dev_info)
 {
 	struct rpmb_backend_emulated *backend = (struct rpmb_backend_emulated *)context;
 	static const uint8_t test_cid[] = {
@@ -185,7 +185,6 @@ static void rpmb_emulated_authenticated_data_write(struct rpmb_backend_emulated 
 	}
 
 	u16_to_rpmb_field(result, response->op_result);
-
 }
 
 static uint16_t check_read_request(struct rpmb_backend_emulated *backend,
@@ -245,20 +244,19 @@ static psa_status_t rpmb_emulated_authenticated_data_read(struct rpmb_backend_em
 				 */
 				return PSA_ERROR_BUFFER_TOO_SMALL;
 
+			memcpy(temp.nonce, request->nonce, sizeof(temp.nonce));
+			memcpy(temp.address, request->address, sizeof(temp.address));
+			memcpy(temp.block_count, request->block_count,
+			       sizeof(temp.block_count));
+			u16_to_rpmb_field(RPMB_RES_OK, temp.op_result);
+			u16_to_rpmb_field(RPMB_RESP_TYPE_AUTHENTICATED_DATA_READ,
+					  temp.msg_type);
+
 			for (i = 0; i < block_count; i++) {
 				uint8_t *data = &backend->buffer[address + i * RPMB_DATA_SIZE];
 
-				memset(&temp, 0x00, sizeof(temp));
-				memcpy(temp.data, data, sizeof(temp.data));
-				memcpy(temp.nonce, request->nonce, sizeof(temp.nonce));
-				memcpy(temp.address, request->address, sizeof(temp.address));
-				memcpy(temp.block_count, request->block_count,
-				       sizeof(temp.block_count));
-				u16_to_rpmb_field(RPMB_RES_OK, temp.op_result);
-				u16_to_rpmb_field(RPMB_RESP_TYPE_AUTHENTICATED_DATA_READ,
-						  temp.msg_type);
-
 				memcpy(&response[i], &temp, sizeof(response[i]));
+				memcpy(&response[i].data, data, sizeof(response[i].data));
 			}
 
 			calculate_mac(backend, response, block_count,
@@ -278,10 +276,12 @@ static psa_status_t rpmb_emulated_authenticated_data_read(struct rpmb_backend_em
 	return PSA_SUCCESS;
 }
 
-static psa_status_t rpmb_backend_emulated_data_request(
-	void *context, uint32_t dev_id, const struct rpmb_data_frame *request_frames,
-	size_t request_frame_count, struct rpmb_data_frame *response_frames,
-	size_t *response_frame_count)
+static psa_status_t
+rpmb_backend_emulated_data_request(void *context, uint32_t dev_id,
+				   const struct rpmb_data_frame *request_frames,
+				   size_t request_frame_count,
+				   struct rpmb_data_frame *response_frames,
+				   size_t *response_frame_count)
 {
 	struct rpmb_backend_emulated *backend = (struct rpmb_backend_emulated *)context;
 	size_t req_index = 0;
@@ -318,8 +318,9 @@ static psa_status_t rpmb_backend_emulated_data_request(
 				size_t response_count = *response_frame_count - resp_index;
 				psa_status_t status = PSA_ERROR_GENERIC_ERROR;
 
-				status = rpmb_emulated_authenticated_data_read(
-					backend, request, response, &response_count);
+				status = rpmb_emulated_authenticated_data_read(backend, request,
+									       response,
+									       &response_count);
 				if (status != PSA_SUCCESS)
 					return status;
 
