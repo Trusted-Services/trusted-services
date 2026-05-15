@@ -55,6 +55,7 @@ struct block_store *semihosting_block_store_factory_create(void)
 		/* Initialise a semihosting_block_store to provide underlying storage */
 		struct block_store *secure_flash = semihosting_block_store_init(
 			&assembly->semihosting_block_store,
+			&disk_guid,
 			"secure-flash.img",
 			SEMIHOSTING_BLOCK_SIZE);
 

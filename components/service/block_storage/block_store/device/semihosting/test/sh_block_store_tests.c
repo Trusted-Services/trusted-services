@@ -28,16 +28,17 @@ static bool setup(struct test_failure *failure)
 {
 	semihosting_block_store_wipe(sh_filename);
 
-	if (!semihosting_block_store_init(&sh_block_store, sh_filename, BLOCK_SIZE)) {
+	struct uuid_octets disk_guid;
+	uuid_guid_octets_from_canonical(&disk_guid,
+		"418edc38-fa66-4871-979b-e67bee88b8f2");
+
+	if (!semihosting_block_store_init(&sh_block_store, &disk_guid, sh_filename, BLOCK_SIZE)) {
 
 		/* Failed to initialize block store */
 		failure->line_num = __LINE__;
 		return false;
 	}
 
-	struct uuid_octets disk_guid;
-	uuid_guid_octets_from_canonical(&disk_guid,
-		"418edc38-fa66-4871-979b-e67bee88b8f2");
 
 	semihosting_block_store_configure(&sh_block_store,
 		&disk_guid,

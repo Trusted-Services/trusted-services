@@ -333,6 +333,7 @@ static psa_status_t semihosting_block_store_erase(void *context,
 
 struct block_store *semihosting_block_store_init(
 	struct semihosting_block_store *this_instance,
+	const struct uuid_octets *disk_guid,
 	const char *filename,
 	size_t block_size)
 {
@@ -383,7 +384,7 @@ struct block_store *semihosting_block_store_init(
 	if (this_instance->file_handle > 0) {
 
 		block_store = block_device_init(
-			&this_instance->base_block_device, NULL, num_blocks, block_size);
+			&this_instance->base_block_device, disk_guid, num_blocks, block_size);
 	}
 
 	return block_store;

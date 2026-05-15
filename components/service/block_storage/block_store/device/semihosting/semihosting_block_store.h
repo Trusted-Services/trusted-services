@@ -35,6 +35,7 @@ struct semihosting_block_store
  * \brief Initialize a semihosting_block_store
  *
  * \param[in]  semihosting_block_store  The subject semihosting_block_store
+ * \param[in]  disk_guid                The disk GUID (can be NULL)
  * \param[in]  filename                 The host filename used for storage
  * \param[in]  block_size               The storage block size
  *
@@ -42,6 +43,7 @@ struct semihosting_block_store
  */
 struct block_store *semihosting_block_store_init(
 	struct semihosting_block_store *semihosting_block_store,
+	const struct uuid_octets *disk_guid,
 	const char *filename,
 	size_t block_size);
 
