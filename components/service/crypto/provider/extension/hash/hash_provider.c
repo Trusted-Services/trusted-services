@@ -17,6 +17,7 @@ static rpc_status_t hash_finish_handler(void *context, struct rpc_request *req);
 static rpc_status_t hash_abort_handler(void *context, struct rpc_request *req);
 static rpc_status_t hash_verify_handler(void *context, struct rpc_request *req);
 static rpc_status_t hash_clone_handler(void *context, struct rpc_request *req);
+static void hash_abort_context(struct crypto_context *crypto_context);
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
@@ -62,6 +63,11 @@ static const struct hash_provider_serializer* get_serializer(void *context,
 	return this_instance->serializers[encoding];
 }
 
+static void hash_abort_context(struct crypto_context *crypto_context)
+{
+	(void)psa_hash_abort(&crypto_context->op.hash);
+}
+
 static rpc_status_t hash_setup_handler(void *context, struct rpc_request *req)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
@@ -81,7 +87,7 @@ static rpc_status_t hash_setup_handler(void *context, struct rpc_request *req)
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
 				CRYPTO_CONTEXT_OP_ID_HASH, req->source_id,
-				&op_handle);
+				hash_abort_context, &op_handle);
 
 		if (crypto_context) {
 
@@ -288,7 +294,7 @@ static rpc_status_t hash_clone_handler(void *context, struct rpc_request *req)
 			struct crypto_context *target_crypto_context = crypto_context_pool_alloc(
 				&this_instance->context_pool,
 				CRYPTO_CONTEXT_OP_ID_HASH, req->source_id,
-				&target_op_handle);
+				hash_abort_context, &target_op_handle);
 
 			if (target_crypto_context) {
 

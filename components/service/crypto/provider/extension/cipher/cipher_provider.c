@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -18,6 +18,7 @@ static rpc_status_t cipher_set_iv_handler(void *context, struct rpc_request *req
 static rpc_status_t cipher_update_handler(void *context, struct rpc_request *req);
 static rpc_status_t cipher_finish_handler(void *context, struct rpc_request *req);
 static rpc_status_t cipher_abort_handler(void *context, struct rpc_request *req);
+static void cipher_abort_context(struct crypto_context *crypto_context);
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
@@ -64,6 +65,11 @@ static const struct cipher_provider_serializer* get_serializer(void *context,
 	return this_instance->serializers[encoding];
 }
 
+static void cipher_abort_context(struct crypto_context *crypto_context)
+{
+	(void)psa_cipher_abort(&crypto_context->op.cipher);
+}
+
 static rpc_status_t cipher_setup_handler(void *context, struct rpc_request *req)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
@@ -84,7 +90,7 @@ static rpc_status_t cipher_setup_handler(void *context, struct rpc_request *req)
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
 				CRYPTO_CONTEXT_OP_ID_CIPHER, req->source_id,
-				&op_handle);
+				cipher_abort_context, &op_handle);
 
 		if (crypto_context) {
 
@@ -150,6 +156,10 @@ static rpc_status_t cipher_generate_iv_handler(void *context, struct rpc_request
 
 				struct rpc_buffer *resp_buf = &req->response;
 				rpc_status = serializer->serialize_cipher_generate_iv_resp(resp_buf, iv, iv_len);
+			} else {
+				(void)psa_cipher_abort(&crypto_context->op.cipher);
+				crypto_context_pool_free(&this_instance->context_pool,
+					crypto_context);
 			}
 		}
 
@@ -186,6 +196,12 @@ static rpc_status_t cipher_set_iv_handler(void *context, struct rpc_request *req
 		if (crypto_context) {
 
 			psa_status = psa_cipher_set_iv(&crypto_context->op.cipher, iv, iv_len);
+
+			if (psa_status != PSA_SUCCESS) {
+				(void)psa_cipher_abort(&crypto_context->op.cipher);
+				crypto_context_pool_free(&this_instance->context_pool,
+					crypto_context);
+			}
 		}
 
 		req->service_status = psa_status;
@@ -235,6 +251,10 @@ static rpc_status_t cipher_update_handler(void *context, struct rpc_request *req
 					struct rpc_buffer *resp_buf = &req->response;
 					rpc_status = serializer->serialize_cipher_update_resp(resp_buf,
 						output, output_len);
+				} else {
+					(void)psa_cipher_abort(&crypto_context->op.cipher);
+					crypto_context_pool_free(&this_instance->context_pool,
+						crypto_context);
 				}
 
 				free(output);
@@ -283,9 +303,11 @@ static rpc_status_t cipher_finish_handler(void *context, struct rpc_request *req
 
 				struct rpc_buffer *resp_buf = &req->response;
 				rpc_status = serializer->serialize_cipher_finish_resp(resp_buf, output, output_len);
-
-				crypto_context_pool_free(&this_instance->context_pool, crypto_context);
+			} else {
+				(void)psa_cipher_abort(&crypto_context->op.cipher);
 			}
+			crypto_context_pool_free(&this_instance->context_pool,
+					crypto_context);
 		}
 
 		req->service_status = psa_status;

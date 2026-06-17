@@ -23,6 +23,7 @@ static rpc_status_t key_derivation_abort_handler(void *context, struct rpc_reque
 static rpc_status_t key_derivation_key_agreement_handler(void *context, struct rpc_request *req);
 static rpc_status_t key_derivation_raw_key_agreement_handler(void *context,
 							     struct rpc_request *req);
+static void key_derivation_abort_context(struct crypto_context *crypto_context);
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
@@ -72,6 +73,11 @@ static const struct key_derivation_provider_serializer* get_serializer(void *con
 	return this_instance->serializers[encoding];
 }
 
+static void key_derivation_abort_context(struct crypto_context *crypto_context)
+{
+	(void)psa_key_derivation_abort(&crypto_context->op.key_derivation);
+}
+
 static rpc_status_t key_derivation_setup_handler(void *context, struct rpc_request *req)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
@@ -91,7 +97,7 @@ static rpc_status_t key_derivation_setup_handler(void *context, struct rpc_reque
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
 				CRYPTO_CONTEXT_OP_ID_KEY_DERIVATION, req->source_id,
-				&op_handle);
+				key_derivation_abort_context, &op_handle);
 
 		if (crypto_context) {
 

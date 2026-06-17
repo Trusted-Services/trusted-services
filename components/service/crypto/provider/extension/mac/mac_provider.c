@@ -17,6 +17,7 @@ static rpc_status_t mac_update_handler(void *context, struct rpc_request *req);
 static rpc_status_t mac_sign_finish_handler(void *context, struct rpc_request *req);
 static rpc_status_t mac_verify_finish_handler(void *context, struct rpc_request *req);
 static rpc_status_t mac_abort_handler(void *context, struct rpc_request *req);
+static void mac_abort_context(struct crypto_context *crypto_context);
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
@@ -62,6 +63,11 @@ static const struct mac_provider_serializer* get_serializer(void *context,
 	return this_instance->serializers[encoding];
 }
 
+static void mac_abort_context(struct crypto_context *crypto_context)
+{
+	(void)psa_mac_abort(&crypto_context->op.mac);
+}
+
 static rpc_status_t mac_setup_handler(void *context, struct rpc_request *req)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
@@ -82,7 +88,7 @@ static rpc_status_t mac_setup_handler(void *context, struct rpc_request *req)
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
 				CRYPTO_CONTEXT_OP_ID_MAC, req->source_id,
-				&op_handle);
+				mac_abort_context, &op_handle);
 
 		if (crypto_context) {
 			namespaced_key_id_t ns_key_id =

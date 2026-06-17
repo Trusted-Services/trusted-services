@@ -21,6 +21,7 @@ static rpc_status_t aead_update_handler(void *context, struct rpc_request *req);
 static rpc_status_t aead_finish_handler(void *context, struct rpc_request *req);
 static rpc_status_t aead_verify_handler(void *context, struct rpc_request *req);
 static rpc_status_t aead_abort_handler(void *context, struct rpc_request *req);
+static void aead_abort_context(struct crypto_context *crypto_context);
 
 /* Handler mapping table for service */
 static const struct service_handler handler_table[] = {
@@ -70,6 +71,11 @@ static const struct aead_provider_serializer* get_serializer(void *context,
 	return this_instance->serializers[encoding];
 }
 
+static void aead_abort_context(struct crypto_context *crypto_context)
+{
+	(void)psa_aead_abort(&crypto_context->op.aead);
+}
+
 static rpc_status_t aead_setup_handler(void *context, struct rpc_request *req)
 {
 	rpc_status_t rpc_status = RPC_ERROR_INTERNAL;
@@ -90,7 +96,7 @@ static rpc_status_t aead_setup_handler(void *context, struct rpc_request *req)
 		struct crypto_context *crypto_context =
 			crypto_context_pool_alloc(&this_instance->context_pool,
 				CRYPTO_CONTEXT_OP_ID_AEAD, req->source_id,
-				&op_handle);
+				aead_abort_context, &op_handle);
 
 		if (crypto_context) {
 

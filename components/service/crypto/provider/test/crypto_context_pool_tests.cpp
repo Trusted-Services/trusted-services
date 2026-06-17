@@ -8,6 +8,14 @@
 #include <service/crypto/provider/crypto_context_pool.h>
 #include <CppUTest/TestHarness.h>
 
+static unsigned int cleanup_count;
+
+static void count_cleanup(struct crypto_context *context)
+{
+	(void)context;
+	++cleanup_count;
+}
+
 /*
  * Component tests for the crypto_context_pool.
  */
@@ -15,6 +23,7 @@ TEST_GROUP(CryptoContextPoolTests)
 {
 	void setup()
 	{
+		cleanup_count = 0;
 		crypto_context_pool_init(&pool_under_test);
 	}
 
@@ -43,7 +52,7 @@ TEST(CryptoContextPoolTests, singleContext)
 	struct crypto_context *initial_context =
 		crypto_context_pool_alloc(&pool_under_test,
 			CRYPTO_CONTEXT_OP_ID_HASH, client_id,
-			&op_handle);
+			NULL, &op_handle);
 
 	CHECK_TRUE(initial_context);
 
@@ -70,12 +79,12 @@ TEST(CryptoContextPoolTests, multipleContexts)
 	 */
 	context = crypto_context_pool_alloc(&pool_under_test,
 				CRYPTO_CONTEXT_OP_ID_MAC, 77,
-				&zombie_handle_1);
+				count_cleanup, &zombie_handle_1);
 	CHECK_TRUE(context);
 
 	context = crypto_context_pool_alloc(&pool_under_test,
 				CRYPTO_CONTEXT_OP_ID_CIPHER, 88,
-				&zombie_handle_2);
+				count_cleanup, &zombie_handle_2);
 	CHECK_TRUE(context);
 
 	/* Now run through the normal life-cycle for a load of concurrent contexts */
@@ -89,7 +98,7 @@ TEST(CryptoContextPoolTests, multipleContexts)
 
 			context = crypto_context_pool_alloc(&pool_under_test,
 				CRYPTO_CONTEXT_OP_ID_HASH, context_index,
-				&op_handles[context_index]);
+				NULL, &op_handles[context_index]);
 
 			CHECK_TRUE(context);
 		}
@@ -118,6 +127,8 @@ TEST(CryptoContextPoolTests, multipleContexts)
 	}
 
 	/* Expect the zombie contexts to have been recycled */
+	UNSIGNED_LONGS_EQUAL(2, cleanup_count);
+
 	context = crypto_context_pool_find(&pool_under_test,
 				CRYPTO_CONTEXT_OP_ID_MAC, 77,
 				zombie_handle_1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -37,12 +37,18 @@ void crypto_context_pool_deinit(struct crypto_context_pool *pool)
 struct crypto_context *crypto_context_pool_alloc(struct crypto_context_pool *pool,
 	enum crypto_context_op_id usage,
 	uint32_t client_id,
+	crypto_context_cleanup_t cleanup,
 	uint32_t *op_handle)
 {
 	struct crypto_context *context = NULL;
 
 	/* Re-cycle least-recently used context if there are no free contexts */
-	if (!pool->free && pool->active_tail) crypto_context_pool_free(pool, pool->active_tail);
+	if (!pool->free && pool->active_tail) {
+		if (pool->active_tail->cleanup)
+			pool->active_tail->cleanup(pool->active_tail);
+
+		crypto_context_pool_free(pool, pool->active_tail);
+	}
 
 	/* Active context are held in a linked list in most recently allocated order */
 	if (pool->free) {
@@ -59,6 +65,7 @@ struct crypto_context *crypto_context_pool_alloc(struct crypto_context_pool *poo
 
 		context->usage = usage;
 		context->client_id = client_id;
+		context->cleanup = cleanup;
 
 		context->op_handle = alloc_op_handle(pool);
 		*op_handle = context->op_handle;
@@ -123,6 +130,7 @@ static void add_to_free_list(struct crypto_context_pool *pool,
 {
 	context->usage = CRYPTO_CONTEXT_OP_ID_NONE;
 	context->op_handle = 0;
+	context->cleanup = NULL;
 	context->next = pool->free;
 	context->prev = NULL;
 	pool->free = context;

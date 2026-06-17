@@ -39,6 +39,10 @@ enum crypto_context_op_id
 	CRYPTO_CONTEXT_OP_ID_KEY_DERIVATION
 };
 
+struct crypto_context;
+
+typedef void (*crypto_context_cleanup_t)(struct crypto_context *context);
+
 /**
  * A crypto context, used to hold state for a multi-step transaction.
  */
@@ -47,6 +51,7 @@ struct crypto_context
 	enum crypto_context_op_id usage;
 	uint32_t client_id;
 	uint32_t op_handle;
+	crypto_context_cleanup_t cleanup;
 	struct crypto_context *next;
 	struct crypto_context *prev;
 
@@ -98,6 +103,7 @@ void crypto_context_pool_deinit(struct crypto_context_pool *pool);
 struct crypto_context *crypto_context_pool_alloc(struct crypto_context_pool *pool,
 	enum crypto_context_op_id usage,
 	uint32_t client_id,
+	crypto_context_cleanup_t cleanup,
 	uint32_t *op_handle);
 
 /*
